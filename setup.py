@@ -12,7 +12,7 @@ AUTHOR = info.AUTHOR
 AUTHOR_EMAIL = info.AUTHOR_EMAIL
 URL = info.URL
 VERSION = info.VERSION
-REQUIRES = ['lxc', 'jinja2']
+REQUIRES = ['lxc',]
 
 cmdclass = {}
 ext_modules = []
@@ -27,7 +27,7 @@ setup(
     url=URL,
     packages=find_packages(exclude=['tests']),
     include_package_data=True,
-    scripts=['rider/bin/rider'],
+    scripts=['codev/bin/codev'],
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
         'Environment :: Console',
