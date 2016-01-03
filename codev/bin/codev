@@ -1,6 +1,168 @@
 #!/usr/bin/env python
 
+"""
+Use cases
+
+codev init --template=[template]
+    -- create new project
+
+codev install --environment=[environment] --infrastructure=[infrastructure]
+    -- install project
+    environment default = default
+
+    -- idempotent
+
+codev stop [project] [environment]
+    -- stop project
+
+codev restart [project] [environment]
+    -- stop project and run project
+
+codev run [project] [environment]
+    -- run installed project
+
+codev upgrade [project] [environment]
+    -- install project and run/restart
+
+codev status [project] [environment]
+    -- show info about project status on evironment (running / stopped ...)
+
+
+"""
+
+import click
+from functools import wraps
+from codev import install_project
+from codev.configuration import Configuration
+from codev.configuration import BadVersion
+from codev.info import NAME
+from os import path
+
+
+@click.group()
+def main():
+    pass
+
+
+@main.command()
+@click.option('-f', '--filepath', default='.codev', help='Path to configuration file.')
+def init(filepath):
+    """
+    Create .codev file in current directory or in given file path.
+    """
+
+    if path.exists(filepath):
+        if not click.confirm('A file "%(filepath)s" already exists. Overwrite?' % {'filepath': filepath}):
+            return
+
+    configuration = Configuration()
+    try:
+        configuration.save_to_file(filepath)
+    except Exception as e:
+        raise click.ClickException(unicode(e))
+
+
+def configuration_option(f):
+    def callback(ctx, param, value):
+        configuration = ctx.ensure_object(Configuration)
+        try:
+            configuration.load_from_file(value)
+        except BadVersion as bad_version_exception:
+
+            raise click.ClickException(
+                'This version of %(name)s is obsolete, please for this project use version %(version)s' % {
+                    'name': NAME, 'version': bad_version_exception.version_string
+                }
+            )
+        except Exception as e:
+            raise click.ClickException(unicode(e))
+        return configuration
+    return click.option('-c', '--configuration',
+                        is_eager=True,
+                        default='.codev',
+                        help='Path to configuration file.',
+                        callback=callback)(f)
+
+
+def environment_option(f):
+    return click.option('-e', '--environment',
+                        default=None,
+                        help='Environment to install on')(f)
+
+
+def infrastructure_option(f):
+    return click.option('-i', '--infrastructure',
+                        default=None,
+                        help='Infrastructure to install with')(f)
+
+
+def cei_options(f):
+    f = infrastructure_option(f)
+    f = environment_option(f)
+    f = configuration_option(f)
+    return f
+
+
+def cei_validate(f):
+    @wraps(f)
+    def validate(ctx, configuration, environment, infrastructure):
+        def param_by_name(name):
+            for param in ctx.command.params:
+                if param.name == name:
+                    return param
+            else:
+                raise KeyError()
+
+        if not environment:
+            environment = configuration.default_environment
+        elif environment not in configuration.environments:
+            raise click.BadParameter(
+                'Unknown environment: "%(value)s"\nValid environments: %(environments)s' % {
+                    'value': environment,
+                    'environments': ', '.join(
+                            map(lambda x: '"%s"' % x, configuration.environments)
+                    )
+                },
+                param=param_by_name('environment')
+            )
+
+        if not infrastructure:
+            infrastructure = configuration.default_infrastructure_for_environment(environment)
+
+        else:
+            infrastructures_for_environment = configuration.infrastructures_for_environment(environment)
+            if infrastructure not in infrastructures_for_environment:
+                raise click.BadParameter(
+                    'Unknown infrastructure: "%(value)s"\nValid infrastructures: %(infrastructures)s' % {
+                        'value': infrastructure,
+                        'infrastructures': ', '.join(
+                                map(lambda x: '"%s"' % x, infrastructures_for_environment)
+                        )
+                    },
+                    param=param_by_name('environment')
+                )
+        return f(configuration, environment, infrastructure)
+    return validate
+
+
+@main.command()
+@cei_options
+@click.pass_context
+@cei_validate
+def install(configuration, environment, infrastructure):
+    """
+    install project on environment with
+        infrastructure
+    """
+    if click.confirm(
+        'Install project "%(project)s" on environment "%(environment)s" with infrastructure "%(infrastructure)s"' % {
+            'project': configuration.project,
+            'environment': environment,
+            'infrastructure': infrastructure
+        }
+    ):
+        install_project(configuration, environment, infrastructure)
+
 
 if __name__ == "__main__":
-    #process commands
-    pass
+    main()

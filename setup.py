@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 import imp
-import sys
 from os import path
-from setuptools import setup, find_packages, Extension
+from setuptools import setup, find_packages
 
 info = imp.load_source('info', path.join('.', 'codev', 'info.py'))
 
@@ -12,7 +11,7 @@ AUTHOR = info.AUTHOR
 AUTHOR_EMAIL = info.AUTHOR_EMAIL
 URL = info.URL
 VERSION = info.VERSION
-REQUIRES = ['lxc',]
+REQUIRES = ['click', 'jinja2']
 
 cmdclass = {}
 ext_modules = []
@@ -35,6 +34,7 @@ setup(
         'License :: OSI Approved :: Apache Software License',
         'Operating System :: POSIX :: Linux',
         'Programming Language :: Python',
+        'Programming Language :: Python :: 3',
     ],
     install_requires=REQUIRES,
     cmdclass=cmdclass,
