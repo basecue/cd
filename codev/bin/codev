@@ -6,28 +6,31 @@ Use cases
 codev init --template=[template]
     -- create new project
 
-codev install --environment=[environment] --infrastructure=[infrastructure]
+codev install --environment=[environment] --infrastructure=[infrastructure] --perfomer=test.coex.cz  --isolation=[lxc]
     -- install project
     environment default = default
 
     -- idempotent
 
-codev stop [project] [environment]
+codev stop [environment]
     -- stop project
 
-codev restart [project] [environment]
+codev restart [environment]
     -- stop project and run project
 
-codev run [project] [environment]
+codev run [environment]
     -- run installed project
 
-codev upgrade [project] [environment]
+codev upgrade [environment]
     -- install project and run/restart
 
-codev status [project] [environment]
+codev status [environment]
     -- show info about project status on evironment (running / stopped ...)
 
+codev exec --environment=[environment] --infrastructure=[infrastructure] [command]
 
+
+codev configuration --environment=[environment] --infrastructure=[infrastructure]
 """
 
 import click
@@ -59,7 +62,7 @@ def init(filepath):
     try:
         configuration.save_to_file(filepath)
     except Exception as e:
-        raise click.ClickException(unicode(e))
+        raise click.ClickException(e)
 
 
 def configuration_option(f):
@@ -75,7 +78,7 @@ def configuration_option(f):
                 }
             )
         except Exception as e:
-            raise click.ClickException(unicode(e))
+            raise click.ClickException(e)
         return configuration
     return click.option('-c', '--configuration',
                         is_eager=True,

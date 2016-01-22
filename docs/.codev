@@ -1,0 +1,97 @@
+version: 0.0.2
+project: hranipex
+repositories:
+  - ./
+
+infrastructures:
+  - full:
+    perfomer: local
+    isolation: lxc
+    machines:
+      - webservers:
+        distribution: debian
+        release: squeeze
+        provider: lxc
+      - elasticservers:
+        distribution: ubuntu
+        release: trusty
+        number: 2
+  - simple:
+    - machines:
+      - webservers:
+          distribution: debian
+          release: squeeze
+      - elasticservers:
+          distribution: ubuntu
+          release: trusty
+
+environments:
+  - development:
+    perfomer: local
+    isolation: lxc
+    infrastructures:
+      - full:
+        provision: real
+        connectivity:
+          - protocol: tcp
+            ports:
+              - 80: 80
+        machines:
+          webservers:
+            distribution: debian
+            release: squeeze
+          elasticservers:
+            distribution: ubuntu
+            release: trusty
+            number: 2
+    versions:
+      - actual
+      - live
+      - svc
+
+  - testing:
+    infrastructures:
+      - full:
+        perfomer: test.coex.cz
+        provider: lxc
+  - staging:
+    infrastructures:
+      - full
+    branches:
+      - staging/*
+      - *-staging
+  - production:
+    infrastructures:
+      - full:
+        perfomer: test.coex.cz
+        isolation: lxc
+        machines:
+          - webservers:
+            provision: real
+            host: 10.0.1.5
+        scripts:
+          begin:
+            - first scripts
+          except:
+            - on error scripts
+          else:
+            - on success scripts
+          finally:
+            - cleanup scripts
+    branches:
+      - master
+    scripts:
+      begin:
+        - first scripts
+      except:
+        - error scripts
+      else:
+        - success scripts
+      finally:
+        - cleanup scripts
+
+configuration:
+  provider: ansible
+    version: 1.2
+    inventory: codev://ansible/inventory
+    playbook: provisioning/%(infrastructure)s.yml

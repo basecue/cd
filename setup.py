@@ -11,7 +11,7 @@ AUTHOR = info.AUTHOR
 AUTHOR_EMAIL = info.AUTHOR_EMAIL
 URL = info.URL
 VERSION = info.VERSION
-REQUIRES = ['click', 'jinja2']
+REQUIRES = ['click', 'pyyaml']
 
 cmdclass = {}
 ext_modules = []

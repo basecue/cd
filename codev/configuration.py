@@ -17,32 +17,56 @@ def dict_constructor(loader, node):
 yaml.add_representer(OrderedDict, dict_representer)
 yaml.add_constructor(_mapping_tag, dict_constructor)
 
+Hranipex full live
+hranipex full master@[git rev-parse HEAD]
 
 class BadVersion(Exception):
     def __init__(self, version_string):
         self.version_string = version_string
 
+class CurrentConfiguration(object):
+    @property
+    def environment(self):
+        return 'development'
+
+    @property
+    def infrastructure(self):
+        return 'full'
+
+    @property
+    def version(self):
+        return 'static' / 'live'
 
 class Configuration(object):
     def load_from_file(self, filepath):
-        self.config = yaml.load(file(filepath))
+        self.config = yaml.load(open(filepath))
         self.validate()
 
     def save_to_file(self, filepath):
-        yaml.dump(self.config, file(filepath, 'w'))
+        yaml.dump(self.config, open(filepath, 'w'))
 
     def __init__(self):
         self.config = OrderedDict((
-            ('version', unicode(VERSION)),
+            ('version', VERSION),
             ('project', self.project_alternative),
             ('infrastructures', []),
             ('environments', [])
         ))
 
+    @property
+    def current(self):
+        return CurrentConfiguration()
+
+        return {
+            'environment': 'development',
+            'infrastructure': 'full',
+            'version': 'off / live'
+        }
+
     def validate(self):
         version = Version(VERSION)
         if version <= self.version:
-            raise BadVersion(unicode(self.version))
+            raise BadVersion(self.version)
 
     def default_infrastructure_for_environment(self, environment):
         return 'full'

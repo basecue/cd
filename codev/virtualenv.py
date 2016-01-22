@@ -3,8 +3,7 @@ import os.path
 from subprocess import Popen, PIPE
 import sys
 from threading import Thread
-from urllib.parse import urlparse
-from urllib.request import urlretrieve
+
 from venv import EnvBuilder
 
 
@@ -53,25 +52,25 @@ class CodevEnvBuilder(EnvBuilder):
         self.install_codev(context)
         self.run_codev()
 
-    def reader(self, stream, context):
-        """
-        Read lines from a subprocess' output stream and either pass to a progress
-        callable (if specified) or write progress information to sys.stderr.
-        """
-        progress = self.progress
-        while True:
-            s = stream.readline()
-            if not s:
-                break
-            if progress is not None:
-                progress(s, context)
-            else:
-                if not self.verbose:
-                    sys.stderr.write('.')
-                else:
-                    sys.stderr.write(s.decode('utf-8'))
-                sys.stderr.flush()
-        stream.close()
+    # def reader(self, stream, context):
+    #     """
+    #     Read lines from a subprocess' output stream and either pass to a progress
+    #     callable (if specified) or write progress information to sys.stderr.
+    #     """
+    #     progress = self.progress
+    #     while True:
+    #         s = stream.readline()
+    #         if not s:
+    #             break
+    #         if progress is not None:
+    #             progress(s, context)
+    #         else:
+    #             if not self.verbose:
+    #                 sys.stderr.write('.')
+    #             else:
+    #                 sys.stderr.write(s.decode('utf-8'))
+    #             sys.stderr.flush()
+    #     stream.close()
 
     def install_via_pip(self, context, name):
         # _, _, path, _, _, _ = urlparse(url)
@@ -108,6 +107,8 @@ class CodevEnvBuilder(EnvBuilder):
 
     def install_codev(self, context):
         self.install_via_pip(context, 'codev==%s' % self.version)
+
+    def run_codev(self, context):
 
     # def install_setuptools(self, context):
     #     """
