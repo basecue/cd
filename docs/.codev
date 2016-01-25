@@ -5,8 +5,6 @@ repositories:
 
 infrastructures:
   - full:
-    perfomer: local
-    isolation: lxc
     machines:
       - webservers:
         distribution: debian
@@ -18,24 +16,24 @@ infrastructures:
         number: 2
   - simple:
     - machines:
-      - webservers:
+      webservers:
           distribution: debian
           release: squeeze
-      - elasticservers:
+      elasticservers:
           distribution: ubuntu
           release: trusty
 
 environments:
-  - development:
+  development:
     perfomer: local
     isolation: lxc
     infrastructures:
-      - full:
+      full:
         provision: real
         connectivity:
-          - protocol: tcp
-            ports:
-              - 80: 80
+          protocol: tcp
+          ports:
+            - 80: 80
         machines:
           webservers:
             distribution: debian
@@ -49,18 +47,18 @@ environments:
       - live
       - svc
 
-  - testing:
+  testing:
     infrastructures:
       - full:
         perfomer: test.coex.cz
         provider: lxc
-  - staging:
+  staging:
     infrastructures:
       - full
-    branches:
-      - staging/*
-      - *-staging
-  - production:
+#    branches:
+#      - staging/*
+#      - *-staging
+  production:
     infrastructures:
       - full:
         perfomer: test.coex.cz
@@ -90,8 +88,8 @@ environments:
       finally:
         - cleanup scripts
 
-configuration:
-  provider: ansible
-    version: 1.2
-    inventory: codev://ansible/inventory
-    playbook: provisioning/%(infrastructure)s.yml
+#configuration:
+#  provider: ansible
+#    version: 1.2
+#    inventory: codev://ansible/inventory
+#    playbook: provisioning/%(infrastructure)s.yml

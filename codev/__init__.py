@@ -1,11 +1,6 @@
 
-from jinja2 import Template
-
-
 
 def install_project(configuration, environment, infrastructure):
-    configuration.provider
-
     return
 
 

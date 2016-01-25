@@ -34,11 +34,8 @@ codev configuration --environment=[environment] --infrastructure=[infrastructure
 """
 
 import click
-from functools import wraps
 from codev import install_project
-from codev.configuration import Configuration
-from codev.configuration import BadVersion
-from codev.info import NAME
+from codev.configuration import YAMLConfiguration
 from os import path
 
 
@@ -58,7 +55,7 @@ def init(filepath):
         if not click.confirm('A file "%(filepath)s" already exists. Overwrite?' % {'filepath': filepath}):
             return
 
-    configuration = Configuration()
+    configuration = YAMLConfiguration()
     try:
         configuration.save_to_file(filepath)
     except Exception as e:
@@ -67,18 +64,7 @@ def init(filepath):
 
 def configuration_option(f):
     def callback(ctx, param, value):
-        configuration = ctx.ensure_object(Configuration)
-        try:
-            configuration.load_from_file(value)
-        except BadVersion as bad_version_exception:
-
-            raise click.ClickException(
-                'This version of %(name)s is obsolete, please for this project use version %(version)s' % {
-                    'name': NAME, 'version': bad_version_exception.version_string
-                }
-            )
-        except Exception as e:
-            raise click.ClickException(e)
+        configuration = YAMLConfiguration.from_file(value)
         return configuration
     return click.option('-c', '--configuration',
                         is_eager=True,
@@ -99,72 +85,45 @@ def infrastructure_option(f):
                         help='Infrastructure to install with')(f)
 
 
+def version_option(f):
+    return click.option('-v', '--version',
+                        default=None,
+                        help='Mode')(f)
+
+
+def mode_option(f):
+    return click.option('-m', '--mode',
+                        default='control',
+                        help='Mode')(f)
+
+
 def cei_options(f):
     f = infrastructure_option(f)
     f = environment_option(f)
     f = configuration_option(f)
+    f = version_option(f)
+    f = mode_option(f)
     return f
-
-
-def cei_validate(f):
-    @wraps(f)
-    def validate(ctx, configuration, environment, infrastructure):
-        def param_by_name(name):
-            for param in ctx.command.params:
-                if param.name == name:
-                    return param
-            else:
-                raise KeyError()
-
-        if not environment:
-            environment = configuration.default_environment
-        elif environment not in configuration.environments:
-            raise click.BadParameter(
-                'Unknown environment: "%(value)s"\nValid environments: %(environments)s' % {
-                    'value': environment,
-                    'environments': ', '.join(
-                            map(lambda x: '"%s"' % x, configuration.environments)
-                    )
-                },
-                param=param_by_name('environment')
-            )
-
-        if not infrastructure:
-            infrastructure = configuration.default_infrastructure_for_environment(environment)
-
-        else:
-            infrastructures_for_environment = configuration.infrastructures_for_environment(environment)
-            if infrastructure not in infrastructures_for_environment:
-                raise click.BadParameter(
-                    'Unknown infrastructure: "%(value)s"\nValid infrastructures: %(infrastructures)s' % {
-                        'value': infrastructure,
-                        'infrastructures': ', '.join(
-                                map(lambda x: '"%s"' % x, infrastructures_for_environment)
-                        )
-                    },
-                    param=param_by_name('environment')
-                )
-        return f(configuration, environment, infrastructure)
-    return validate
 
 
 @main.command()
 @cei_options
-@click.pass_context
-@cei_validate
-def install(configuration, environment, infrastructure):
+def install(configuration, environment, infrastructure, version, mode):
     """
     install project on environment with
         infrastructure
     """
-    if click.confirm(
-        'Install project "%(project)s" on environment "%(environment)s" with infrastructure "%(infrastructure)s"' % {
-            'project': configuration.project,
-            'environment': environment,
-            'infrastructure': infrastructure
-        }
-    ):
-        install_project(configuration, environment, infrastructure)
+    print(configuration.environments[environment].infrastructures)
+    install_project(configuration, environment, infrastructure)
+
+    # if click.confirm(
+    #     'Install project "%(project)s" on environment "%(environment)s" with infrastructure "%(infrastructure)s"' % {
+    #         'project': configuration.project,
+    #         'environment': environment,
+    #         'infrastructure': infrastructure
+    #     }
+    # ):
+
 
 
 if __name__ == "__main__":

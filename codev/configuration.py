@@ -1,7 +1,13 @@
+from .performers import Performer
+from .isolations import Isolation
+from .infrastructures import InfrastructureProvision
+
+from .info import VERSION
+from os import path
 import yaml
-from .info import VERSION, NAME
-from .versioning import Version
+
 from collections import OrderedDict
+
 
 _mapping_tag = yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG
 
@@ -17,88 +23,97 @@ def dict_constructor(loader, node):
 yaml.add_representer(OrderedDict, dict_representer)
 yaml.add_constructor(_mapping_tag, dict_constructor)
 
-Hranipex full live
-hranipex full master@[git rev-parse HEAD]
 
-class BadVersion(Exception):
-    def __init__(self, version_string):
-        self.version_string = version_string
+class BaseConfiguration(object):
+    def __init__(self, config):
+        self._config = config
+
+
+class NamedConfiguration(BaseConfiguration):
+    def __init__(self, name, config):
+        self.name = name
+        super(NamedConfiguration, self).__init__(config)
+
 
 class CurrentConfiguration(object):
     @property
-    def environment(self):
-        return 'development'
+    def mode(self):
+        return 'control' + 'perform'
 
     @property
     def infrastructure(self):
-        return 'full'
-
-    @property
-    def version(self):
-        return 'static' / 'live'
-
-class Configuration(object):
-    def load_from_file(self, filepath):
-        self.config = yaml.load(open(filepath))
-        self.validate()
-
-    def save_to_file(self, filepath):
-        yaml.dump(self.config, open(filepath, 'w'))
-
-    def __init__(self):
-        self.config = OrderedDict((
-            ('version', VERSION),
-            ('project', self.project_alternative),
-            ('infrastructures', []),
-            ('environments', [])
-        ))
-
-    @property
-    def current(self):
-        return CurrentConfiguration()
-
-        return {
-            'environment': 'development',
-            'infrastructure': 'full',
-            'version': 'off / live'
-        }
-
-    def validate(self):
-        version = Version(VERSION)
-        if version <= self.version:
-            raise BadVersion(self.version)
-
-    def default_infrastructure_for_environment(self, environment):
-        return 'full'
-
-    def infrastructures_for_environment(self, environment):
-        return ['full', 'simple']
-
-    @property
-    def version(self):
-        return Version(self.config['version'])
-
-    @property
-    def environments(self):
-        """
-
-        :return: list of environments
-        """
-        return self.config['environments']
-
-    @property
-    def default_environment(self):
-        return self.config['environments']['default']
-
-    def project_alternative(self):
         return ''
 
     @property
+    def environment(self):
+        return ''
+
+    @property
+    def version(self):
+        return ''
+
+
+class Machines(NamedConfiguration):
+    pass
+
+
+class DictConfiguration(OrderedDict):
+    def __init__(self, cls, config):
+        super(DictConfiguration, self).__init__()
+        for name, configuration in config.items():
+            self[name] = cls(name, configuration)
+
+
+class Infrastructure(NamedConfiguration):
+    def machines(self):
+        return DictConfiguration(Machines, self._config.get('machines', {}))
+
+    def provision(self):
+        return InfrastructureProvision(self._config.get('provision', 'real'))
+
+
+class Environment(NamedConfiguration):
+    @property
+    def performer(self):
+        return Performer(self._config.get('performer', 'local'))
+
+    @property
+    def isolation(self):
+        return Isolation(self._config.get('isolation', 'lxc'))
+
+    @property
+    def infrastructures(self):
+        return DictConfiguration(Infrastructure, self._config.get('infrastructures', {}))
+
+    @property
+    def versions(self):
+        return ''
+
+
+class Configuration(BaseConfiguration):
+    @property
+    def version(self):
+        return self._config.get('version', VERSION)
+
+    @property
     def project(self):
-        if 'project' in self.config['project']:
-            return self.config['project']
+        return self._config.get('project', path.basename(path.abspath(path.curdir)))
 
-        #TODO SUPPORT FOR git
+    @property
+    def environments(self):
+        return DictConfiguration(Environment, self._config.get('environments', {}))
+
+    def current(self):
+        return CurrentConfiguration()
 
 
-        raise Exception('Unable to determine project name.')
+class YAMLConfiguration(Configuration):
+    @classmethod
+    def from_file(cls, filepath):
+        return cls(open(filepath))
+
+    def __init__(self, yamlconfig):
+        super(YAMLConfiguration, self).__init__(yaml.load(yamlconfig))
+
+    def save_to_file(self, filepath):
+        yaml.dump(self._config, open(filepath, 'w'))
