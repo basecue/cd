@@ -13,7 +13,7 @@ _mapping_tag = yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG
 
 
 def dict_representer(dumper, data):
-    return dumper.represent_dict(data.iteritems())
+    return dumper.represent_dict(data.items())
 
 
 def dict_constructor(loader, node):
@@ -33,24 +33,6 @@ class NamedConfiguration(BaseConfiguration):
     def __init__(self, name, config):
         self.name = name
         super(NamedConfiguration, self).__init__(config)
-
-
-class CurrentConfiguration(object):
-    @property
-    def mode(self):
-        return 'control' + 'perform'
-
-    @property
-    def infrastructure(self):
-        return ''
-
-    @property
-    def environment(self):
-        return ''
-
-    @property
-    def version(self):
-        return ''
 
 
 class Machines(NamedConfiguration):
@@ -90,21 +72,28 @@ class Environment(NamedConfiguration):
         return ''
 
 
-class Configuration(BaseConfiguration):
+class DefaultConfiguration(BaseConfiguration):
+    def __init__(self, config):
+        config.update(OrderedDict((
+            ('version', VERSION),
+            ('project', path.basename(path.abspath(path.curdir))),
+            ('environments', {})
+        )))
+        super(DefaultConfiguration, self).__init__(config)
+
+
+class Configuration(DefaultConfiguration):
     @property
     def version(self):
-        return self._config.get('version', VERSION)
+        return self._config['version']
 
     @property
     def project(self):
-        return self._config.get('project', path.basename(path.abspath(path.curdir)))
+        return self._config['project']
 
     @property
     def environments(self):
-        return DictConfiguration(Environment, self._config.get('environments', {}))
-
-    def current(self):
-        return CurrentConfiguration()
+        return DictConfiguration(Environment, self._config['environments'])
 
 
 class YAMLConfiguration(Configuration):
@@ -113,7 +102,7 @@ class YAMLConfiguration(Configuration):
         return cls(open(filepath))
 
     def __init__(self, yamlconfig):
-        super(YAMLConfiguration, self).__init__(yaml.load(yamlconfig))
+        super(YAMLConfiguration, self).__init__(yaml.load(yamlconfig) or OrderedDict())
 
     def save_to_file(self, filepath):
         yaml.dump(self._config, open(filepath, 'w'))
