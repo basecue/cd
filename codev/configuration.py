@@ -8,7 +8,10 @@ import yaml
 
 from collections import OrderedDict
 
-
+"""
+YAML OrderedDict mapping
+http://stackoverflow.com/questions/5121931/in-python-how-can-you-load-yaml-mappings-as-ordereddicts
+"""
 _mapping_tag = yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG
 
 
@@ -22,7 +25,8 @@ def dict_constructor(loader, node):
 
 yaml.add_representer(OrderedDict, dict_representer)
 yaml.add_constructor(_mapping_tag, dict_constructor)
-
+"""
+"""
 
 class BaseConfiguration(object):
     def __init__(self, config):

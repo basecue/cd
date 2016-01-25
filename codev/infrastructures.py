@@ -1,11 +1,10 @@
 
-class LXCInfrastructure(object):
+class LXCInfrastructureProvision(object):
     pass
 
 
 PROVISIONS = {
-    'lxc': LXCInfrastructure
-
+    'lxc': LXCInfrastructureProvision
 }
 
 

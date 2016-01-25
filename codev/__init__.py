@@ -1,7 +1,7 @@
 
 
-def install_project(configuration, environment, infrastructure):
-    return
+# def install_project(configuration, environment, infrastructure):
+#     return
 
 
     # spamc = subprocess.call(ansible-playbook, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
