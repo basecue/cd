@@ -6,7 +6,7 @@ from .info import VERSION
 from os import path
 import yaml
 
-from collections import OrderedDict
+from collections import OrderedDict, namedtuple
 
 """
 YAML OrderedDict mapping
@@ -27,6 +27,7 @@ yaml.add_representer(OrderedDict, dict_representer)
 yaml.add_constructor(_mapping_tag, dict_constructor)
 """
 """
+
 
 class BaseConfiguration(object):
     def __init__(self, config):
@@ -73,20 +74,28 @@ class Environment(NamedConfiguration):
 
     @property
     def versions(self):
-        return ''
+        return self._config.get('versions', [])
 
 
-class DefaultConfiguration(BaseConfiguration):
+CurrentConfiguration = namedtuple('CurrentConfiguration', ['environment', 'infrastructure', 'version'])
+
+
+class Configuration(BaseConfiguration):
+
     def __init__(self, config):
-        config.update(OrderedDict((
+        super(Configuration, self).__init__(self.default_configuration)
+        self._config.update(config)
+        self.current_configuration = None
+
+
+    @property
+    def default_configuration(self):
+        return OrderedDict((
             ('version', VERSION),
             ('project', path.basename(path.abspath(path.curdir))),
             ('environments', {})
-        )))
-        super(DefaultConfiguration, self).__init__(config)
+        ))
 
-
-class Configuration(DefaultConfiguration):
     @property
     def version(self):
         return self._config['version']
@@ -98,6 +107,28 @@ class Configuration(DefaultConfiguration):
     @property
     def environments(self):
         return DictConfiguration(Environment, self._config['environments'])
+
+    @property
+    def current(self):
+        return self.current_configuration
+
+    @current.setter
+    def current(self, idents):
+        environment_ident, infrastructure_ident, version = idents
+        try:
+            environment = self.environments[environment_ident]
+        except KeyError:
+            raise ValueError(environment_ident)
+
+        try:
+            infrastructure = environment.infrastructures[infrastructure_ident]
+        except KeyError:
+            raise ValueError(infrastructure_ident)
+
+        if version not in environment.versions:
+            raise ValueError(version)
+
+        self.current_configuration = CurrentConfiguration(environment, infrastructure, version)
 
 
 class YAMLConfiguration(Configuration):

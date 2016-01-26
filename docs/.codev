@@ -25,7 +25,7 @@ infrastructures:
 
 environments:
   development:
-    perfomer: local
+    performer: ssh://codev:codev@192.168.1.13
     isolation: lxc
     infrastructures:
       full:

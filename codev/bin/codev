@@ -34,8 +34,10 @@ codev configuration --environment=[environment] --infrastructure=[infrastructure
 """
 
 import click
+
 from codev.configuration import YAMLConfiguration
-from codev.executors import Control, Perform
+from codev.executors import Executor, Control, Perform
+
 from os import path
 from functools import wraps
 
@@ -115,23 +117,30 @@ def all_options(f):
     return f
 
 
-def mode_choice(f):
+def configure(f):
     @wraps(f)
     def wrapper(configuration, environment, infrastructure, version, force, mode):
+        try:
+            configuration.current = environment, infrastructure, version
+        except ValueError:
+            raise click.BadArgumentUsage('Invalid combination of environment, infrastructure or version with configuration.')
+
+        executor_class = None
         if mode == 'control':
-            return f(
-                Control(configuration, environment, infrastructure, version),
-                configuration, environment, infrastructure, version, force
-            )
+            executor_class = Control
+
         elif mode == 'perform':
-            return f(
-                Perform(configuration, environment, infrastructure, version),
-                configuration, environment, infrastructure, version, True
-            )
+            executor_class = Perform
+
+        executor = Executor(configuration, executor_class)
+        return f(executor, configuration, environment, infrastructure, version, force)
 
     return wrapper
 
 
+"""
+TODO commands without confirmations
+"""
 def confirmation(message):
     def decorator(f):
         @wraps(f)
@@ -145,16 +154,16 @@ def confirmation(message):
                 }
             ):
                 raise click.Abort()
-            return f(executor, configuration, environment, infrastructure, version)
+            return f(executor)
         return wrapper
     return decorator
 
 
 @main.command()
 @all_options
-@mode_choice
+@configure
 @confirmation('Install project "%(project)s" on environment "%(environment)s" with infrastructure "%(infrastructure)s" at version "%(version)s"')
-def install(executor, configuration, environment, infrastructure, version):
+def install(executor):
     """
     install project on environment infrastructure version
     """
