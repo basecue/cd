@@ -27,6 +27,8 @@ codev upgrade [environment]
 codev status [environment]
     -- show info about project status on evironment (running / stopped ...)
 
+codev scenario test -e development -i simple -v actual
+
 codev exec --environment=[environment] --infrastructure=[infrastructure] [command]
 
 

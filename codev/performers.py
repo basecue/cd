@@ -9,19 +9,19 @@ class PerformerError(Exception):
 
 
 class LocalPerformer(object):
-    def execute(self, commands):
-        for command in commands:
-            subprocess.call(command, stdin=None, stdout=None, stderr=None, shell=False, timeout=None)
+    def execute(self, command):
+        subprocess.call(command, stdin=None, stdout=None, stderr=None, shell=False, timeout=None)
 
 
 class SSHPerformer(object):
     def __init__(self, ident):
         self.ident = ident
+        self.client = None
 
-    def execute(self, commands):
-        client = SSHClient()
-        client.set_missing_host_key_policy(AutoAddPolicy())
-        client.load_system_host_keys()
+    def _connect(self):
+        self.client = SSHClient()
+        self.client.set_missing_host_key_policy(AutoAddPolicy())
+        self.client.load_system_host_keys()
 
         connection_details = {}
         if self.ident.port:
@@ -30,13 +30,19 @@ class SSHPerformer(object):
             connection_details['username'] = self.ident.username
         if self.ident.password:
             connection_details['password'] = self.ident.password
-        client.connect(self.ident.hostname, **connection_details)
+        self.client.connect(self.ident.hostname, **connection_details)
 
-        for command in commands:
-            stdin, stdout, stderr = client.exec_command(command)
-            errors = stderr.read().decode('ascii')
-            if errors:
-                raise PerformerError(errors)
+    def execute(self, command):
+        if not self.client:
+            self._connect()
+        print('COMMAND:\n', command)
+        stdin, stdout, stderr = self.client.exec_command(command)
+
+        output = stdout.read().decode('ascii')
+        errors = stderr.read().decode('ascii')
+        print('OUTPUT:\n', output)
+        print('ERRORS:\n', errors)
+        return output, errors
 
 
 class Performer(object):

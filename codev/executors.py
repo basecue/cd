@@ -25,19 +25,24 @@ class Perform(BaseExecutor):
 class Control(BaseExecutor):
     def __init__(self, *args, **kwargs):
         super(Control, self).__init__(*args, **kwargs)
-        self.performer = self.configuration.current.environment.performer
-        self.isolation = self.configuration.current.environment.isolation
+        self.isolation_class = self.configuration.current.environment.isolation
 
     def install(self):
-        self.performer.execute(self.isolation(self.configuration).commands)
+        #create isolation
+        self.isolation = self.isolation_class(self.configuration)
 
-        #
-        # #get or create isolation
-        # self.configuration.isolation
-        #
-        # #install proper version of codev
-        # self.configuration.version
-        #
-        # #copy configuration file
-        # self.
+        #install proper version of codev
+        #TODO make universal
+        self.isolation.execute('apt-get install python3-pip -y')
+        self.isolation.execute('pip3 install codev==%s' % self.configuration.version)
+
+        #create configuration file
+        # self.isolation.push(self.configuration)
+
+        #predani rizeni
+        self.isolation.execute('nohup codev -e %(environment)s -i %(infrastructure)s -v %(version)s -m perform -f > codev.out 2> codev.err < /dev/null &' % {
+            'environment': self.configuration.current.environment.name,
+            'infrastructure': self.configuration.current.infrastructure.name,
+            'version': self.configuration.current.version,
+        })
 
