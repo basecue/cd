@@ -14,7 +14,7 @@ class LXCIsolation(object):
         self._isolate()
 
     def execute(self, command):
-        self.performer_execute('lxc-attach -n %(name)s -- %(command)s' % {
+        return self.performer_execute('lxc-attach -n %(name)s -- %(command)s' % {
             'name': self.name,
             'command': command
         })

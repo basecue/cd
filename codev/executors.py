@@ -40,7 +40,7 @@ class Control(BaseExecutor):
         # self.isolation.push(self.configuration)
 
         #predani rizeni
-        self.isolation.execute('nohup codev -e %(environment)s -i %(infrastructure)s -v %(version)s -m perform -f > codev.out 2> codev.err < /dev/null &' % {
+        self.isolation.execute('codev install %(environment)s %(infrastructure)s %(version)s -m perform -f' % {
             'environment': self.configuration.current.environment.name,
             'infrastructure': self.configuration.current.infrastructure.name,
             'version': self.configuration.current.version,
