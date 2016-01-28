@@ -22,6 +22,7 @@ class SSHPerformer(object):
         self.client = None
 
     def _connect(self):
+        print('CONNECT')
         self.client = SSHClient()
         self.client.set_missing_host_key_policy(AutoAddPolicy())
         self.client.load_system_host_keys()
@@ -40,9 +41,9 @@ class SSHPerformer(object):
         output = stdout.read().decode('ascii').strip()
         return output == pid
 
-    def _bg_execute(self, command, outfile=OUTFILE, errfile=ERRFILE):
+    def _bg_execute(self, command, outfile, errfile):
         #run in background
-        bg_command = 'nohup %(command)s > %(outfile)s 2> %(errfile)s < /dev/null & echo $!' % {
+        bg_command = 'nohup %(command)s > %(outfile)s 2> %(errfile)s & echo $!' % {
             'command': command,
             'outfile': outfile,
             'errfile': errfile,
@@ -60,20 +61,24 @@ class SSHPerformer(object):
         stdin, stdout, stderr = self.client.exec_command('cat %s' % catfile)
         return stdout.read().decode('ascii')
 
-    def _bg_out(self, outfile=OUTFILE):
-        return self._cat_file(outfile)
+    def _execute(self, command, mute=False):
+        """
+        TODO refaktorize i dont like this code
+        :param command:
+        :param mute:
+        :return:
+        """
+        outfile = '/dev/null' if mute else self.OUTFILE
+        errfile = self.ERRFILE
 
-    def _bg_err(self, errfile=ERRFILE):
-        return self._cat_file(errfile)
-
-    def _execute(self, command):
-        pid = self._bg_execute(command)
+        pid = self._bg_execute(command, outfile, errfile)
         print('PID:', pid)
         while self._bg_check(pid):
             #timeout
             sleep(0.5)
-        out = self._bg_out()
-        err = self._bg_err()
+
+        out = '' if mute else self._cat_file(outfile)
+        err = self._cat_file(errfile)
         return out, err
 
         # skip_lines = 0
@@ -86,11 +91,16 @@ class SSHPerformer(object):
         #     out = '%s%s' % (out, out_buffer)
         # return out
 
-    def execute(self, command):
+    def send_file(self, source, target):
+        sftp = self.client.open_sftp()
+        sftp.put(source, target)
+        sftp.close()
+
+    def execute(self, command, mute=False):
         if not self.client:
             self._connect()
         print('COMMAND:\n', command)
-        return self._execute(command)
+        return self._execute(command, mute)
 
 
 class Performer(object):

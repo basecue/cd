@@ -30,14 +30,14 @@ yaml.add_constructor(_mapping_tag, dict_constructor)
 
 
 class BaseConfiguration(object):
-    def __init__(self, config):
-        self._config = config
+    def __init__(self, data):
+        self.data = data
 
 
 class NamedConfiguration(BaseConfiguration):
-    def __init__(self, name, config):
+    def __init__(self, name, data):
         self.name = name
-        super(NamedConfiguration, self).__init__(config)
+        super(NamedConfiguration, self).__init__(data)
 
 
 class Machines(NamedConfiguration):
@@ -45,36 +45,36 @@ class Machines(NamedConfiguration):
 
 
 class DictConfiguration(OrderedDict):
-    def __init__(self, cls, config):
+    def __init__(self, cls, data):
         super(DictConfiguration, self).__init__()
-        for name, configuration in config.items():
-            self[name] = cls(name, configuration)
+        for name, itemdata in data.items():
+            self[name] = cls(name, itemdata)
 
 
 class Infrastructure(NamedConfiguration):
     def machines(self):
-        return DictConfiguration(Machines, self._config.get('machines', {}))
+        return DictConfiguration(Machines, self.data.get('machines', {}))
 
     def provision(self):
-        return InfrastructureProvision(self._config.get('provision', 'real'))
+        return InfrastructureProvision(self.data.get('provision', 'real'))
 
 
 class Environment(NamedConfiguration):
     @property
     def performer(self):
-        return Performer(self._config.get('performer', 'local'))
+        return Performer(self.data.get('performer', 'local'))
 
     @property
     def isolation(self):
-        return Isolation(self._config.get('isolation', 'lxc'))
+        return Isolation(self.data.get('isolation', 'lxc'))
 
     @property
     def infrastructures(self):
-        return DictConfiguration(Infrastructure, self._config.get('infrastructures', {}))
+        return DictConfiguration(Infrastructure, self.data.get('infrastructures', {}))
 
     @property
     def versions(self):
-        return self._config.get('versions', [])
+        return self.data.get('versions', [])
 
 
 CurrentConfiguration = namedtuple('CurrentConfiguration', ['environment', 'infrastructure', 'version'])
@@ -82,14 +82,14 @@ CurrentConfiguration = namedtuple('CurrentConfiguration', ['environment', 'infra
 
 class Configuration(BaseConfiguration):
 
-    def __init__(self, config):
-        super(Configuration, self).__init__(self.default_configuration)
-        self._config.update(config)
-        self.current_configuration = None
-
+    def __init__(self, data=None):
+        super(Configuration, self).__init__(self.default_data)
+        if data:
+            self.data.update(data)
+        self.current_data = None
 
     @property
-    def default_configuration(self):
+    def default_data(self):
         return OrderedDict((
             ('version', VERSION),
             ('project', path.basename(path.abspath(path.curdir))),
@@ -98,19 +98,19 @@ class Configuration(BaseConfiguration):
 
     @property
     def version(self):
-        return self._config['version']
+        return self.data['version']
 
     @property
     def project(self):
-        return self._config['project']
+        return self.data['project']
 
     @property
     def environments(self):
-        return DictConfiguration(Environment, self._config['environments'])
+        return DictConfiguration(Environment, self.data['environments'])
 
     @property
     def current(self):
-        return self.current_configuration
+        return self.current_data
 
     @current.setter
     def current(self, idents):
@@ -128,16 +128,22 @@ class Configuration(BaseConfiguration):
         if version not in environment.versions:
             raise ValueError(version)
 
-        self.current_configuration = CurrentConfiguration(environment, infrastructure, version)
+        self.current_data = CurrentConfiguration(environment, infrastructure, version)
 
 
 class YAMLConfiguration(Configuration):
     @classmethod
-    def from_file(cls, filepath):
-        return cls(open(filepath))
+    def from_configuration(cls, configuration):
+        return cls(configuration.data)
 
-    def __init__(self, yamlconfig):
-        super(YAMLConfiguration, self).__init__(yaml.load(yamlconfig) or OrderedDict())
+    @classmethod
+    def from_file(cls, filepath):
+        return cls.from_yaml(open(filepath))
+
+    @classmethod
+    def from_yaml(cls, yamldata):
+        return cls(yaml.load(yamldata))
 
     def save_to_file(self, filepath):
-        yaml.dump(self._config, open(filepath, 'w'))
+        yaml.dump(self.data, open(filepath, 'w+'))
+

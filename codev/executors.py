@@ -1,3 +1,5 @@
+from .configuration import YAMLConfiguration
+from os import unlink
 
 class BaseExecutor(object):
     def __init__(self, configuration):
@@ -31,18 +33,22 @@ class Control(BaseExecutor):
         #create isolation
         self.isolation = self.isolation_class(self.configuration)
 
-        #install proper version of codev
-        #TODO make universal
+        #install python3 pip
         self.isolation.execute('apt-get install python3-pip -y')
+
+        #install proper version of codev
         self.isolation.execute('pip3 install codev==%s' % self.configuration.version)
 
-        #create configuration file
-        # self.isolation.push(self.configuration)
+        #send configuration file
+        YAMLConfiguration.from_configuration(self.configuration).save_to_file('tmp')
+        self.isolation.send_file('tmp', '.codev')
+        unlink('tmp')
 
         #predani rizeni
-        self.isolation.execute('codev install %(environment)s %(infrastructure)s %(version)s -m perform -f' % {
+        output, errors = self.isolation.execute('codev install %(environment)s %(infrastructure)s %(version)s -m perform -f' % {
             'environment': self.configuration.current.environment.name,
             'infrastructure': self.configuration.current.infrastructure.name,
             'version': self.configuration.current.version,
         })
+        print(output, errors)
 

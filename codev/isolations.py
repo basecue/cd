@@ -4,7 +4,7 @@ import re
 class LXCIsolation(object):
     def __init__(self, configuration):
         self.configuration = configuration
-        self.performer_execute = self.configuration.current.environment.performer.execute
+        self.performer = self.configuration.current.environment.performer
         self.name = '%s_%s_%s_%s' % (
             self.configuration.project,
             self.configuration.current.environment.name,
@@ -13,14 +13,46 @@ class LXCIsolation(object):
         )
         self._isolate()
 
+    def send_file(self, source, target):
+        TMPFILE = 'tempfile'
+        self.performer.send_file(source, TMPFILE)
+        output, errors = self.performer.execute('cat %(tmpfile)s | lxc-attach -n %(name)s -- tee %(target)s' % {
+            'name': self.name,
+            'tmpfile': TMPFILE,
+            'target': target
+        }, mute=True)
+        if errors:
+            raise ValueError(errors)
+        self.performer.execute('rm -f %(tmpfile)s' % {'tmpfile': TMPFILE})
+
+
     def execute(self, command):
-        return self.performer_execute('lxc-attach -n %(name)s -- %(command)s' % {
+        return self.performer.execute('lxc-attach -n %(name)s -- %(command)s' % {
             'name': self.name,
             'command': command
         })
 
+    # def _lxc_config(self, config):
+    #     output, errors = self.performer.execute('lxc-info -n %(name)s -c %(config)s' % {
+    #         'name': self.name,
+    #         'config': config
+    #     })
+    #
+    #     if errors:
+    #         raise ValueError(errors)
+    #
+    #     r = re.match('%s\s*=\s*(.*)' % config, output)
+    #     if r:
+    #         return r.group(1).strip()
+    #     else:
+    #         raise ValueError(output)
+
     def _lxc_info(self):
-        output, errors = self.performer_execute('lxc-info -n %(name)s' % {
+        """
+        TODO predelat na -p -i
+        :return:
+        """
+        output, errors = self.performer.execute('lxc-info -n %(name)s' % {
             'name': self.name
         })
 
@@ -48,12 +80,12 @@ class LXCIsolation(object):
         return is_started, ip
 
     def _lxc_create(self):
-        output, errors = self.performer_execute('lxc-create -t download -n %(name)s -- --dist ubuntu --release trusty --arch amd64' % {
+        output, errors = self.performer.execute('lxc-create -t download -n %(name)s -- --dist ubuntu --release trusty --arch amd64' % {
             'name': self.name
         })
 
     def _lxc_start(self):
-        output, errors = self.performer_execute('lxc-start -n %(name)s' % {
+        output, errors = self.performer.execute('lxc-start -n %(name)s' % {
             'name': self.name
         })
 

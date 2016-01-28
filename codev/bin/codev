@@ -60,7 +60,7 @@ def init(filepath):
         if not click.confirm('A file "%(filepath)s" already exists. Overwrite?' % {'filepath': filepath}):
             return
 
-    configuration = YAMLConfiguration('')
+    configuration = YAMLConfiguration()
     try:
         configuration.save_to_file(filepath)
     except Exception as e:
