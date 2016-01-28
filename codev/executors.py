@@ -45,10 +45,10 @@ class Control(BaseExecutor):
         unlink('tmp')
 
         #predani rizeni
-        output, errors = self.isolation.execute('codev install %(environment)s %(infrastructure)s %(version)s -m perform -f' % {
+        output = self.isolation.execute('codev install %(environment)s %(infrastructure)s %(version)s -m perform -f' % {
             'environment': self.configuration.current.environment.name,
             'infrastructure': self.configuration.current.infrastructure.name,
             'version': self.configuration.current.version,
         })
-        print(output, errors)
+        print(output)
 

@@ -16,15 +16,12 @@ class LXCIsolation(object):
     def send_file(self, source, target):
         TMPFILE = 'tempfile'
         self.performer.send_file(source, TMPFILE)
-        output, errors = self.performer.execute('cat %(tmpfile)s | lxc-attach -n %(name)s -- tee %(target)s' % {
+        self.performer.execute('cat %(tmpfile)s | lxc-attach -n %(name)s -- tee %(target)s' % {
             'name': self.name,
             'tmpfile': TMPFILE,
             'target': target
         }, mute=True)
-        if errors:
-            raise ValueError(errors)
         self.performer.execute('rm -f %(tmpfile)s' % {'tmpfile': TMPFILE})
-
 
     def execute(self, command):
         return self.performer.execute('lxc-attach -n %(name)s -- %(command)s' % {
@@ -32,65 +29,48 @@ class LXCIsolation(object):
             'command': command
         })
 
-    # def _lxc_config(self, config):
-    #     output, errors = self.performer.execute('lxc-info -n %(name)s -c %(config)s' % {
-    #         'name': self.name,
-    #         'config': config
-    #     })
-    #
-    #     if errors:
-    #         raise ValueError(errors)
-    #
-    #     r = re.match('%s\s*=\s*(.*)' % config, output)
-    #     if r:
-    #         return r.group(1).strip()
-    #     else:
-    #         raise ValueError(output)
-
-    def _lxc_info(self):
-        """
-        TODO predelat na -p -i
-        :return:
-        """
-        output, errors = self.performer.execute('lxc-info -n %(name)s' % {
+    def _lxc_is_started(self):
+        output = self.performer.execute('lxc-info -n %(name)s -s' % {
             'name': self.name
         })
 
-        if errors:
-            raise ValueError(errors)
+        r = re.match('^State:\s+(.*)$', output.strip())
+        if r:
+            state = r.group(1)
+        else:
+            raise ValueError(output)
 
-        state = ''
-        ip = ''
+        if state == 'RUNNING':
+            return True
+        elif state == 'STOPPED':
+            return False
+        else:
+            raise ValueError(state)
+
+    def _lxc_get_ip(self):
+        output = self.performer.execute('lxc-info -n %(name)s' % {
+            'name': self.name
+        })
+
         for line in output.splitlines():
-            r = re.match('^State:\s+(.*)$', line)
-            if r:
-                state = r.group(1)
-
             r = re.match('^IP:\s+([0-9\.]+)$', line)
             if r:
-                ip = r.group(1)
-                break
+                return r.group(1)
 
-        is_started = None
-        if state == 'RUNNING':
-            is_started = True
-        elif state == 'STOPPED':
-            is_started = False
-
-        return is_started, ip
+        raise ValueError(output)
 
     def _lxc_create(self):
-        output, errors = self.performer.execute('lxc-create -t download -n %(name)s -- --dist ubuntu --release trusty --arch amd64' % {
+        self.performer.execute('lxc-create -t download -n %(name)s -- --dist ubuntu --release trusty --arch amd64' % {
             'name': self.name
         })
 
     def _lxc_start(self):
-        output, errors = self.performer.execute('lxc-start -n %(name)s' % {
+        self.performer.execute('lxc-start -n %(name)s' % {
             'name': self.name
         })
 
     def _isolate(self):
-        is_started, ip = self._lxc_info()
+        is_started = self._lxc_is_started()
 
         if is_started is None:
             self._lxc_create()

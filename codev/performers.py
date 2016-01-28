@@ -4,6 +4,7 @@ import subprocess
 from urllib.parse import urlparse
 from time import sleep
 
+
 class PerformerError(Exception):
     pass
 
@@ -14,9 +15,6 @@ class LocalPerformer(object):
 
 
 class SSHPerformer(object):
-    OUTFILE = 'codev.out'
-    ERRFILE = 'codev.err'
-
     def __init__(self, ident):
         self.ident = ident
         self.client = None
@@ -49,6 +47,10 @@ class SSHPerformer(object):
             'errfile': errfile,
         }
         stdin, stdout, stderr = self.client.exec_command(bg_command)
+        err = stderr.read().decode('ascii').strip()
+
+        if err:
+            raise PerformerError(err)
 
         #return pid
         pid = stdout.read().decode('ascii').strip()
@@ -68,8 +70,11 @@ class SSHPerformer(object):
         :param mute:
         :return:
         """
-        outfile = '/dev/null' if mute else self.OUTFILE
-        errfile = self.ERRFILE
+        OUTFILE = 'codev.out'
+        ERRFILE = 'codev.err'
+
+        outfile = '/dev/null' if mute else OUTFILE
+        errfile = ERRFILE
 
         pid = self._bg_execute(command, outfile, errfile)
         print('PID:', pid)
@@ -79,7 +84,10 @@ class SSHPerformer(object):
 
         out = '' if mute else self._cat_file(outfile)
         err = self._cat_file(errfile)
-        return out, err
+        if err:
+            raise PerformerError(err)
+
+        return out
 
         # skip_lines = 0
         # out = ''
