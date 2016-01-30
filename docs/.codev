@@ -3,25 +3,34 @@ project: hranipex
 repositories:
   - ./
 
+scripts:
+  end to end:
+    try:
+      - first scripts
+    except:
+      - on error scripts
+    else:
+      - on success scripts
+    finally:
+      - cleanup scripts
+
+
 infrastructures:
-  - full:
+  simple:
     machines:
-      - webservers:
+      webservers:
         distribution: debian
         release: squeeze
-        provider: lxc
-      - elasticservers:
+      elasticservers:
         distribution: ubuntu
         release: trusty
-        number: 2
-  - simple:
-    - machines:
-      webservers:
-          distribution: debian
-          release: squeeze
-      elasticservers:
-          distribution: ubuntu
-          release: trusty
+
+configurations:
+  standard:
+    provider: ansible
+    inventory: codev://ansible/inventory
+    playbook: provisioning/%(infrastructure)s.yml
+
 
 environments:
   development:
@@ -29,7 +38,7 @@ environments:
     isolation: lxc
     infrastructures:
       full:
-        provision: real
+        provision: lxc
         connectivity:
           protocol: tcp
           ports:
@@ -54,30 +63,39 @@ environments:
         provider: lxc
   staging:
     infrastructures:
-      - full
+      - simple
 #    branches:
 #      - staging/*
 #      - *-staging
   production:
     infrastructures:
-      - full:
+      full:
         perfomer: test.coex.cz
         isolation: lxc
         machines:
-          - webservers:
+          webservers:
             provision: real
             host: 10.0.1.5
         scripts:
-          begin:
-            - first scripts
-          except:
-            - on error scripts
-          else:
-            - on success scripts
-          finally:
-            - cleanup scripts
+          endtoend:
+            try:
+              - first scripts
+              - sdasdsad
+            except:
+              - on error scripts
+              - sad sa
+            else:
+              - on success scripts
+            finally:
+              - cleanup scripts
+          lol: ;p;
+        configuration: standard
+    versions:
+      - svc
+
     branches:
       - master
+
     scripts:
       begin:
         - first scripts

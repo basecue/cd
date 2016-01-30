@@ -6,39 +6,23 @@ Use cases
 codev init --template=[template]
     -- create new project
 
-codev install --environment=[environment] --infrastructure=[infrastructure] --perfomer=test.coex.cz  --isolation=[lxc]
+codev install [environment] [infrastructure] [version]
     -- install project
-    environment default = default
 
-    -- idempotent
+codev start [environment] [infrastructure] [version]
+    -- start installed project
 
-codev stop [environment]
-    -- stop project
+codev stop [environment] [infrastructure] [version]
+    -- stop installed project
 
-codev restart [environment]
-    -- stop project and run project
-
-codev run [environment]
-    -- run installed project
-
-codev upgrade [environment]
-    -- install project and run/restart
-
-codev status [environment]
-    -- show info about project status on evironment (running / stopped ...)
-
-codev scenario test -e development -i simple -v actual
-
-codev exec --environment=[environment] --infrastructure=[infrastructure] [command]
-
-
-codev configuration --environment=[environment] --infrastructure=[infrastructure]
+codev run [script] [environment] [infrastructure] [version]
 """
 
 import click
 
 from codev.configuration import YAMLConfiguration
-from codev.executors import Executor, Control, Perform
+from codev.executors import Control, Perform
+from codev.deployment import Deployment
 
 from os import path
 from functools import wraps
@@ -103,30 +87,41 @@ def mode_option(f):
                         help='Mode')(f)
 
 
-def force_option(f):
-    return click.option('-f', '--force',
-                        is_flag=True,
-                        help='Force')(f)
+def recognize_deployment(f):
+    def decorator(func):
+        @wraps(func)
+        def deployement_wrapper(configuration, environment, infrastructure, version, **kwargs):
+            deployment = Deployment(configuration, environment, infrastructure, version)
+            return func(configuration=configuration, deployment=deployment, **kwargs)
+        return deployement_wrapper
 
-
-def all_options(f):
-    f = mode_option(f)
-    f = force_option(f)
     f = version_option(f)
     f = infrastructure_option(f)
     f = environment_option(f)
+    return decorator(f)
+
+
+def main_options(f):
+    f = mode_option(f)
     f = configuration_option(f)
     return f
 
 
-def configure(f):
-    @wraps(f)
-    def wrapper(configuration, environment, infrastructure, version, force, mode):
-        try:
-            configuration.current = environment, infrastructure, version
-        except ValueError:
-            raise click.BadArgumentUsage('Invalid combination of environment, infrastructure or version with configuration.')
+def confirmation(message):
+    def decorator(f):
+        @wraps(f)
+        def confirmation_wrapper(force, **kwargs):
+            if not force:
+                if not click.confirm(message.format(**kwargs)):
+                    raise click.Abort()
+            return f(**kwargs)
+        return confirmation_wrapper
+    return decorator
 
+
+def executor(f):
+    @wraps(f)
+    def executor_wrapper(configuration, deployment, mode, **kwargs):
         executor_class = None
         if mode == 'control':
             executor_class = Control
@@ -134,37 +129,18 @@ def configure(f):
         elif mode == 'perform':
             executor_class = Perform
 
-        executor = Executor(configuration, executor_class)
-        return f(executor, configuration, environment, infrastructure, version, force)
+        executor = executor_class(configuration, deployment)
+        return f(executor=executor, **kwargs)
 
-    return wrapper
-
-
-"""
-TODO commands without confirmations
-"""
-def confirmation(message):
-    def decorator(f):
-        @wraps(f)
-        def wrapper(executor, configuration, environment, infrastructure, version, force):
-            if not force and not click.confirm(
-                message % {
-                    'project': configuration.project,
-                    'environment': environment,
-                    'infrastructure': infrastructure,
-                    'version': version
-                }
-            ):
-                raise click.Abort()
-            return f(executor)
-        return wrapper
-    return decorator
+    return executor_wrapper
 
 
 @main.command()
-@all_options
-@configure
-@confirmation('Install project "%(project)s" on environment "%(environment)s" with infrastructure "%(infrastructure)s" at version "%(version)s"')
+@main_options
+@recognize_deployment
+@click.option('-f', '--force', is_flag=True,  help='Force')
+@confirmation('Install project "{configuration.project}" on environment "{deployment.environment}" with infrastructure "{deployment.infrastructure}" at version "{deployment.version}"')
+@executor
 def install(executor):
     """
     install project on environment infrastructure version
@@ -172,5 +148,15 @@ def install(executor):
     executor.install()
 
 
+@main.command()
+@main_options
+@recognize_deployment
+@confirmation('Execute script "%(script)s" at project "%(project)s" on environment "%(environment)s" with infrastructure "%(infrastructure)s" at version "%(version)s"')
+@executor
+@click.argument('script')
+def run(executor, script):
+    executor.run(script)
+
 if __name__ == "__main__":
     main()
+

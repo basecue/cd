@@ -2,15 +2,9 @@ import re
 
 
 class LXCIsolation(object):
-    def __init__(self, configuration):
-        self.configuration = configuration
-        self.performer = self.configuration.current.environment.performer
-        self.name = '%s_%s_%s_%s' % (
-            self.configuration.project,
-            self.configuration.current.environment.name,
-            self.configuration.current.infrastructure.name,
-            self.configuration.current.version
-        )
+    def __init__(self, performer, name):
+        self.performer = performer
+        self.name = name
         self._isolate()
 
     def send_file(self, source, target):
@@ -59,9 +53,15 @@ class LXCIsolation(object):
 
         raise ValueError(output)
 
-    def _lxc_create(self):
-        self.performer.execute('lxc-create -t download -n %(name)s -- --dist ubuntu --release trusty --arch amd64' % {
-            'name': self.name
+    def _lxc_create(self, distribution, release):
+        architecture = self.performer.execute('uname -m')
+        if architecture == 'x86_64':
+            architecture = 'amd64'
+        self.performer.execute('lxc-create -t download -n %(name)s -- --dist %(distribution)s --release %(release)s --arch %(architecture)s' % {
+            'name': self.name,
+            'distribution': distribution,
+            'release': release,
+            'architecture': architecture
         })
 
     def _lxc_start(self):
@@ -73,7 +73,8 @@ class LXCIsolation(object):
         is_started = self._lxc_is_started()
 
         if is_started is None:
-            self._lxc_create()
+            self._lxc_create('ubuntu', 'trusty')
+
         elif not is_started:
             self._lxc_start()
 

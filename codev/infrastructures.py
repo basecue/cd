@@ -1,6 +1,8 @@
 
 class LXCInfrastructureProvision(object):
-    pass
+    def __init__(self, configuration):
+        self.performer = LocalPerformer()
+        self.configuration = configuration
 
 
 PROVISIONS = {
@@ -10,4 +12,4 @@ PROVISIONS = {
 
 class InfrastructureProvision(object):
     def __new__(cls, ident):
-        return PROVISIONS[ident]()
+        return PROVISIONS[ident]

@@ -39,6 +39,9 @@ class NamedConfiguration(BaseConfiguration):
         self.name = name
         super(NamedConfiguration, self).__init__(data)
 
+    def __repr__(self):
+        return self.name
+
 
 class Machines(NamedConfiguration):
     pass
@@ -65,7 +68,7 @@ class Environment(NamedConfiguration):
         return Performer(self.data.get('performer', 'local'))
 
     @property
-    def isolation(self):
+    def isolation_class(self):
         return Isolation(self.data.get('isolation', 'lxc'))
 
     @property
@@ -107,28 +110,6 @@ class Configuration(BaseConfiguration):
     @property
     def environments(self):
         return DictConfiguration(Environment, self.data['environments'])
-
-    @property
-    def current(self):
-        return self.current_data
-
-    @current.setter
-    def current(self, idents):
-        environment_ident, infrastructure_ident, version = idents
-        try:
-            environment = self.environments[environment_ident]
-        except KeyError:
-            raise ValueError(environment_ident)
-
-        try:
-            infrastructure = environment.infrastructures[infrastructure_ident]
-        except KeyError:
-            raise ValueError(infrastructure_ident)
-
-        if version not in environment.versions:
-            raise ValueError(version)
-
-        self.current_data = CurrentConfiguration(environment, infrastructure, version)
 
 
 class YAMLConfiguration(Configuration):

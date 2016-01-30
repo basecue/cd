@@ -1,54 +1,43 @@
 from .configuration import YAMLConfiguration
 from os import unlink
 
+
 class BaseExecutor(object):
-    def __init__(self, configuration):
+    def __init__(self, configuration, deployment):
         self.configuration = configuration
+        self.deployment = deployment
 
-"""
-maybe move to command line client part
-"""
-class Executor(BaseExecutor):
-    def __init__(self, configuration, executor_class):
-        super(Executor, self).__init__(configuration)
-        self.executor = executor_class(self.configuration)
-
-    def __getattr__(self, name):
-        return getattr(self.executor, name)
-"""
-"""
+    def run(self):
+        pass
 
 
 class Perform(BaseExecutor):
     def install(self):
-        print('perform')
+        # infrastructure provision
+        # infrastructure = self.infrastructure_class(self.configuration)
+        pass
 
 
 class Control(BaseExecutor):
-    def __init__(self, *args, **kwargs):
-        super(Control, self).__init__(*args, **kwargs)
-        self.isolation_class = self.configuration.current.environment.isolation
-
     def install(self):
-        #create isolation
-        self.isolation = self.isolation_class(self.configuration)
+        # create isolation
+        isolation = self.deployment.isolate()
 
-        #install python3 pip
-        self.isolation.execute('apt-get install python3-pip -y')
+        # install python3 pip
+        isolation.execute('apt-get install python3-pip -y')
 
-        #install proper version of codev
-        self.isolation.execute('pip3 install codev==%s' % self.configuration.version)
+        # install proper version of codev
+        isolation.execute('pip3 install codev=={version}'.format(version=self.configuration.version))
 
-        #send configuration file
+        # send configuration file
         YAMLConfiguration.from_configuration(self.configuration).save_to_file('tmp')
-        self.isolation.send_file('tmp', '.codev')
+        isolation.send_file('tmp', '.codev')
         unlink('tmp')
 
-        #predani rizeni
-        output = self.isolation.execute('codev install %(environment)s %(infrastructure)s %(version)s -m perform -f' % {
-            'environment': self.configuration.current.environment.name,
-            'infrastructure': self.configuration.current.infrastructure.name,
-            'version': self.configuration.current.version,
-        })
+        # predani rizeni
+        output = isolation.execute('codev install {environment} {infrastructure} {version} -m perform -f'.format(
+            environment=self.deployment.environment,
+            infrastructure=self.deployment.infrastructure,
+            version=self.deployment.version
+        ))
         print(output)
-

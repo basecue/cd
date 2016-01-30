@@ -11,7 +11,10 @@ class PerformerError(Exception):
 
 class LocalPerformer(object):
     def execute(self, command):
-        subprocess.call(command, stdin=None, stdout=None, stderr=None, shell=False, timeout=None)
+        return subprocess.check_output(command, stdin=None, stderr=None, shell=False, timeout=None)
+
+    def send_file(self, source, target):
+        subprocess.check_output('cp', source, target, stdin=None, stderr=None, shell=False, timeout=None)
 
 
 class SSHPerformer(object):
@@ -65,7 +68,7 @@ class SSHPerformer(object):
 
     def _execute(self, command, mute=False):
         """
-        TODO refaktorize i dont like this code
+        TODO refaktorize I dont like this code
         :param command:
         :param mute:
         :return:
