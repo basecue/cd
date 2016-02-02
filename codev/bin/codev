@@ -22,7 +22,6 @@ import click
 
 from codev.configuration import YAMLConfiguration
 from codev.executors import Control, Perform
-from codev.deployment import Deployment
 
 from os import path
 from functools import wraps
@@ -87,18 +86,11 @@ def mode_option(f):
                         help='Mode')(f)
 
 
-def recognize_deployment(f):
-    def decorator(func):
-        @wraps(func)
-        def deployement_wrapper(configuration, environment, infrastructure, version, **kwargs):
-            deployment = Deployment(configuration, environment, infrastructure, version)
-            return func(configuration=configuration, deployment=deployment, **kwargs)
-        return deployement_wrapper
-
+def deployment(f):
     f = version_option(f)
     f = infrastructure_option(f)
     f = environment_option(f)
-    return decorator(f)
+    return f
 
 
 def main_options(f):
@@ -115,13 +107,15 @@ def confirmation(message):
                 if not click.confirm(message.format(**kwargs)):
                     raise click.Abort()
             return f(**kwargs)
-        return confirmation_wrapper
+
+        return click.option('-f', '--force', is_flag=True,  help='Force')(confirmation_wrapper)
+
     return decorator
 
 
 def executor(f):
     @wraps(f)
-    def executor_wrapper(configuration, deployment, mode, **kwargs):
+    def executor_wrapper(configuration, environment, infrastructure, version, mode, **kwargs):
         executor_class = None
         if mode == 'control':
             executor_class = Control
@@ -129,7 +123,7 @@ def executor(f):
         elif mode == 'perform':
             executor_class = Perform
 
-        executor = executor_class(configuration, deployment)
+        executor = executor_class(configuration, environment, infrastructure, version)
         return f(executor=executor, **kwargs)
 
     return executor_wrapper
@@ -137,9 +131,8 @@ def executor(f):
 
 @main.command()
 @main_options
-@recognize_deployment
-@click.option('-f', '--force', is_flag=True,  help='Force')
-@confirmation('Install project "{configuration.project}" on environment "{deployment.environment}" with infrastructure "{deployment.infrastructure}" at version "{deployment.version}"')
+@deployment
+@confirmation('Install project "{configuration.project}" on environment "{environment}" with infrastructure "{infrastructure}" at version "{version}"')
 @executor
 def install(executor):
     """
@@ -150,8 +143,8 @@ def install(executor):
 
 @main.command()
 @main_options
-@recognize_deployment
-@confirmation('Execute script "%(script)s" at project "%(project)s" on environment "%(environment)s" with infrastructure "%(infrastructure)s" at version "%(version)s"')
+@deployment
+@confirmation('Execute script "{script}" at project "{configuration.project}" on environment "{environment}" with infrastructure "{infrastructure}" at version "{version}"')
 @executor
 @click.argument('script')
 def run(executor, script):

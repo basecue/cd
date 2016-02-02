@@ -1,15 +1,19 @@
 
-class LXCInfrastructureProvision(object):
-    def __init__(self, configuration):
-        self.performer = LocalPerformer()
-        self.configuration = configuration
+class LXCInfrastructure(object):
+    def __init__(self, machines):
+        # self.performer = LocalPerformer()
+        self.configuration = machines
 
 
-PROVISIONS = {
-    'lxc': LXCInfrastructureProvision
+INFRASTRUCTURE_PROVIDERS_BY_NAME = {
+    'lxc': LXCInfrastructure
 }
 
 
-class InfrastructureProvision(object):
-    def __new__(cls, ident):
-        return PROVISIONS[ident]
+class Infrastructure(object):
+    def __init__(self, provider, machines):
+        self.infrastructure_provider = INFRASTRUCTURE_PROVIDERS_BY_NAME[provider]
+        self.machines = machines
+
+    def __call__(self):
+        return self.infrastructure_provider(self.machines)

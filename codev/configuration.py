@@ -1,13 +1,10 @@
-from .performers import Performer
-from .isolations import Isolation
-from .infrastructures import InfrastructureProvision
-
 from .info import VERSION
 from os import path
 import yaml
 
-from collections import OrderedDict, namedtuple
+from collections import OrderedDict
 
+from .isolations import DEFAULT_ISOLATION
 """
 YAML OrderedDict mapping
 http://stackoverflow.com/questions/5121931/in-python-how-can-you-load-yaml-mappings-as-ordereddicts
@@ -34,16 +31,7 @@ class BaseConfiguration(object):
         self.data = data
 
 
-class NamedConfiguration(BaseConfiguration):
-    def __init__(self, name, data):
-        self.name = name
-        super(NamedConfiguration, self).__init__(data)
-
-    def __repr__(self):
-        return self.name
-
-
-class Machines(NamedConfiguration):
+class MachinesConfiguration(BaseConfiguration):
     pass
 
 
@@ -51,36 +39,35 @@ class DictConfiguration(OrderedDict):
     def __init__(self, cls, data):
         super(DictConfiguration, self).__init__()
         for name, itemdata in data.items():
-            self[name] = cls(name, itemdata)
+            self[name] = cls(itemdata)
 
 
-class Infrastructure(NamedConfiguration):
+class InfrastructureConfiguration(BaseConfiguration):
+    @property
     def machines(self):
-        return DictConfiguration(Machines, self.data.get('machines', {}))
+        return DictConfiguration(MachinesConfiguration, self.data.get('machines', {}))
 
-    def provision(self):
-        return InfrastructureProvision(self.data.get('provision', 'real'))
+    @property
+    def provider(self):
+        return self.data.get('provider', 'real')
 
 
-class Environment(NamedConfiguration):
+class EnvironmentConfiguration(BaseConfiguration):
     @property
     def performer(self):
-        return Performer(self.data.get('performer', 'local'))
+        return self.data.get('performer', 'local')
 
     @property
-    def isolation_class(self):
-        return Isolation(self.data.get('isolation', 'lxc'))
+    def isolation_provider(self):
+        return self.data.get('isolation', DEFAULT_ISOLATION)
 
     @property
     def infrastructures(self):
-        return DictConfiguration(Infrastructure, self.data.get('infrastructures', {}))
+        return DictConfiguration(InfrastructureConfiguration, self.data.get('infrastructures', {}))
 
     @property
     def versions(self):
         return self.data.get('versions', [])
-
-
-CurrentConfiguration = namedtuple('CurrentConfiguration', ['environment', 'infrastructure', 'version'])
 
 
 class Configuration(BaseConfiguration):
@@ -109,7 +96,7 @@ class Configuration(BaseConfiguration):
 
     @property
     def environments(self):
-        return DictConfiguration(Environment, self.data['environments'])
+        return DictConfiguration(EnvironmentConfiguration, self.data['environments'])
 
 
 class YAMLConfiguration(Configuration):

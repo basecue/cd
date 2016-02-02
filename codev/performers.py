@@ -43,7 +43,7 @@ class SSHPerformer(object):
         return output == pid
 
     def _bg_execute(self, command, outfile, errfile):
-        #run in background
+        # run in background
         bg_command = 'nohup %(command)s > %(outfile)s 2> %(errfile)s & echo $!' % {
             'command': command,
             'outfile': outfile,
@@ -55,7 +55,7 @@ class SSHPerformer(object):
         if err:
             raise PerformerError(err)
 
-        #return pid
+        # return pid
         pid = stdout.read().decode('ascii').strip()
         if pid.isdigit():
             return pid
@@ -115,11 +115,16 @@ class SSHPerformer(object):
 
 
 class Performer(object):
-    def __new__(cls, url):
+    def __init__(self, url):
         ident = urlparse(url)
         scheme = ident.scheme
         if scheme == 'ssh':
-            return SSHPerformer(ident)
+            self._performer = SSHPerformer(ident)
 
+    def execute(self, command, mute=False):
+        return self._performer.execute(command, mute=mute)
+
+    def send_file(self, source, target):
+        return self._performer.send_file(source, target)
 
 

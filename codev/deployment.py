@@ -1,27 +1,38 @@
-class Deployment(object):
-    def __init__(self, configuration, environment_name, infrastructure_name, version_name):
-        try:
-            self.environment = configuration.environments[environment_name]
-        except KeyError:
-            raise ValueError(environment_name)
+from .isolations import Isolation
+from .infrastructures import Infrastructure
 
-        try:
-            self.infrastructure = self.environment.infrastructures[infrastructure_name]
-        except KeyError:
-            raise ValueError(infrastructure_name)
 
-        if version_name not in self.environment.versions:
-            raise ValueError(version_name)
-
-        self.version = version_name
-        self.configuration = configuration
-
-    def isolate(self):
-        isolation_name = '%s_%s_%s_%s' % (
-            self.configuration.project,
-            self.environment.name,
-            self.infrastructure.name,
-            self.version
+class Environment(object):
+    def __init__(self, environment_configuration, infrastructure_configuration):
+        self.isolation = Isolation(
+            environment_configuration.isolation_provider,
+            environment_configuration.performer
+        )
+        self.infrastructure = Infrastructure(
+            infrastructure_configuration.provider,
+            infrastructure_configuration.machines
         )
 
-        return self.environment.isolation_class(self.environment.performer, isolation_name)
+
+class Deployment(object):
+    def __init__(self, configuration, environment_name, infrastructure_name, version_name):
+        environment_configuration = configuration.environments[environment_name]
+        self.environment = Environment(
+            environment_configuration,
+            environment_configuration.infrastructures[infrastructure_name]
+        )
+        if version_name not in environment_configuration.versions:
+            raise ValueError('Bad version')
+
+        self.isolation_ident = '%s_%s_%s_%s' % (
+            configuration.project,
+            environment_name,
+            infrastructure_name,
+            version_name
+        )
+
+    def isolation(self):
+        return self.environment.isolation(self.isolation_ident)
+
+    def infrastructure(self):
+        self.environment.infrastructure()

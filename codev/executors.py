@@ -1,11 +1,15 @@
 from .configuration import YAMLConfiguration
 from os import unlink
+from .deployment import Deployment
 
 
 class BaseExecutor(object):
-    def __init__(self, configuration, deployment):
+    def __init__(self, configuration, environment_name, infrastructure_name, version):
         self.configuration = configuration
-        self.deployment = deployment
+        self.environment_name = environment_name
+        self.infrastructure_name = infrastructure_name
+        self.version = version
+        self.deployment = Deployment(configuration, environment_name, infrastructure_name, version)
 
     def run(self):
         pass
@@ -14,14 +18,16 @@ class BaseExecutor(object):
 class Perform(BaseExecutor):
     def install(self):
         # infrastructure provision
-        # infrastructure = self.infrastructure_class(self.configuration)
-        pass
+        infrastructure = self.deployment.infrastructure()
+
+        # configuration provision
+        # provision = self.deployment.provision()
 
 
 class Control(BaseExecutor):
     def install(self):
         # create isolation
-        isolation = self.deployment.isolate()
+        isolation = self.deployment.isolation()
 
         # install python3 pip
         isolation.execute('apt-get install python3-pip -y')
@@ -36,8 +42,8 @@ class Control(BaseExecutor):
 
         # predani rizeni
         output = isolation.execute('codev install {environment} {infrastructure} {version} -m perform -f'.format(
-            environment=self.deployment.environment,
-            infrastructure=self.deployment.infrastructure,
-            version=self.deployment.version
+            environment=self.environment_name,
+            infrastructure=self.infrastructure_name,
+            version=self.version
         ))
         print(output)

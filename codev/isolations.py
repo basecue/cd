@@ -1,17 +1,18 @@
 import re
+from .performers import Performer
 
 
 class LXCIsolation(object):
-    def __init__(self, performer, name):
+    def __init__(self, performer, ident):
         self.performer = performer
-        self.name = name
+        self.ident = ident
         self._isolate()
 
     def send_file(self, source, target):
         TMPFILE = 'tempfile'
         self.performer.send_file(source, TMPFILE)
         self.performer.execute('cat %(tmpfile)s | lxc-attach -n %(name)s -- tee %(target)s' % {
-            'name': self.name,
+            'name': self.ident,
             'tmpfile': TMPFILE,
             'target': target
         }, mute=True)
@@ -19,13 +20,13 @@ class LXCIsolation(object):
 
     def execute(self, command):
         return self.performer.execute('lxc-attach -n %(name)s -- %(command)s' % {
-            'name': self.name,
+            'name': self.ident,
             'command': command
         })
 
     def _lxc_is_started(self):
         output = self.performer.execute('lxc-info -n %(name)s -s' % {
-            'name': self.name
+            'name': self.ident
         })
 
         r = re.match('^State:\s+(.*)$', output.strip())
@@ -43,7 +44,7 @@ class LXCIsolation(object):
 
     def _lxc_get_ip(self):
         output = self.performer.execute('lxc-info -n %(name)s' % {
-            'name': self.name
+            'name': self.ident
         })
 
         for line in output.splitlines():
@@ -58,7 +59,7 @@ class LXCIsolation(object):
         if architecture == 'x86_64':
             architecture = 'amd64'
         self.performer.execute('lxc-create -t download -n %(name)s -- --dist %(distribution)s --release %(release)s --arch %(architecture)s' % {
-            'name': self.name,
+            'name': self.ident,
             'distribution': distribution,
             'release': release,
             'architecture': architecture
@@ -66,7 +67,7 @@ class LXCIsolation(object):
 
     def _lxc_start(self):
         self.performer.execute('lxc-start -n %(name)s' % {
-            'name': self.name
+            'name': self.ident
         })
 
     def _isolate(self):
@@ -85,12 +86,21 @@ class LXCIsolation(object):
         #     'name': self.name
         # }
 
+LXC_ISOLATION = 'lxc'
 
-ISOLATIONS = {
-    'lxc': LXCIsolation
+ISOLATION_BY_NAME = {
+    LXC_ISOLATION: LXCIsolation
 }
+
+DEFAULT_ISOLATION = LXC_ISOLATION
 
 
 class Isolation(object):
-    def __new__(cls, ident):
-        return ISOLATIONS[ident]
+    def __init__(self, isolation_name, performer_ident):
+        self.performer = Performer(performer_ident)
+        self.isolation_class = ISOLATION_BY_NAME[isolation_name]
+
+    def __call__(self, isolation_ident):
+        return self.isolation_class(self.performer, isolation_ident)
+
+
