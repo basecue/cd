@@ -21,10 +21,7 @@ codev run [script] [environment] [infrastructure] [version]
 import click
 
 from codev.configuration import YAMLConfiguration
-from codev.executors import Control, Perform
-
-from os import path
-from functools import wraps
+from codev.cli import executor_call
 
 
 @click.group()
@@ -33,119 +30,40 @@ def main():
 
 
 @main.command()
-@click.option('-f', '--filepath', default='.codev', help='Path to configuration file.')
-def init(filepath):
+@click.option('-p', '--path', default='.codev', help='Path to configuration file.')
+def init(path):
     """
     Create .codev file in current directory or in given file path.
     """
 
-    if path.exists(filepath):
-        if not click.confirm('A file "%(filepath)s" already exists. Overwrite?' % {'filepath': filepath}):
+    if path.exists(path):
+        if not click.confirm('A file "%(filepath)s" already exists. Overwrite?' % {'filepath': path}):
             return
 
     configuration = YAMLConfiguration()
     try:
-        configuration.save_to_file(filepath)
+        configuration.save_to_file(path)
     except Exception as e:
         raise click.ClickException(e)
 
 
-def configuration_option(f):
-    def callback(ctx, param, value):
-        configuration = YAMLConfiguration.from_file(value)
-        return configuration
-
-    return click.option('-c', '--configuration',
-                        default='.codev',
-                        help='Path to configuration file.',
-                        callback=callback)(f)
-
-
-def environment_option(f):
-    return click.argument('environment')(f)
-    # return click.option('-e', '--environment',
-    #                     help='Environment to install on')(f)
-
-
-def infrastructure_option(f):
-    return click.argument('infrastructure')(f)
-    # return click.option('-i', '--infrastructure',
-    #                     help='Infrastructure to install with')(f)
-
-
-def version_option(f):
-    return click.argument('version')(f)
-    # return click.option('-v', '--version',
-    #                     help='Mode')(f)
-
-
-def mode_option(f):
-    return click.option('-m', '--mode',
-                        type=click.Choice(['control', 'perform']),
-                        default='control',
-                        help='Mode')(f)
-
-
-def deployment(f):
-    f = version_option(f)
-    f = infrastructure_option(f)
-    f = environment_option(f)
-    return f
-
-
-def main_options(f):
-    f = mode_option(f)
-    f = configuration_option(f)
-    return f
-
-
-def confirmation(message):
-    def decorator(f):
-        @wraps(f)
-        def confirmation_wrapper(force, **kwargs):
-            if not force:
-                if not click.confirm(message.format(**kwargs)):
-                    raise click.Abort()
-            return f(**kwargs)
-
-        return click.option('-f', '--force', is_flag=True,  help='Force')(confirmation_wrapper)
-
-    return decorator
-
-
-def executor(f):
-    @wraps(f)
-    def executor_wrapper(configuration, environment, infrastructure, version, mode, **kwargs):
-        executor_class = None
-        if mode == 'control':
-            executor_class = Control
-
-        elif mode == 'perform':
-            executor_class = Perform
-
-        executor = executor_class(configuration, environment, infrastructure, version)
-        return f(executor=executor, **kwargs)
-
-    return executor_wrapper
-
-
 @main.command()
-@main_options
-@deployment
-@confirmation('Install project "{configuration.project}" on environment "{environment}" with infrastructure "{infrastructure}" at version "{version}"')
-@executor
+@executor_call(
+    confirmation='Install project "{configuration.project}" on environment "{environment}" with infrastructure "{infrastructure}" at version "{version}"'
+)
 def install(executor):
     """
     install project on environment infrastructure version
+
+    :param executor:
     """
     executor.install()
 
 
 @main.command()
-@main_options
-@deployment
-@confirmation('Execute script "{script}" at project "{configuration.project}" on environment "{environment}" with infrastructure "{infrastructure}" at version "{version}"')
-@executor
+@executor_call(
+    confirmation='Execute script "{script}" at project "{configuration.project}" on environment "{environment}" with infrastructure "{infrastructure}" at version "{version}"'
+)
 @click.argument('script')
 def run(executor, script):
     executor.run(script)
