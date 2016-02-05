@@ -18,19 +18,22 @@ class BaseExecutor(object):
 class Perform(BaseExecutor):
     def install(self):
         # infrastructure provision
-        infrastructure = self.deployment.infrastructure()
+        infrastructure = self.deployment.infrastructure
 
         # configuration provision
+        print(infrastructure.machines)
+
+
         # provision = self.deployment.provision()
 
 
 class Control(BaseExecutor):
     def install(self):
         # create isolation
-        isolation = self.deployment.isolation()
+        isolation = self.deployment.isolation
 
         # install python3 pip
-        isolation.execute('apt-get install python3-pip -y')
+        isolation.execute('apt-get install python3-pip -y --force-yes')
 
         # install proper version of codev
         isolation.execute('pip3 install codev=={version}'.format(version=self.configuration.version))

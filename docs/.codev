@@ -14,7 +14,6 @@ scripts:
     finally:
       - cleanup scripts
 
-
 infrastructures:
   simple:
     machines:
@@ -27,10 +26,7 @@ infrastructures:
 
 configurations:
   standard:
-    provider: ansible
-    inventory: codev://ansible/inventory
-    playbook: provisioning/%(infrastructure)s.yml
-
+    provider: ansible://provisioning/%(infrastructure)s.yml
 
 environments:
   development:
@@ -43,12 +39,30 @@ environments:
         machines:
           webservers:
             provider: lxc
-            distribution: debian
-            release: squeeze
+            specific:
+              distribution: debian
+              release: squeeze
+              architecture: amd64
+              number: 2
           elasticservers:
-            distribution: ubuntu
-            release: trusty
-            number: 2
+            provider: real
+            specific:
+              ips: [10.0.1.9, 10.0.1.10]
+
+
+      simple:
+        machines:
+          webservers:
+            provider: lxc
+            specific:
+              distribution:
+              release:
+              number: 1
+          databases:
+            provider: real
+            specific:
+              ip: 10.0.1.5
+
     versions:
       - actual
       - live
@@ -61,10 +75,11 @@ environments:
 #      - staging/*
 #      - *-staging
   production:
+    perfomer: ssh://codev:codev@192.168.1.13
+    isolation: lxc
     infrastructures:
       full:
-        perfomer: test.coex.cz
-        isolation: lxc
+
         machines:
           webservers:
             provision: real

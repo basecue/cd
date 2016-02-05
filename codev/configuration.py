@@ -4,7 +4,6 @@ import yaml
 
 from collections import OrderedDict
 
-from .isolations import DEFAULT_ISOLATION
 """
 YAML OrderedDict mapping
 http://stackoverflow.com/questions/5121931/in-python-how-can-you-load-yaml-mappings-as-ordereddicts
@@ -32,7 +31,13 @@ class BaseConfiguration(object):
 
 
 class MachinesConfiguration(BaseConfiguration):
-    pass
+    @property
+    def provider(self):
+        return self.data.get('provider')
+
+    @property
+    def specific(self):
+        return self.data.get('specific', {})
 
 
 class DictConfiguration(OrderedDict):
@@ -47,19 +52,15 @@ class InfrastructureConfiguration(BaseConfiguration):
     def machines(self):
         return DictConfiguration(MachinesConfiguration, self.data.get('machines', {}))
 
-    @property
-    def provider(self):
-        return self.data.get('provider', 'real')
-
 
 class EnvironmentConfiguration(BaseConfiguration):
     @property
     def performer(self):
-        return self.data.get('performer', 'local')
+        return self.data.get('performer')
 
     @property
     def isolation_provider(self):
-        return self.data.get('isolation', DEFAULT_ISOLATION)
+        return self.data.get('isolation')
 
     @property
     def infrastructures(self):
