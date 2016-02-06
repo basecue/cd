@@ -1,13 +1,18 @@
 import re
 
 
-class Machine(object):
-    @property
-    def ip(self):
-        raise NotImplementedError()
+# class Machine(object):
+#     @property
+#     def ip(self):
+#         raise NotImplementedError()
 
 
-class LXCMachine(Machine):
+class RealMachine(object):
+    def __init__(self, ip):
+        self.ip = ip
+
+
+class LXCMachine(object):
     def __init__(self, perfomer, ident, distribution, release, architecture):
         self.performer = perfomer
         self.ident = ident

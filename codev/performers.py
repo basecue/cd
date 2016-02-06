@@ -79,13 +79,16 @@ class SSHPerformer(object):
 
         pid = self._execute(bg_command)
 
-        self._execute('rm %s' % COMMANDFILE)
-
         if not pid.isdigit():
             raise ValueError('not a pid %s' % pid)
 
+        # skip_lines = 0
         while self._bg_check(pid):
-            #timeout
+            #TODO timeout
+            #continuous printing output
+            # output =  self._execute('tail {outfile} -n+{skip_lines}'.format(outfile=outfile, skip_lines=skip_lines))
+            #
+
             sleep(0.5)
 
         exit_code = int(self._cat_file(EXITCODEFILE))

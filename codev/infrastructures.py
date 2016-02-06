@@ -1,5 +1,20 @@
-from .machines import LXCMachine
+from .machines import LXCMachine, RealMachine
 from .configuration import BaseConfiguration
+
+
+class BaseMachinesProvider(object):
+    def __init__(self, machines_name, performer, configuration_data):
+        self.machines_name = machines_name
+        self.performer = performer
+        self.configuration_data = configuration_data
+
+
+class ConfigurableMachinesProvider(BaseMachinesProvider):
+    configuration_class = None
+
+    def __init__(self, *args, **kwargs):
+        super(ConfigurableMachinesProvider, self).__init__(*args, **kwargs)
+        self.configuration = self.__class__.configuration_class(self.configuration_data)
 
 
 class LXCMachinesConfiguration(BaseConfiguration):
@@ -20,17 +35,20 @@ class LXCMachinesConfiguration(BaseConfiguration):
         return int(self.data.get('number'))
 
 
-class LXCMachines(object):
-    def __new__(cls, machines_name, performer, configuration):
+class LXCMachinesProvider(ConfigurableMachinesProvider):
+    configuration_class = LXCMachinesConfiguration
+
+    @property
+    def machines(self):
         machines = []
-        for i in range(1, configuration.number + 1):
-            ident = '%s_%000d' % (machines_name, i)
+        for i in range(1, self.configuration.number + 1):
+            ident = '%s_%000d' % (self.machines_name, i)
             machine = LXCMachine(
-                performer,
+                self.performer,
                 ident,
-                configuration.distribution,
-                configuration.release,
-                configuration.architecture
+                self.configuration.distribution,
+                self.configuration.release,
+                self.configuration.architecture
             )
             machine.create()
             machine.start()
@@ -38,19 +56,34 @@ class LXCMachines(object):
         return machines
 
 
-MACHINE_PROVIDERS_BY_NAME = {
-    'lxc': {
-        'machines': LXCMachines,
-        'configuration': LXCMachinesConfiguration
-    }
-}
+class RealMachinesConfiguration(BaseConfiguration):
+    @property
+    def ips(self):
+        return self.data.get('ips')
 
 
-class Machines(object):
-    def __new__(cls, machines_name, performer, provider, data):
-        defs = MACHINE_PROVIDERS_BY_NAME[provider]
-        configuration = defs['configuration'](data)
-        return defs['machines'](machines_name, performer, configuration)
+class RealMachinesProvider(ConfigurableMachinesProvider):
+    @property
+    def machines(self):
+        machines = []
+        for ip in self.configuration.ips:
+            machines.append(RealMachine(ip))
+        return machines
+
+
+class MachinesProvider(object):
+    def __new__(cls, provider_name, machines_name, performer, configuration_data):
+        provider = cls._providers[provider_name]
+        return provider(machines_name, performer, configuration_data)
+
+    _providers = {}
+
+    @classmethod
+    def register(cls, provider_name, provider):
+        cls._providers[provider_name] = provider
+
+
+MachinesProvider.register('lxc', LXCMachinesProvider)
 
 
 class Infrastructure(object):
@@ -59,6 +92,7 @@ class Infrastructure(object):
         self.machines = {}
 
         for machines_name, configuration in machines_configuration.items():
-            machine_provider = configuration.provider
-
-            self.machines[machines_name] = Machines(machines_name, performer, machine_provider, configuration.specific)
+            machines_provider = MachinesProvider(
+                machines_name, performer, configuration.provider, configuration.specific
+            )
+            self.machines[machines_name] = machines_provider.machines
