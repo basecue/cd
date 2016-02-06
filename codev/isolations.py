@@ -5,11 +5,14 @@ from time import sleep
 class LXCIsolation(LXCMachine):
     def __init__(self, performer, ident):
         performer = performer
-        ident = ident
+        self.ident = ident
         architecture = performer.execute('uname -m').strip()
         if architecture == 'x86_64':
             architecture = 'amd64'
         super(LXCIsolation, self).__init__(performer, ident, 'ubuntu', 'wily', architecture)
+        self._after()
+
+    def _after(self):
         created = self.create()
         if created:
             is_root = int(self.performer.execute('id -u')) == 0
@@ -17,10 +20,10 @@ class LXCIsolation(LXCMachine):
                 lxc_config = '/var/lib/lxc/%s/config'
             else:
                 lxc_config = '~/.local/share/lxc/%s/config'
-            lxc_config = lxc_config % ident
+            lxc_config = lxc_config % self.ident
 
-            performer.execute('echo "lxc.mount.auto = cgroup" >> %s' % lxc_config)
-            performer.execute('echo "lxc.aa_profile = lxc-container-default-with-nesting" >> %s' % lxc_config)
+            self.performer.execute('echo "lxc.mount.auto = cgroup" >> %s' % lxc_config)
+            self.performer.execute('echo "lxc.aa_profile = lxc-container-default-with-nesting" >> %s' % lxc_config)
 
         self.start()
         while not self.ip:

@@ -36,9 +36,12 @@ class SSHPerformer(object):
             connection_details['password'] = self.ident.password
         self.client.connect(self.ident.hostname, **connection_details)
 
-    def _execute(self, command):
-        print(command)
+    def _execute(self, command, writein=None):
         stdin, stdout, stderr = self.client.exec_command(command)
+        if writein:
+            stdin.write(writein)
+            stdin.flush()
+            stdin.channel.shutdown_write()
         err = stderr.read().decode('ascii').strip()
 
         if err:
@@ -47,7 +50,6 @@ class SSHPerformer(object):
         return stdout.read().decode('ascii').strip()
 
     def _bg_check(self, pid):
-        self._bg_exit_code = self._execute('echo $?')
         output = self._execute('ps -p %s -o pid=' % pid)
         return output == pid
 
@@ -55,17 +57,29 @@ class SSHPerformer(object):
         # run in background
         OUTFILE = 'codev.out'
         ERRFILE = 'codev.err'
+        EXITCODEFILE = 'codev.exit'
+        COMMANDFILE = 'codev.command'
 
         outfile = '/dev/null' if mute else OUTFILE
         errfile = ERRFILE
 
-        bg_command = 'nohup %(command)s > %(outfile)s 2> %(errfile)s & echo $!' % {
-            'command': command,
-            'outfile': outfile,
-            'errfile': errfile,
-        }
+        self._execute(
+            'tee {commandfile} > /dev/null && chmod +x {commandfile}'.format(
+                commandfile=COMMANDFILE
+            ),
+            writein='%s\n' % command
+        )
+
+        bg_command = 'nohup ./{commandfile} > {outfile} 2> {errfile}; echo $? > {exitcodefile} & echo $!'.format(
+            commandfile=COMMANDFILE,
+            outfile=outfile,
+            errfile=ERRFILE,
+            exitcodefile=EXITCODEFILE
+        )
 
         pid = self._execute(bg_command)
+
+        self._execute('rm %s' % COMMANDFILE)
 
         if not pid.isdigit():
             raise ValueError('not a pid %s' % pid)
@@ -74,13 +88,14 @@ class SSHPerformer(object):
             #timeout
             sleep(0.5)
 
-        exit_code = int(self._bg_exit_code)
+        exit_code = int(self._cat_file(EXITCODEFILE))
+        # print(exit_code)
 
         out = '' if mute else self._cat_file(outfile)
 
         if exit_code:
             err = self._cat_file(errfile)
-            raise PerformerError('%s: %s' % (exit_code, err))
+            raise PerformerError(err)
 
         return out
 
@@ -95,7 +110,7 @@ class SSHPerformer(object):
     def execute(self, command, mute=False, foreground=False):
         if not self.client:
             self._connect()
-        print('COMMAND:\n', command)
+        # print('COMMAND:\n', command)
         if not foreground:
             return self._bg_execute(command, mute)
         else:
