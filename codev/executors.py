@@ -18,7 +18,7 @@ class BaseExecutor(object):
 class Perform(BaseExecutor):
     def install(self):
         # infrastructure provision
-        infrastructure = self.deployment.infrastructure
+        infrastructure = self.deployment.infrastructure()
 
         # configuration provision
         print(infrastructure.machines)
@@ -30,7 +30,7 @@ class Perform(BaseExecutor):
 class Control(BaseExecutor):
     def install(self):
         # create isolation
-        isolation = self.deployment.isolation
+        isolation = self.deployment.isolation()
 
         # install python3 pip
         isolation.execute('apt-get install python3-pip -y --force-yes')

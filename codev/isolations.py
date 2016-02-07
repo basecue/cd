@@ -1,19 +1,31 @@
 from .machines import LXCMachine
 from time import sleep
+from .provider import BaseProvider
 
 
-class LXCIsolation(LXCMachine):
+class BaseIsolationProvider(object):
     def __init__(self, performer, ident):
-        performer = performer
+        self.performer = performer
         self.ident = ident
-        architecture = performer.execute('uname -m').strip()
+
+
+class LXCIsolationProvider(BaseIsolationProvider):
+    def __init__(self, performer, ident):
+        super(LXCIsolationProvider, self).__init__(performer, ident)
+        self._lxc_machine = None
+
+
+    def isolation(self):
+        if self._lxc_machine:
+            return self._lxc_machine
+
+        architecture = self.performer.execute('uname -m').strip()
         if architecture == 'x86_64':
             architecture = 'amd64'
-        super(LXCIsolation, self).__init__(performer, ident, 'ubuntu', 'wily', architecture)
-        self._after()
 
-    def _after(self):
-        created = self.create()
+        self._lxc_machine = LXCMachine(self.performer, self.ident, 'ubuntu', 'wily', architecture)
+
+        created = self._lxc_machine.create()
         if created:
             is_root = int(self.performer.execute('id -u')) == 0
             if is_root:
@@ -25,22 +37,23 @@ class LXCIsolation(LXCMachine):
             self.performer.execute('echo "lxc.mount.auto = cgroup" >> %s' % lxc_config)
             self.performer.execute('echo "lxc.aa_profile = lxc-container-default-with-nesting" >> %s' % lxc_config)
 
-        self.start()
-        while not self.ip:
+        self._lxc_machine.start()
+        while not self._lxc_machine.ip:
             sleep(0.5)
             #TODO TIMEOUT
 
         if created:
-            self.execute('apt-get update')
-            self.execute('bash -c "DEBIAN_FRONTEND=noninteractive apt-get install lxc -y --force-yes -qq"')
+            self._lxc_machine.execute('apt-get update')
+            self._lxc_machine.execute('bash -c "DEBIAN_FRONTEND=noninteractive apt-get install lxc -y --force-yes -qq"')
+
+        return self._lxc_machine
 
 
-ISOLATION_BY_NAME = {
-    'lxc': LXCIsolation
-}
+class IsolationProvider(BaseProvider):
+    provider_class = BaseIsolationProvider
+
+IsolationProvider.register('lxc', LXCIsolationProvider)
 
 
-class Isolation(object):
-    def __new__(cls, performer, provider, ident):
-        return ISOLATION_BY_NAME[provider](performer, ident)
+
 

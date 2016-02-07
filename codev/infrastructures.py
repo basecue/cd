@@ -1,5 +1,6 @@
 from .machines import LXCMachine, RealMachine
 from .configuration import BaseConfiguration
+from .provider import BaseProvider
 
 
 class BaseMachinesProvider(object):
@@ -71,16 +72,8 @@ class RealMachinesProvider(ConfigurableMachinesProvider):
         return machines
 
 
-class MachinesProvider(object):
-    def __new__(cls, provider_name, machines_name, performer, configuration_data):
-        provider = cls._providers[provider_name]
-        return provider(machines_name, performer, configuration_data)
-
-    _providers = {}
-
-    @classmethod
-    def register(cls, provider_name, provider):
-        cls._providers[provider_name] = provider
+class MachinesProvider(BaseProvider):
+    provider_class = BaseMachinesProvider
 
 
 MachinesProvider.register('lxc', LXCMachinesProvider)
@@ -88,11 +81,11 @@ MachinesProvider.register('lxc', LXCMachinesProvider)
 
 class Infrastructure(object):
     def __init__(self, performer, infrastructure_configuration):
-        machines_configuration = infrastructure_configuration.machines
         self.machines = {}
 
-        for machines_name, configuration in machines_configuration.items():
+        for machines_name, machines_configuration in infrastructure_configuration.machines.items():
             machines_provider = MachinesProvider(
-                machines_name, performer, configuration.provider, configuration.specific
+                machines_configuration.provider,
+                machines_name, performer, machines_configuration.specific
             )
             self.machines[machines_name] = machines_provider.machines
