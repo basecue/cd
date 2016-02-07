@@ -53,6 +53,15 @@ class SSHPerformer(object):
         output = self._execute('ps -p %s -o pid=' % pid)
         return output == pid
 
+    def _bg_log(self, outfile, skip_lines, omit_last):
+        output = self._execute('tail {outfile} -n+{skip_lines}'.format(outfile=outfile, skip_lines=skip_lines))
+        output_lines = output.splitlines()
+        if omit_last:
+            output_lines.pop()
+        for line in output_lines:
+            print(line)
+        return len(output_lines)
+
     def _bg_execute(self, command, mute=False):
         # run in background
         OUTFILE = 'codev.out'
@@ -62,6 +71,12 @@ class SSHPerformer(object):
 
         outfile = '/dev/null' if mute else OUTFILE
         errfile = ERRFILE
+
+        self._execute('echo "" > {outfile} > {errfile} > {exitcodefile}'.format(
+            outfile=outfile,
+            errfile=ERRFILE,
+            exitcodefile=EXITCODEFILE
+        ))
 
         self._execute(
             'tee {commandfile} > /dev/null && chmod +x {commandfile}'.format(
@@ -82,14 +97,13 @@ class SSHPerformer(object):
         if not pid.isdigit():
             raise ValueError('not a pid %s' % pid)
 
-        # skip_lines = 0
+        skip_lines = 0
         while self._bg_check(pid):
             #TODO timeout
-            #continuous printing output
-            # output =  self._execute('tail {outfile} -n+{skip_lines}'.format(outfile=outfile, skip_lines=skip_lines))
-            #
-
+            skip_lines += self._bg_log(outfile, skip_lines, True)
             sleep(0.5)
+
+        self._bg_log(outfile, skip_lines, False)
 
         exit_code = int(self._cat_file(EXITCODEFILE))
         # print(exit_code)
@@ -110,14 +124,11 @@ class SSHPerformer(object):
         sftp.put(source, target)
         sftp.close()
 
-    def execute(self, command, mute=False, foreground=False):
+    def execute(self, command, mute=False):
         if not self.client:
             self._connect()
-        # print('COMMAND:\n', command)
-        if not foreground:
-            return self._bg_execute(command, mute)
-        else:
-            return self._execute(command)
+        print('COMMAND:\n', command)
+        return self._bg_execute(command, mute)
 
 
 class Performer(object):

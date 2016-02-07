@@ -26,7 +26,9 @@ infrastructures:
 
 configurations:
   standard:
-    provider: ansible://provisioning/%(infrastructure)s.yml
+    provider: ansible
+    specific:
+      playbooks: provisioning/%(infrastructure)s.yml
 
 environments:
   development:
@@ -48,7 +50,9 @@ environments:
             provider: real
             specific:
               ips: [10.0.1.9, 10.0.1.10]
-
+        provider: ansible
+        specific:
+          playbooks: provisioning/%(infrastructure)s.yml
 
       simple:
         machines:

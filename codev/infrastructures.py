@@ -39,7 +39,6 @@ class LXCMachinesConfiguration(BaseConfiguration):
 class LXCMachinesProvider(ConfigurableMachinesProvider):
     configuration_class = LXCMachinesConfiguration
 
-    @property
     def machines(self):
         machines = []
         for i in range(1, self.configuration.number + 1):
@@ -64,7 +63,8 @@ class RealMachinesConfiguration(BaseConfiguration):
 
 
 class RealMachinesProvider(ConfigurableMachinesProvider):
-    @property
+    configuration_class = RealMachinesConfiguration
+
     def machines(self):
         machines = []
         for ip in self.configuration.ips:
@@ -77,6 +77,7 @@ class MachinesProvider(BaseProvider):
 
 
 MachinesProvider.register('lxc', LXCMachinesProvider)
+MachinesProvider.register('real', RealMachinesProvider)
 
 
 class Infrastructure(object):
@@ -88,4 +89,4 @@ class Infrastructure(object):
                 machines_configuration.provider,
                 machines_name, performer, machines_configuration.specific
             )
-            self.machines[machines_name] = machines_provider.machines
+            self.machines[machines_name] = machines_provider.machines()
