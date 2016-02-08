@@ -5,9 +5,10 @@ from time import sleep
 
 
 class LXCIsolationProvider(BaseIsolationProvider):
-    def __init__(self, performer, ident):
-        super(LXCIsolationProvider, self).__init__(performer, ident)
+    def __init__(self, ident):
+        super(LXCIsolationProvider, self).__init__(ident)
         self._lxc_machine = None
+        self.performer = None
 
     def _enable_container_nesting(self):
         is_root = int(self.performer.execute('id -u')) == 0
@@ -30,10 +31,11 @@ class LXCIsolationProvider(BaseIsolationProvider):
         self._lxc_machine.execute('apt-get update')
         self._lxc_machine.execute('bash -c "DEBIAN_FRONTEND=noninteractive apt-get install lxc -y --force-yes"')
 
-    def isolation(self):
+    def isolation(self, performer):
         if self._lxc_machine:
             return self._lxc_machine
 
+        self.performer = performer
         architecture = self._get_architecture()
 
         self._lxc_machine = LXCMachine(self.performer, self.ident, 'ubuntu', 'wily', architecture)

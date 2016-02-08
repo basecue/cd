@@ -1,4 +1,4 @@
-from codev.machines import MachinesProvider
+from .machines import MachinesProvider
 
 
 class Infrastructure(object):

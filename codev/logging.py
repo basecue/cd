@@ -1,17 +1,32 @@
 import logging
+from logging.config import dictConfig
 
-logging.basicConfig(level=logging.INFO)
+logging_config = dict(
+    version=1,
+    formatters={
+        'control': {
+            'format':
+            '[CONTROL] [%(levelname)s] %(message)s'
+        }
+    },
+    handlers={
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'control',
+            'level': logging.INFO
+        },
+    },
+    loggers={
+        'codev.executors': {
+            'handlers': ['console'],
+            'level': logging.INFO
+        },
+        'codev.deployment': {
+            'handlers': ['console'],
+            'level': logging.INFO
+        }
+    }
+)
 
-# handler = logging.StreamHandler()
-# handler.setFormatter(logging.Formatter('[CONTROL] {asctime} - {name} - {levelname} - {message}', style='{'))
-#
-# control_logger = logging.getLogger('control')
-# control_logger.addHandler(handler)
-# control_logger.setLevel(logging.INFO)
-#
-# handler = logging.StreamHandler()
-# handler.setFormatter(logging.Formatter('[PERFORM] {asctime} - {name} - {levelname} - {message}', style='{'))
-#
-# perform_logger = logging.getLogger('perform')
-# perform_logger.addHandler(handler)
-# perform_logger.setLevel(logging.INFO)
+dictConfig(logging_config)
+

@@ -74,7 +74,7 @@ def mode_choice(f):
                         help='Mode')(executor_wrapper)
 
 
-class executor_call(object):
+class execution(object):
     def __init__(self, confirmation=None):
         self.confirmation = confirmation
 

@@ -5,7 +5,7 @@ from urllib.parse import urlparse
 from time import sleep
 
 from logging import getLogger
-logger = getLogger('')
+logger = getLogger(__name__)
 
 
 class PerformerError(Exception):
@@ -20,7 +20,7 @@ class LocalPerformer(object):
         subprocess.check_output('cp', source, target, stdin=None, stderr=None, shell=False, timeout=None)
 
 
-class SSHPerformer(object):
+class SSHperformer(object):
     def __init__(self, ident):
         self.ident = ident
         self.client = None
@@ -131,9 +131,9 @@ class SSHPerformer(object):
         return self._bg_execute(command)
 
 
-class Performer(object):
+class performer(object):
     def __new__(cls, url):
         ident = urlparse(url)
         scheme = ident.scheme
         if scheme == 'ssh':
-            return SSHPerformer(ident)
+            return SSHperformer(ident)

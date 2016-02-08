@@ -21,7 +21,7 @@ codev run [script] [environment] [infrastructure] [version]
 import click
 
 from codev.configuration import YAMLConfiguration
-from codev.cli import executor_call
+from codev.cli import execution
 
 
 @click.group()
@@ -48,20 +48,20 @@ def init(path):
 
 
 @main.command()
-@executor_call(
+@execution(
     confirmation='Install project "{configuration.project}" on environment "{environment}" with infrastructure "{infrastructure}" at version "{version}"'
 )
 def install(executor):
     """
     install project on environment infrastructure version
 
-    :param executor:
+    :param mode:
     """
     executor.install()
 
 
 @main.command()
-@executor_call(
+@execution(
     confirmation='Execute script "{script}" at project "{configuration.project}" on environment "{environment}" with infrastructure "{infrastructure}" at version "{version}"'
 )
 @click.argument('script')
