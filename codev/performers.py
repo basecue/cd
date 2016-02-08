@@ -4,6 +4,9 @@ import subprocess
 from urllib.parse import urlparse
 from time import sleep
 
+from logging import getLogger
+logger = getLogger('')
+
 
 class PerformerError(Exception):
     pass
@@ -59,21 +62,20 @@ class SSHPerformer(object):
         if omit_last:
             output_lines.pop()
         for line in output_lines:
-            print(line)
+            logger.debug(line)
         return len(output_lines)
 
-    def _bg_execute(self, command, mute=False):
+    def _bg_execute(self, command):
         # run in background
         OUTFILE = 'codev.out'
         ERRFILE = 'codev.err'
         EXITCODEFILE = 'codev.exit'
         COMMANDFILE = 'codev.command'
 
-        outfile = '/dev/null' if mute else OUTFILE
         errfile = ERRFILE
 
         self._execute('echo "" > {outfile} > {errfile} > {exitcodefile}'.format(
-            outfile=outfile,
+            outfile=OUTFILE,
             errfile=ERRFILE,
             exitcodefile=EXITCODEFILE
         ))
@@ -87,7 +89,7 @@ class SSHPerformer(object):
 
         bg_command = 'nohup ./{commandfile} > {outfile} 2> {errfile}; echo $? > {exitcodefile} & echo $!'.format(
             commandfile=COMMANDFILE,
-            outfile=outfile,
+            outfile=OUTFILE,
             errfile=ERRFILE,
             exitcodefile=EXITCODEFILE
         )
@@ -99,20 +101,19 @@ class SSHPerformer(object):
 
         skip_lines = 0
         while self._bg_check(pid):
+            skip_lines += self._bg_log(OUTFILE, skip_lines, True)
             #TODO timeout
-            skip_lines += self._bg_log(outfile, skip_lines, True)
             sleep(0.5)
 
-        self._bg_log(outfile, skip_lines, False)
+        self._bg_log(OUTFILE, skip_lines, False)
 
         exit_code = int(self._cat_file(EXITCODEFILE))
-        # print(exit_code)
 
-        out = '' if mute else self._cat_file(outfile)
+        out = self._cat_file(OUTFILE)
 
         if exit_code:
             err = self._cat_file(errfile)
-            raise PerformerError(err)
+            raise PerformerError('%s: %s' % (exit_code, err))
 
         return out
 
@@ -124,11 +125,10 @@ class SSHPerformer(object):
         sftp.put(source, target)
         sftp.close()
 
-    def execute(self, command, mute=False):
+    def execute(self, command):
         if not self.client:
             self._connect()
-        print('COMMAND:\n', command)
-        return self._bg_execute(command, mute)
+        return self._bg_execute(command)
 
 
 class Performer(object):
@@ -137,5 +137,3 @@ class Performer(object):
         scheme = ident.scheme
         if scheme == 'ssh':
             return SSHPerformer(ident)
-
-

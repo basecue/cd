@@ -19,5 +19,3 @@ class BaseProvider(object, metaclass=BaseProviderMetaClass):
         if not issubclass(provider, cls.provider_class):
             raise ValueError("Class '{provider}' has to be subclass of '{provider_class}'.".format(provider=provider, provider_class=cls.provider_class))
         cls.providers[provider_name] = provider
-
-

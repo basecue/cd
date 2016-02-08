@@ -4,7 +4,13 @@ from .deployment import Deployment
 
 
 class BaseExecutor(object):
-    def __init__(self, configuration, environment_name, infrastructure_name, version):
+    def __init__(
+            self,
+            configuration,
+            environment_name,
+            infrastructure_name,
+            version
+    ):
         self.configuration = configuration
         self.environment_name = environment_name
         self.infrastructure_name = infrastructure_name
@@ -44,9 +50,9 @@ class Control(BaseExecutor):
         unlink('tmp')
 
         # predani rizeni
-        output = isolation.execute('codev install {environment} {infrastructure} {version} -m perform -f'.format(
+        isolation.execute('codev install {environment} {infrastructure} {version} -m perform -f'.format(
             environment=self.environment_name,
             infrastructure=self.infrastructure_name,
             version=self.version
         ))
-        print(output)
+
