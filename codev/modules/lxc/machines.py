@@ -78,11 +78,11 @@ class LXCMachine(object):
         })
         self.performer.execute('rm -f %(tmpfile)s' % {'tmpfile': TMPFILE})
 
-    def execute(self, command):
+    def execute(self, command, ignore_exit_codes=[]):
         return self.performer.execute('lxc-attach -n %(name)s -- %(command)s' % {
             'name': self.ident,
             'command': command
-        })
+        }, ignore_exit_codes=ignore_exit_codes)
 
 
 class LXCMachinesConfiguration(BaseConfiguration):

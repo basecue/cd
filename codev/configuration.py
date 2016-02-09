@@ -67,8 +67,8 @@ class EnvironmentConfiguration(BaseConfiguration):
         return DictConfiguration(InfrastructureConfiguration, self.data.get('infrastructures', {}))
 
     @property
-    def versions(self):
-        return self.data.get('versions', [])
+    def installations(self):
+        return self.data.get('installations', [])
 
 
 class Configuration(BaseConfiguration):

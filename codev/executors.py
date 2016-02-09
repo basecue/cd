@@ -1,48 +1,21 @@
 from os import unlink
 
 from .configuration import YAMLConfiguration
-from .deployment import Deployment
-from .performers import performer, LocalPerformer
+from .environment import Environment
 
 from logging import getLogger
 logger = getLogger(__name__)
 
 
-class BaseMode(object):
-    def __init__(
-            self,
-            configuration,
-            environment_name,
-            infrastructure_name,
-            version
-    ):
-        self.configuration = configuration
-        self.environment_name = environment_name
-        self.infrastructure_name = infrastructure_name
-        self.version = version
-        logger.info(
-            "Setting up deployment '{environment_name}, {infrastructure_name}, {version}'".format(
-                environment_name=environment_name,
-                infrastructure_name=infrastructure_name,
-                version=version
-            )
-        )
-
-        self.deployment = Deployment(configuration, environment_name, infrastructure_name, version)
-        self.performer = None
-
-    def run(self):
-        pass
+class BaseExecutor(object):
+    def __init__(self, configuration, environment_name):
+        self.environment = Environment(configuration.environments[environment_name])
 
 
-class Perform(BaseMode):
-    def __init__(self, *args, **kwargs):
-        super(Perform, self).__init__(*args, **kwargs)
-        self.performer = LocalPerformer()
-
-    def install(self):
+class Perform(BaseExecutor):
+    def install(self, infrastructure_name, version):
         # infrastructure provision
-        infrastructure = self.deployment.infrastructure(self.performer)
+        infrastructure = self.environment.infrastructure(infrastructure_name)
 
         # configuration provision
         print(infrastructure.machines)
@@ -51,23 +24,41 @@ class Perform(BaseMode):
         # provision = self.deployment.provision()
 
 
-class Control(BaseMode):
-    def __init__(self, *args, **kwargs):
-        super(Control, self).__init__(*args, **kwargs)
-        logger.info("Configure performer: '{performer}'.".format(performer=self.deployment.performer_name))
-        self.performer = performer(self.deployment.performer_name)
-        
-    def install(self):
-        # create isolation
-        isolation = self.deployment.isolation(self.performer)
+class Control(BaseExecutor):
+    def __init__(self, configuration, environment_name):
+        super(Control, self).__init__(configuration, environment_name)
+        self.configuration = configuration
+        self.environment_name = environment_name
 
-        logger.info(
-            "Instalation codev in isolation at version '{version}'...".format(version=self.configuration.version)
+    def install(self, infrastructure_name, installation):
+        logger.info("Installation project '{project}' environment '{environment}' infrastructure '{infrastructure}' installation '{installation}'".format(
+            project=self.configuration.project,
+            environment=self.environment_name,
+            infrastructure=infrastructure_name,
+            installation=installation
+        ))
+
+        # create isolation
+        isolation_ident = '%s_%s_%s_%s' % (
+            self.configuration.project,
+            self.environment_name,
+            infrastructure_name,
+            installation
         )
+
+        isolation = self.environment.isolation(isolation_ident)
+
+
+        logger.info("Installation codev version '{version}'".format(
+            version=self.configuration.version
+        ))
         # install python3 pip
         isolation.execute('apt-get install python3-pip -y --force-yes')
         # install proper version of codev
-        isolation.execute('pip3 install codev=={version}'.format(version=self.configuration.version))
+        isolation.execute(
+            'pip3 install codev=={version}'.format(version=self.configuration.version),
+            ignore_exit_codes=[1]
+        )
 
 
         # send configuration file
@@ -77,10 +68,10 @@ class Control(BaseMode):
 
         logger.info('Transfer of control.')
         # predani rizeni
-        isolation.execute('codev install {environment} {infrastructure} {version} -m perform -f'.format(
+        isolation.execute('codev install {environment} {infrastructure} {installation} -m perform -f'.format(
             environment=self.environment_name,
-            infrastructure=self.infrastructure_name,
-            version=self.version
+            infrastructure=infrastructure_name,
+            installation=installation
         ))
         logger.info('Installation successful.')
 

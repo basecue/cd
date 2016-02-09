@@ -2,8 +2,8 @@ from .provider import BaseProvider
 
 
 class BaseIsolationProvider(object):
-    def __init__(self, ident):
-        self.ident = ident
+    def __init__(self, performer):
+        self.performer = performer
 
 
 class IsolationProvider(BaseProvider):

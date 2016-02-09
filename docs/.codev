@@ -1,4 +1,4 @@
-version: 0.0.3a
+version: 0.0.4a
 project: hranipex
 repositories:
   - ./
@@ -67,7 +67,7 @@ environments:
             specific:
               ip: 10.0.1.5
 
-    versions:
+    installations:
       - actual
       - live
       - svc
@@ -81,6 +81,7 @@ environments:
   production:
     perfomer: ssh://codev:codev@192.168.1.13
     isolation: lxc
+    protected: true
     infrastructures:
       full:
 
@@ -103,7 +104,7 @@ environments:
           after:
 
         configuration: standard
-    versions:
+    installations:
       - svc
 
     branches:

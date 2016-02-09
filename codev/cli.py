@@ -18,24 +18,18 @@ def configuration_option(f):
 
 def environment_option(f):
     return click.argument('environment')(f)
-    # return click.option('-e', '--environment',
-    #                     help='Environment to install on')(f)
 
 
 def infrastructure_option(f):
     return click.argument('infrastructure')(f)
-    # return click.option('-i', '--infrastructure',
-    #                     help='Infrastructure to install with')(f)
 
 
-def version_option(f):
-    return click.argument('version')(f)
-    # return click.option('-v', '--version',
-    #                     help='Mode')(f)
+def installation_option(f):
+    return click.argument('installation')(f)
 
 
 def deployment_options(f):
-    f = version_option(f)
+    f = installation_option(f)
     f = infrastructure_option(f)
     f = environment_option(f)
     return f
@@ -57,7 +51,7 @@ def confirmation_message(message):
 
 def mode_choice(f):
     @wraps(f)
-    def executor_wrapper(configuration, environment, infrastructure, version, mode, **kwargs):
+    def executor_wrapper(configuration, environment, mode, **kwargs):
         executor_class = None
         if mode == 'control':
             executor_class = Control
@@ -65,7 +59,7 @@ def mode_choice(f):
         elif mode == 'perform':
             executor_class = Perform
 
-        executor = executor_class(configuration, environment, infrastructure, version)
+        executor = executor_class(configuration, environment)
         return f(executor=executor, **kwargs)
 
     return click.option('-m', '--mode',

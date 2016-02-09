@@ -49,20 +49,18 @@ def init(path):
 
 @main.command()
 @execution(
-    confirmation='Install project "{configuration.project}" on environment "{environment}" with infrastructure "{infrastructure}" at version "{version}"'
+    confirmation='Install project "{configuration.project}" on environment "{environment}" with infrastructure "{infrastructure}" at installation "{installation}"'
 )
-def install(executor):
+def install(executor, infrastructure, installation):
     """
     install project on environment infrastructure version
-
-    :param mode:
     """
-    executor.install()
+    executor.install(infrastructure, installation)
 
 
 @main.command()
 @execution(
-    confirmation='Execute script "{script}" at project "{configuration.project}" on environment "{environment}" with infrastructure "{infrastructure}" at version "{version}"'
+    confirmation='Execute script "{script}" at project "{configuration.project}" on environment "{environment}" with infrastructure "{infrastructure}" at installation "{installation}"'
 )
 @click.argument('script')
 def run(executor, script):

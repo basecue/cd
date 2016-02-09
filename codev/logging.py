@@ -15,15 +15,24 @@ logging_config = dict(
             'formatter': 'control',
             'level': logging.INFO
         },
+        'debug_console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'control',
+            'level': logging.DEBUG
+        },
     },
     loggers={
         'codev.executors': {
             'handlers': ['console'],
             'level': logging.INFO
         },
-        'codev.deployment': {
+        'codev.environment': {
             'handlers': ['console'],
             'level': logging.INFO
+        },
+        'codev.performers': {
+            'handlers': ['console'],
+            'level': logging.DEBUG
         }
     }
 )
