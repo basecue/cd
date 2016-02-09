@@ -1,8 +1,9 @@
 
 from paramiko.client import SSHClient, AutoAddPolicy
-import subprocess
+from subprocess import Popen, PIPE, call
 from urllib.parse import urlparse
 from time import sleep
+from threading import Thread
 
 from logging import getLogger
 from .logging import command_logger
@@ -26,15 +27,32 @@ COMMAND_FILE = 'codev.command'
 
 
 class LocalPerformer(object):
+    def __init__(self):
+        self._output_lines = []
+
+    def _reader(self, stream):
+        while True:
+            line = stream.readline()
+            if not line:
+                break
+            output_line = line.decode('utf-8').strip()
+            self._output_lines.append(output_line)
+            command_logger.info(output_line)
+        stream.close()
+
     def execute(self, command):
         logger.debug('Executing LOCAL command: %s' % command)
-        try:
-            return subprocess.check_output(command.split())
-        except subprocess.CalledProcessError as e:
-            raise PerformerError(command, e.returncode, e.output)
+        self._output_lines = []
+        process = Popen(command.split(), stdout=PIPE, stderr=PIPE)
+        reader = Thread(target=self._reader, args=(process.stdout,))
+        reader.start()
+        exit_code = process.wait()
+        if exit_code:
+            raise PerformerError(command, exit_code, "error.decode('utf-8').strip()")
+        return '\n'.join(self._output_lines)
 
     def send_file(self, source, target):
-        subprocess.call('cp', source, target)
+        call('cp', source, target)
 
 
 class SSHperformer(object):

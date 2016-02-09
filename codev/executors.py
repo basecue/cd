@@ -1,26 +1,29 @@
 from os import unlink
 
 from logging import getLogger
-from logging.config import dictConfig
 
 from .configuration import YAMLConfiguration
 from .environment import Environment
-from .logging import command_logger, control_config, perform_config
+from .logging import command_logger, control_logging, perform_logging
 
 logger = getLogger(__name__)
 
 
 class BaseExecutor(object):
-    logging_config = None
+    logging = None
 
     def __init__(self, configuration, environment_name):
-        dictConfig(self.__class__.logging_config(configuration.debug.loglevel))
-
+        self.__class__.logging(configuration.debug.loglevel)
         self.environment = Environment(configuration.environments[environment_name])
 
 
 class Perform(BaseExecutor):
-    logging_config = perform_config
+    logging = perform_logging
+
+    def __init__(self, configuration, environment_name):
+        super(Perform, self).__init__(configuration, environment_name)
+        if configuration.debug.perform_command_output:
+            command_logger.set_perform_command_output()
 
     def install(self, infrastructure_name, installation):
         # infrastructure provision
@@ -34,7 +37,7 @@ class Perform(BaseExecutor):
 
 
 class Control(BaseExecutor):
-    logging_config = control_config
+    logging = control_logging
 
     def __init__(self, configuration, environment_name):
         super(Control, self).__init__(configuration, environment_name)
@@ -68,7 +71,7 @@ class Control(BaseExecutor):
         # install proper version of codev
         if self.configuration.debug.distfile:
             isolation.send_file(self.configuration.debug.distfile.format(version=self.configuration.version), 'codev.tar.gz')
-            isolation.execute('pip3 install codev.tar.gz')
+            isolation.execute('pip3 install --upgrade codev.tar.gz')
         else:
             isolation.execute('pip3 install --upgrade codev=={version}'.format(version=self.configuration.version))
 
@@ -80,7 +83,7 @@ class Control(BaseExecutor):
         logger.info('Transfer of control.')
         # predani rizeni
 
-        command_logger.set_control_perform_mode()
+        command_logger.set_control_perform_command_output()
         isolation.execute('codev install {environment} {infrastructure} {installation} -m perform -f'.format(
             environment=self.environment_name,
             infrastructure=infrastructure_name,

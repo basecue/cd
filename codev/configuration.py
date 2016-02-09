@@ -57,6 +57,10 @@ class DebugConfiguration(BaseConfiguration):
     def distfile(self):
         return self.data.get('distfile', '')
 
+    @property
+    def perform_command_output(self):
+        return bool(self.data.get('perform_command_output', False))
+
 
 class InfrastructureConfiguration(BaseConfiguration):
     @property
