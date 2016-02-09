@@ -14,7 +14,7 @@ class BaseExecutor(object):
     logging_config = None
 
     def __init__(self, configuration, environment_name):
-        dictConfig(self.logging_config)
+        dictConfig(self.__class__.logging_config(configuration.debug.loglevel))
 
         self.environment = Environment(configuration.environments[environment_name])
 
@@ -22,7 +22,7 @@ class BaseExecutor(object):
 class Perform(BaseExecutor):
     logging_config = perform_config
 
-    def install(self, infrastructure_name, version):
+    def install(self, infrastructure_name, installation):
         # infrastructure provision
         infrastructure = self.environment.infrastructure(infrastructure_name)
 
@@ -64,9 +64,13 @@ class Control(BaseExecutor):
         ))
         # install python3 pip
         isolation.execute('apt-get install python3-pip -y --force-yes')
-        # install proper version of codev
-        isolation.execute('pip3 install --upgrade codev=={version}'.format(version=self.configuration.version))
 
+        # install proper version of codev
+        if self.configuration.debug.distfile:
+            isolation.send_file(self.configuration.debug.distfile, 'codev.tar.gz')
+            isolation.execute('pip3 install codev.tar.gz')
+        else:
+            isolation.execute('pip3 install --upgrade codev=={version}'.format(version=self.configuration.version))
 
         # send configuration file
         YAMLConfiguration.from_configuration(self.configuration).save_to_file('tmp')

@@ -1,7 +1,11 @@
-version: 0.0.5a1
+version: 0.0.5a2
 project: hranipex
 repositories:
   - ./
+
+debug:
+  loglevel: debug
+  distfile: dist/codev-{version}.tar.gz
 
 scripts:
   end to end:

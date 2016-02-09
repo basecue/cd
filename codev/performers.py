@@ -5,9 +5,9 @@ from urllib.parse import urlparse
 from time import sleep
 
 from logging import getLogger
-logger = getLogger(__name__)
-
 from .logging import command_logger
+
+logger = getLogger(__name__)
 
 
 class PerformerError(Exception):
@@ -29,7 +29,7 @@ class LocalPerformer(object):
     def execute(self, command):
         logger.debug('Executing LOCAL command: %s' % command)
         try:
-            return subprocess.check_output(command.split(), stderr=subprocess.STDOUT)
+            return subprocess.check_output(command.split())
         except subprocess.CalledProcessError as e:
             raise PerformerError(command, e.returncode, e.output)
 
@@ -67,6 +67,7 @@ class SSHperformer(object):
         )
 
     def _execute(self, command, ignore_exit_codes=[], writein=None):
+        logger.debug('command: %s' % command)
         stdin, stdout, stderr = self.client.exec_command(command)
         if writein:
             stdin.write(writein)
