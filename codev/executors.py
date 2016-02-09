@@ -67,7 +67,7 @@ class Control(BaseExecutor):
 
         # install proper version of codev
         if self.configuration.debug.distfile:
-            isolation.send_file(self.configuration.debug.distfile, 'codev.tar.gz')
+            isolation.send_file(self.configuration.debug.distfile.format(version=self.configuration.version), 'codev.tar.gz')
             isolation.execute('pip3 install codev.tar.gz')
         else:
             isolation.execute('pip3 install --upgrade codev=={version}'.format(version=self.configuration.version))

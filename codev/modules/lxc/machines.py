@@ -76,7 +76,7 @@ class LXCMachine(object):
     def send_file(self, source, target):
         TMPFILE = 'tempfile'
         self.performer.send_file(source, TMPFILE)
-        self.performer.execute('cat %(tmpfile)s | lxc-attach -n %(name)s -- tee %(target)s' % {
+        self.performer.execute('cat %(tmpfile)s | lxc-attach -n %(name)s -- tee %(target)s > /dev/null' % {
             'name': self.ident,
             'tmpfile': TMPFILE,
             'target': target

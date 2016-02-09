@@ -77,10 +77,10 @@ class SSHperformer(object):
         exit_code = stdout.channel.recv_exit_status()
         if exit_code and exit_code not in ignore_exit_codes:
             if exit_code:
-                err = stderr.read().decode('ascii').strip()
+                err = stderr.read().decode('utf-8').strip()
                 raise PerformerError(command, exit_code, err)
 
-        return stdout.read().decode('ascii').strip()
+        return stdout.read().decode('utf-8').strip()
 
     def _bg_check(self, pid):
         output = self._execute('ps -p %s -o pid=' % pid, ignore_exit_codes=[1])
