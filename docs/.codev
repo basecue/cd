@@ -1,4 +1,4 @@
-version: 0.0.4a
+version: 0.0.5a1
 project: hranipex
 repositories:
   - ./
@@ -32,7 +32,7 @@ configurations:
 
 environments:
   development:
-    performer: ssh://codev:codev@192.168.56.101
+    performer: ssh://codev:codev@192.168.1.14
     isolation: lxc
 #    instalace?
 #    spustitelny script? - napr pro konfiguraci vpn

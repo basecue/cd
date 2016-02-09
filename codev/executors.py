@@ -55,10 +55,7 @@ class Control(BaseExecutor):
         # install python3 pip
         isolation.execute('apt-get install python3-pip -y --force-yes')
         # install proper version of codev
-        isolation.execute(
-            'pip3 install codev=={version}'.format(version=self.configuration.version),
-            ignore_exit_codes=[1]
-        )
+        isolation.execute('pip3 install --upgrade codev=={version}'.format(version=self.configuration.version))
 
 
         # send configuration file

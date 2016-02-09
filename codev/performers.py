@@ -25,10 +25,14 @@ COMMAND_FILE = 'codev.command'
 
 class LocalPerformer(object):
     def execute(self, command):
-        return subprocess.check_output(command, stdin=None, stderr=None, shell=False, timeout=None)
+        logger.debug('Executing command: %s' % command)
+        try:
+            return subprocess.check_output(command.split(), stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError as e:
+            raise PerformerError(command, e.returncode, e.output)
 
     def send_file(self, source, target):
-        subprocess.check_output('cp', source, target, stdin=None, stderr=None, shell=False, timeout=None)
+        subprocess.call('cp', source, target)
 
 
 class SSHperformer(object):
@@ -89,7 +93,7 @@ class SSHperformer(object):
             logger.debug(line)
         return len(output_lines)
 
-    def _bg_execute(self, command, ignore_exit_codes):
+    def _bg_execute(self, command):
         # run in background
         errfile = self.error_file
         self._execute('echo "" > {output_file} > {error_file} > {exitcode_file}'.format(
@@ -129,7 +133,7 @@ class SSHperformer(object):
 
         out = self._cat_file(self.output_file)
 
-        if exit_code and exit_code not in ignore_exit_codes:
+        if exit_code:
             err = self._cat_file(errfile)
             raise PerformerError(command, exit_code, err)
 
@@ -143,10 +147,10 @@ class SSHperformer(object):
         sftp.put(source, target)
         sftp.close()
 
-    def execute(self, command, ignore_exit_codes=[]):
+    def execute(self, command):
         if not self.client:
             self._connect()
-        return self._bg_execute(command, ignore_exit_codes)
+        return self._bg_execute(command)
 
 
 class Performer(object):
