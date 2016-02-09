@@ -7,6 +7,8 @@ from time import sleep
 from logging import getLogger
 logger = getLogger(__name__)
 
+from .logging import command_logger
+
 
 class PerformerError(Exception):
     def __init__(self, command, exit_code, error):
@@ -25,7 +27,7 @@ COMMAND_FILE = 'codev.command'
 
 class LocalPerformer(object):
     def execute(self, command):
-        logger.debug('Executing command: %s' % command)
+        logger.debug('Executing LOCAL command: %s' % command)
         try:
             return subprocess.check_output(command.split(), stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
@@ -65,7 +67,6 @@ class SSHperformer(object):
         )
 
     def _execute(self, command, ignore_exit_codes=[], writein=None):
-        logger.debug('Executing command: %s' % command)
         stdin, stdout, stderr = self.client.exec_command(command)
         if writein:
             stdin.write(writein)
@@ -90,8 +91,16 @@ class SSHperformer(object):
         if omit_last:
             output_lines.pop()
         for line in output_lines:
-            logger.debug(line)
+            command_logger.info(line)
         return len(output_lines)
+
+    def _bg_wait(self, pid):
+        skip_lines = 0
+        while self._bg_check(pid):
+            skip_lines += self._bg_log(skip_lines, True)
+            sleep(0.5)
+
+        self._bg_log(skip_lines, False)
 
     def _bg_execute(self, command):
         # run in background
@@ -121,13 +130,7 @@ class SSHperformer(object):
         if not pid.isdigit():
             raise ValueError('not a pid %s' % pid)
 
-        skip_lines = 0
-        while self._bg_check(pid):
-            skip_lines += self._bg_log(skip_lines, True)
-            #TODO timeout
-            sleep(0.5)
-
-        self._bg_log(skip_lines, False)
+        self._bg_wait(pid)
 
         exit_code = int(self._cat_file(self.exitcode_file))
 
@@ -148,6 +151,7 @@ class SSHperformer(object):
         sftp.close()
 
     def execute(self, command):
+        logger.debug('Executing SSH command: %s' % command)
         if not self.client:
             self._connect()
         return self._bg_execute(command)

@@ -1,7 +1,7 @@
 import logging
-from logging.config import dictConfig
 
-logging_config = dict(
+
+control_config = dict(
     version=1,
     formatters={
         'control': {
@@ -30,12 +30,50 @@ logging_config = dict(
             'handlers': ['console'],
             'level': logging.INFO
         },
-        'codev.performers': {
-            'handlers': ['console'],
+    }
+)
+
+
+perform_config = dict(
+    version=1,
+    formatters={
+        'perform': {
+            'format':
+            '[%(levelname)s] %(message)s'
+        }
+    },
+    handlers={
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'perform',
+            'level': logging.INFO
+        },
+        'debug_console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'perform',
             'level': logging.DEBUG
+        },
+    },
+    loggers={
+        'codev.executors': {
+            'handlers': ['console'],
+            'level': logging.INFO
+        },
+        'codev.environment': {
+            'handlers': ['console'],
+            'level': logging.INFO
         }
     }
 )
 
-dictConfig(logging_config)
 
+class CommandLogger(logging.Logger):
+    def __init__(self):
+        super(CommandLogger, self).__init__('control', logging.INFO)
+
+    def set_control_perform_mode(self):
+        control_perform_handler = logging.StreamHandler()
+        control_perform_handler.formatter = logging.Formatter('[PERFORM] %(message)s')
+        self.addHandler(control_perform_handler)
+
+command_logger = CommandLogger()

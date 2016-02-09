@@ -1,5 +1,6 @@
 import re
 
+from time import sleep
 from codev.configuration import BaseConfiguration
 from codev.machines import ConfigurableMachinesProvider, MachinesProvider
 
@@ -51,6 +52,10 @@ class LXCMachine(object):
             self.performer.execute('lxc-start -n %(name)s' % {
                 'name': self.ident
             })
+
+            while not self.ip:
+                sleep(0.5)
+
             return True
         else:
             return False

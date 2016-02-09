@@ -1,7 +1,6 @@
 from codev.isolation import BaseIsolationProvider, IsolationProvider
 
 from .machines import LXCMachine
-from time import sleep
 
 
 class LXCIsolationProvider(BaseIsolationProvider):
@@ -44,11 +43,6 @@ class LXCIsolationProvider(BaseIsolationProvider):
             self._enable_container_nesting(ident)
 
         self._lxc_machine.start()
-
-        #waiting for networking
-        while not self._lxc_machine.ip:
-            sleep(0.5)
-            #TODO TIMEOUT
 
         if created:
             self._install_lxc()

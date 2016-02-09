@@ -1,18 +1,27 @@
 from os import unlink
 
+from logging import getLogger
+from logging.config import dictConfig
+
 from .configuration import YAMLConfiguration
 from .environment import Environment
+from .logging import command_logger, control_config, perform_config
 
-from logging import getLogger
 logger = getLogger(__name__)
 
 
 class BaseExecutor(object):
+    logging_config = None
+
     def __init__(self, configuration, environment_name):
+        dictConfig(self.logging_config)
+
         self.environment = Environment(configuration.environments[environment_name])
 
 
 class Perform(BaseExecutor):
+    logging_config = perform_config
+
     def install(self, infrastructure_name, version):
         # infrastructure provision
         infrastructure = self.environment.infrastructure(infrastructure_name)
@@ -25,6 +34,8 @@ class Perform(BaseExecutor):
 
 
 class Control(BaseExecutor):
+    logging_config = control_config
+
     def __init__(self, configuration, environment_name):
         super(Control, self).__init__(configuration, environment_name)
         self.configuration = configuration
@@ -48,7 +59,6 @@ class Control(BaseExecutor):
 
         isolation = self.environment.isolation(isolation_ident)
 
-
         logger.info("Installation codev version '{version}'".format(
             version=self.configuration.version
         ))
@@ -65,6 +75,8 @@ class Control(BaseExecutor):
 
         logger.info('Transfer of control.')
         # predani rizeni
+
+        command_logger.set_control_perform_mode()
         isolation.execute('codev install {environment} {infrastructure} {installation} -m perform -f'.format(
             environment=self.environment_name,
             infrastructure=infrastructure_name,
