@@ -19,6 +19,7 @@ codev run [script] [environment] [infrastructure] [version]
 """
 
 import click
+import os.path
 
 from codev.configuration import YAMLConfiguration
 from codev.cli import execution
@@ -36,9 +37,9 @@ def init(path):
     Create .codev file in current directory or in given file path.
     """
 
-    if path.exists(path):
+    if os.path.exists(path):
         if not click.confirm('A file "%(filepath)s" already exists. Overwrite?' % {'filepath': path}):
-            return
+            raise click.Abort()
 
     configuration = YAMLConfiguration()
     try:

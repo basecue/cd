@@ -14,7 +14,12 @@ class BaseExecutor(object):
 
     def __init__(self, configuration, environment_name):
         self.__class__.logging(configuration.debug.loglevel)
-        self.environment = Environment(configuration.environments[environment_name])
+        try:
+            self.environment = Environment(configuration.environments[environment_name])
+        except KeyError:
+            raise ValueError(
+                "Environment '{environment_name}' does not exist.".format(environment_name=environment_name)
+            )
 
 
 class Perform(BaseExecutor):

@@ -68,6 +68,18 @@ def mode_choice(f):
                         help='Mode')(executor_wrapper)
 
 
+def nice_exception(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            if issubclass(type(e), click.ClickException) or issubclass(type(e), RuntimeError):
+                 raise
+            raise click.ClickException(e)
+    return wrapper
+
+
 class execution(object):
     def __init__(self, confirmation=None):
         self.confirmation = confirmation
@@ -78,4 +90,6 @@ class execution(object):
         func = configuration_option(func)
         if self.confirmation:
             func = confirmation_message(self.confirmation)(func)
+
+        func = nice_exception(func)
         return func
