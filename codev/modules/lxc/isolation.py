@@ -25,29 +25,32 @@ class LXCIsolationProvider(BaseIsolationProvider):
             architecture = 'amd64'
         return architecture
 
-    def _install_lxc(self):
-        self._lxc_machine.execute('apt-get update')
-        self._lxc_machine.execute('bash -c "DEBIAN_FRONTEND=noninteractive apt-get install lxc -y --force-yes"')
-
-    def isolation(self, ident):
-        if self._lxc_machine:
-            return self._lxc_machine
-
+    def _machine(self, ident):
         architecture = self._get_architecture()
+        return LXCMachine(self.performer, ident, 'ubuntu', 'wily', architecture)
 
-        self._lxc_machine = LXCMachine(self.performer, ident, 'ubuntu', 'wily', architecture)
+    def get_isolation(self, ident):
+        machine = self._machine(ident)
+        if machine.exists() and machine.is_started():
+            return machine
+        else:
+            return None
 
-        created = self._lxc_machine.create()
+    def create_isolation(self, ident):
+        machine = self._machine(ident)
+
+        created = machine.create()
 
         if created:
             self._enable_container_nesting(ident)
 
-        self._lxc_machine.start()
+        machine.start()
 
         if created:
-            self._install_lxc()
+            machine.execute('apt-get update')
+            machine.execute('bash -c "DEBIAN_FRONTEND=noninteractive apt-get install lxc -y --force-yes"')
 
-        return self._lxc_machine
+        return machine
 
 
 IsolationProvider.register('lxc', LXCIsolationProvider)

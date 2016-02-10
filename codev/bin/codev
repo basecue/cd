@@ -52,11 +52,20 @@ def init(path):
 @execution(
     confirmation='Install project "{configuration.project}" on environment "{environment}" with infrastructure "{infrastructure}" at installation "{installation}"'
 )
-def install(executor, infrastructure, installation):
+def install(executor):
     """
     install project on environment infrastructure version
     """
-    executor.install(infrastructure, installation)
+    executor.install()
+
+
+@main.command()
+@execution()
+def control(executor):
+    """
+    install project on environment infrastructure version
+    """
+    executor.control()
 
 
 @main.command()

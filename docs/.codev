@@ -5,6 +5,8 @@ repositories:
 
 debug:
   distfile: dist/codev-{version}.tar.gz
+  show_client_exceptions: true
+#  loglevel: debug
 
 scripts:
   end to end:
@@ -48,14 +50,14 @@ environments:
               distribution: debian
               release: squeeze
               architecture: amd64
-              number: 2
+              number: 3
           elasticservers:
             provider: real
             specific:
               ips: [10.0.1.9, 10.0.1.10]
-        provider: ansible
-        specific:
-          playbooks: provisioning/%(infrastructure)s.yml
+#        provider: ansible
+#        specific:
+#          playbooks: provisioning/%(infrastructure)s.yml
 
       simple:
         machines:

@@ -26,14 +26,14 @@ class LXCMachine(object):
         if r:
             state = r.group(1)
         else:
-            raise ValueError(output)
+            raise ValueError('o:%s:o' % output)
 
         if state == 'RUNNING':
             return True
         elif state == 'STOPPED':
             return False
         else:
-            raise ValueError(state)
+            raise ValueError('s:%s:s' % state)
 
     def create(self):
         if not self.exists():

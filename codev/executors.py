@@ -12,7 +12,7 @@ logger = getLogger(__name__)
 class BaseExecutor(object):
     logging = None
 
-    def __init__(self, configuration, environment_name):
+    def __init__(self, configuration, environment_name, infrastructure_name, installation):
         self.__class__.logging(configuration.debug.loglevel)
         try:
             self.environment = Environment(configuration.environments[environment_name])
@@ -20,22 +20,38 @@ class BaseExecutor(object):
             raise ValueError(
                 "Environment '{environment_name}' does not exist.".format(environment_name=environment_name)
             )
+        self.configuration = configuration
+        self.environment_name = environment_name
+        self.infrastructure_name = infrastructure_name
+        self.installation = installation
+
+    @property
+    def deployment(self):
+        return dict(
+            project=self.configuration.project,
+            environment=self.environment_name,
+            infrastructure=self.infrastructure_name,
+            installation=self.installation
+        )
 
 
 class Perform(BaseExecutor):
     logging = perform_logging
 
-    def __init__(self, configuration, environment_name):
-        super(Perform, self).__init__(configuration, environment_name)
+    def __init__(self, configuration, environment_name, infrastructure_name, installation):
+        super(Perform, self).__init__(configuration, environment_name, infrastructure_name, installation)
         if configuration.debug.perform_command_output:
             command_logger.set_perform_command_output()
 
-    def install(self, infrastructure_name, installation):
+    def install(self):
         # infrastructure provision
-        infrastructure = self.environment.infrastructure(infrastructure_name)
+        infrastructure = self.environment.infrastructure(self.infrastructure_name)
 
         # configuration provision
-        print(infrastructure.machines)
+        from time import sleep
+        for i in range(1, 200):
+            logger.info(i)
+            sleep(0.25)
 
 
         # provision = self.deployment.provision()
@@ -44,28 +60,20 @@ class Perform(BaseExecutor):
 class Control(BaseExecutor):
     logging = control_logging
 
-    def __init__(self, configuration, environment_name):
-        super(Control, self).__init__(configuration, environment_name)
-        self.configuration = configuration
-        self.environment_name = environment_name
+    def __init__(self, configuration, environment_name, infrastructure_name, installation):
+        super(Control, self).__init__(configuration, environment_name, infrastructure_name, installation)
 
-    def install(self, infrastructure_name, installation):
+    @property
+    def isolation_ident(self):
+        return '{project}_{environment}_{infrastructure}_{installation}'.format(**self.deployment)
+
+    def install(self):
         logger.info("Installation project '{project}' environment '{environment}' infrastructure '{infrastructure}' installation '{installation}'".format(
-            project=self.configuration.project,
-            environment=self.environment_name,
-            infrastructure=infrastructure_name,
-            installation=installation
+            **self.deployment
         ))
 
         # create isolation
-        isolation_ident = '%s_%s_%s_%s' % (
-            self.configuration.project,
-            self.environment_name,
-            infrastructure_name,
-            installation
-        )
-
-        isolation = self.environment.isolation(isolation_ident)
+        isolation = self.environment.create_isolation(self.isolation_ident)
 
         logger.info("Installation codev version '{version}'".format(
             version=self.configuration.version
@@ -90,9 +98,17 @@ class Control(BaseExecutor):
 
         command_logger.set_control_perform_command_output()
         isolation.execute('codev install {environment} {infrastructure} {installation} -m perform -f'.format(
-            environment=self.environment_name,
-            infrastructure=infrastructure_name,
-            installation=installation
+            **self.deployment
         ))
         logger.info('Installation successful.')
 
+    def control(self):
+        isolation = self.environment.get_isolation(self.isolation_ident, performer=self.environment.performer())
+        if not isolation:
+            raise ValueError("Isolation of project '{project}' environment '{environment}' infrastructure '{infrastructure}' installation '{installation}' does not exists.".format(
+                **self.deployment
+            ))
+
+        logger.info('Transfer of control.')
+        command_logger.set_control_perform_command_output()
+        self.environment.performer(self.isolation_ident).join()

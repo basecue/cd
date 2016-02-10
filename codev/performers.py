@@ -1,5 +1,5 @@
 
-from paramiko.client import SSHClient, AutoAddPolicy
+from paramiko.client import SSHClient, AutoAddPolicy, NoValidConnectionsError
 from subprocess import Popen, PIPE, call
 from urllib.parse import urlparse
 from time import sleep
@@ -12,8 +12,12 @@ logger = getLogger(__name__)
 
 
 class PerformerError(Exception):
+    pass
+
+
+class CommandError(PerformerError):
     def __init__(self, command, exit_code, error):
-        super(PerformerError, self).__init__(
+        super(CommandError, self).__init__(
             "Command '{command}' failed with exit code '{exit_code}' with error '{error}'".format(
                 command=command, exit_code=exit_code, error=error
             )
@@ -24,13 +28,15 @@ OUTPUT_FILE = 'codev.out'
 ERROR_FILE = 'codev.err'
 EXITCODE_FILE = 'codev.exit'
 COMMAND_FILE = 'codev.command'
+PID_FILE = 'codev.pid'
 
 
 class LocalPerformer(object):
     def __init__(self):
         self._output_lines = []
+        self._error_lines = []
 
-    def _reader(self, stream):
+    def _reader_out(self, stream):
         while True:
             line = stream.readline()
             if not line:
@@ -40,15 +46,34 @@ class LocalPerformer(object):
             command_logger.info(output_line)
         stream.close()
 
+    def _reader_err(self, stream):
+        while True:
+            line = stream.readline()
+            if not line:
+                break
+            output_line = line.decode('utf-8').strip()
+            self._error_lines.append(output_line)
+        stream.close()
+
+    # def _terminator(self, process):
+    #     while process.poll() is None:
+    #         #check file
+    #         process.terminate()
+
     def execute(self, command):
         logger.debug('Executing LOCAL command: %s' % command)
         self._output_lines = []
+        self._error_lines = []
         process = Popen(command.split(), stdout=PIPE, stderr=PIPE)
-        reader = Thread(target=self._reader, args=(process.stdout,))
-        reader.start()
+        reader_out = Thread(target=self._reader_out, args=(process.stdout,))
+        reader_out.start()
+        reader_err = Thread(target=self._reader_err, args=(process.stderr,))
+        reader_err.start()
+        # terminator = Thread(target=self._terminator, args=(process,))
+        # terminator.start()
         exit_code = process.wait()
         if exit_code:
-            raise PerformerError(command, exit_code, "error.decode('utf-8').strip()")
+            raise CommandError(command, exit_code, '\n'.join(self._error_lines))
         return '\n'.join(self._output_lines)
 
     def send_file(self, source, target):
@@ -56,7 +81,7 @@ class LocalPerformer(object):
 
 
 class SSHperformer(object):
-    def __init__(self, parsed_url, isolation_directory):
+    def __init__(self, parsed_url, isolation_directory=None):
         self.isolation_directory = isolation_directory
         self.parsed_url = parsed_url
         self.client = None
@@ -73,15 +98,25 @@ class SSHperformer(object):
             connection_details['username'] = self.parsed_url.username
         if self.parsed_url.password:
             connection_details['password'] = self.parsed_url.password
-        self.client.connect(self.parsed_url.hostname, **connection_details)
+        try:
+            self.client.connect(self.parsed_url.hostname, **connection_details)
+        except NoValidConnectionsError as e:
+            raise PerformerError('Cant connect to %s' % self.parsed_url.hostnam)
         self._create_isolation()
 
     def _create_isolation(self):
+        if not self.isolation_directory:
+            ssh_info = self._execute('echo $SSH_CLIENT')
+            ip, remote_port, local_port = ssh_info.split()
+            self.isolation_directory = 'control_{ip}_{remote_port}_{local_port}'.format(
+                ip=ip, remote_port=remote_port, local_port=local_port
+            )
+
         self._execute('mkdir -p %s' % self.isolation_directory)
 
-        self.output_file, self.error_file, self.exitcode_file, self.command_file = map(
+        self.output_file, self.error_file, self.exitcode_file, self.command_file, self.pid_file = map(
             lambda f: '%s/%s' % (self.isolation_directory, f),
-            [OUTPUT_FILE, ERROR_FILE, EXITCODE_FILE, COMMAND_FILE]
+            [OUTPUT_FILE, ERROR_FILE, EXITCODE_FILE, COMMAND_FILE, PID_FILE]
         )
 
     def _execute(self, command, ignore_exit_codes=[], writein=None):
@@ -96,7 +131,7 @@ class SSHperformer(object):
         if exit_code and exit_code not in ignore_exit_codes:
             if exit_code:
                 err = stderr.read().decode('utf-8').strip()
-                raise PerformerError(command, exit_code, err)
+                raise CommandError(command, exit_code, err)
 
         return stdout.read().decode('utf-8').strip()
 
@@ -106,6 +141,8 @@ class SSHperformer(object):
 
     def _bg_log(self, skip_lines, omit_last):
         output = self._execute('tail {output_file} -n+{skip_lines}'.format(output_file=self.output_file, skip_lines=skip_lines))
+        if not output:
+            return 0
         output_lines = output.splitlines()
         if omit_last:
             output_lines.pop()
@@ -121,27 +158,35 @@ class SSHperformer(object):
 
         self._bg_log(skip_lines, False)
 
+    @property
+    def _bg_files(self):
+        return dict(
+            command_file=self.command_file,
+            output_file=self.output_file,
+            error_file=self.error_file,
+            exitcode_file=self.exitcode_file,
+            pid_file=self.pid_file
+        )
+
     def _bg_execute(self, command):
         # run in background
         errfile = self.error_file
-        self._execute('echo "" > {output_file} > {error_file} > {exitcode_file}'.format(
-            output_file=self.output_file,
-            error_file=self.error_file,
-            exitcode_file=self.exitcode_file
+        self._execute('echo "" > {output_file} > {error_file} > {exitcode_file} > {pid_file}'.format(
+            **self._bg_files
         ))
 
         self._execute(
             'tee {command_file} > /dev/null && chmod +x {command_file}'.format(
                 command_file=self.command_file
             ),
-            writein='%s\n' % command
+            writein='{command}; echo $? > {exitcode_file}\n'.format(
+                command=command,
+                exitcode_file=self.exitcode_file
+            )
         )
 
-        bg_command = 'nohup ./{command_file} > {output_file} 2> {error_file}; echo $? > {exitcode_file} & echo $!'.format(
-            command_file=self.command_file,
-            output_file=self.output_file,
-            error_file=self.error_file,
-            exitcode_file=self.exitcode_file
+        bg_command = 'nohup ./{command_file} > {output_file} 2> {error_file} & echo $! | tee {pid_file}'.format(
+            **self._bg_files
         )
 
         pid = self._execute(bg_command)
@@ -157,7 +202,7 @@ class SSHperformer(object):
 
         if exit_code:
             err = self._cat_file(errfile)
-            raise PerformerError(command, exit_code, err)
+            raise CommandError(command, exit_code, err)
 
         return out
 
@@ -175,10 +220,20 @@ class SSHperformer(object):
             self._connect()
         return self._bg_execute(command)
 
+    def join(self):
+        if not self.client:
+            self._connect()
+        logger.debug('Join SSH command')
+        pid = self._cat_file(self.pid_file)
+        if pid:
+            self._bg_wait(pid)
+        else:
+            raise PerformerError('No running command.')
+
 
 class Performer(object):
-    def __new__(cls, url, isolation_ident):
+    def __new__(cls, url, isolation_ident=None):
         parsed_url = urlparse(url)
         scheme = parsed_url.scheme
         if scheme == 'ssh':
-            return SSHperformer(parsed_url, isolation_ident)
+            return SSHperformer(parsed_url, isolation_directory=isolation_ident)

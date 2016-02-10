@@ -49,9 +49,9 @@ def confirmation_message(message):
     return decorator
 
 
-def mode_choice(f):
+def execution_choice(f):
     @wraps(f)
-    def executor_wrapper(configuration, environment, mode, **kwargs):
+    def executor_wrapper(configuration, environment, infrastructure, installation, mode, **kwargs):
         executor_class = None
         if mode == 'control':
             executor_class = Control
@@ -59,7 +59,7 @@ def mode_choice(f):
         elif mode == 'perform':
             executor_class = Perform
 
-        executor = executor_class(configuration, environment)
+        executor = executor_class(configuration, environment, infrastructure, installation)
         return f(executor=executor, **kwargs)
 
     return click.option('-m', '--mode',
@@ -68,24 +68,39 @@ def mode_choice(f):
                         help='Mode')(executor_wrapper)
 
 
+def control_execution(func):
+    @wraps(func)
+    def wrapper(configuration, environment, infrastructure, installation, **kwargs):
+        executor = Control(configuration, environment, infrastructure, installation)
+        return func(executor, **kwargs)
+    return wrapper
+
+
 def nice_exception(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
+        configuration = kwargs.get('configuration')
         try:
             return func(*args, **kwargs)
         except Exception as e:
+            if configuration.debug.show_client_exceptions:
+                raise
             if issubclass(type(e), click.ClickException) or issubclass(type(e), RuntimeError):
-                 raise
+                raise
             raise click.ClickException(e)
     return wrapper
 
 
 class execution(object):
-    def __init__(self, confirmation=None):
+    def __init__(self, confirmation=None, control_only=False):
+        self.control_only = control_only
         self.confirmation = confirmation
 
     def __call__(self, func):
-        func = mode_choice(func)
+        if not self.control_only:
+            func = execution_choice(func)
+        else:
+            func = control_execution(func)
         func = deployment_options(func)
         func = configuration_option(func)
         if self.confirmation:
