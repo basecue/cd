@@ -15,7 +15,7 @@ class Environment(object):
             "Create performer {performer} isolation ident {isolation_ident}".format(
                 performer=self.configuration.performer, isolation_ident=isolation_ident
             )
-         )
+        )
         return Performer(self.configuration.performer, isolation_ident=isolation_ident)
 
     def _isolation_provider(self, performer):
@@ -30,16 +30,11 @@ class Environment(object):
             performer = self.performer(ident)
         return self._isolation_provider(performer).create_isolation(ident)
 
-    def get_isolation(self, ident, performer=None):
-        if not performer:
-            performer = self.performer(ident)
-        return self._isolation_provider(performer).get_isolation(ident)
+    # def get_isolation(self, ident, performer=None):
+    #     if not performer:
+    #         performer = self.performer(ident)
+    #     return self._isolation_provider(performer).get_isolation(ident)
 
-    def infrastructure(self, infrastructure_name):
-        logger.info("Create infrastructure '{infrastructure}'".format(
-            infrastructure=infrastructure_name
-        ))
-        return Infrastructure(self.configuration.infrastructures[infrastructure_name], LocalPerformer())
 
 
 

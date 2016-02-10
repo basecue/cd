@@ -29,12 +29,12 @@ class LXCIsolationProvider(BaseIsolationProvider):
         architecture = self._get_architecture()
         return LXCMachine(self.performer, ident, 'ubuntu', 'wily', architecture)
 
-    def get_isolation(self, ident):
-        machine = self._machine(ident)
-        if machine.exists() and machine.is_started():
-            return machine
-        else:
-            return None
+    # def get_isolation(self, ident):
+    #     machine = self._machine(ident)
+    #     if machine.exists() and machine.is_started():
+    #         return machine
+    #     else:
+    #         return None
 
     def create_isolation(self, ident):
         machine = self._machine(ident)

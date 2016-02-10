@@ -80,10 +80,15 @@ class LocalPerformer(object):
         call('cp', source, target)
 
 
+from collections import namedtuple
+Isolation = namedtuple('Isolation', ['output_file', 'error_file', 'exitcode_file', 'command_file', 'pid_file'])
+
+
 class SSHperformer(object):
-    def __init__(self, parsed_url, isolation_directory=None):
-        self.isolation_directory = isolation_directory
+    def __init__(self, parsed_url, isolation_ident=None):
+        self.isolation_ident = isolation_ident
         self.parsed_url = parsed_url
+        self._bg_isolation_cache = None
         self.client = None
 
     def _connect(self):
@@ -102,22 +107,49 @@ class SSHperformer(object):
             self.client.connect(self.parsed_url.hostname, **connection_details)
         except NoValidConnectionsError as e:
             raise PerformerError('Cant connect to %s' % self.parsed_url.hostnam)
-        self._create_isolation()
 
-    def _create_isolation(self):
-        if not self.isolation_directory:
+    @property
+    def _bg_isolation_directory(self):
+        if not self.isolation_ident:
             ssh_info = self._execute('echo $SSH_CLIENT')
             ip, remote_port, local_port = ssh_info.split()
-            self.isolation_directory = 'control_{ip}_{remote_port}_{local_port}'.format(
+            self.isolation_ident = 'control_{ip}_{remote_port}_{local_port}'.format(
                 ip=ip, remote_port=remote_port, local_port=local_port
             )
 
-        self._execute('mkdir -p %s' % self.isolation_directory)
+        return self.isolation_ident
 
-        self.output_file, self.error_file, self.exitcode_file, self.command_file, self.pid_file = map(
-            lambda f: '%s/%s' % (self.isolation_directory, f),
+    def _create_bg_isolation(self):
+        self._execute('mkdir -p %s' % self._bg_isolation_directory)
+
+        output_file, error_file, exitcode_file, command_file, pid_file = map(
+            lambda f: '%s/%s' % (self._bg_isolation_directory, f),
             [OUTPUT_FILE, ERROR_FILE, EXITCODE_FILE, COMMAND_FILE, PID_FILE]
         )
+
+        return Isolation(
+            command_file=command_file,
+            output_file=output_file,
+            error_file=error_file,
+            exitcode_file=exitcode_file,
+            pid_file=pid_file
+        )
+
+    @property
+    def _bg_isolation(self):
+        if not self._bg_isolation_cache:
+            self._bg_isolation_cache = self._create_bg_isolation()
+        return self._bg_isolation_cache
+
+    # def _exists_isolation(self):
+    #     return self._check_execute('[ -d %s ]' % self.isolation_directory)
+
+    def _check_execute(self, command):
+        try:
+            self._execute(command)
+            return True
+        except CommandError as e:
+            return False
 
     def _execute(self, command, ignore_exit_codes=[], writein=None):
         logger.debug('command: %s' % command)
@@ -136,11 +168,10 @@ class SSHperformer(object):
         return stdout.read().decode('utf-8').strip()
 
     def _bg_check(self, pid):
-        output = self._execute('ps -p %s -o pid=' % pid, ignore_exit_codes=[1])
-        return output == pid
+        return self._execute('ps -p %s -o pid=' % pid, ignore_exit_codes=[1]) == pid
 
     def _bg_log(self, skip_lines, omit_last):
-        output = self._execute('tail {output_file} -n+{skip_lines}'.format(output_file=self.output_file, skip_lines=skip_lines))
+        output = self._execute('tail {output_file} -n+{skip_lines}'.format(output_file=self._bg_isolation.output_file, skip_lines=skip_lines))
         if not output:
             return 0
         output_lines = output.splitlines()
@@ -158,35 +189,26 @@ class SSHperformer(object):
 
         self._bg_log(skip_lines, False)
 
-    @property
-    def _bg_files(self):
-        return dict(
-            command_file=self.command_file,
-            output_file=self.output_file,
-            error_file=self.error_file,
-            exitcode_file=self.exitcode_file,
-            pid_file=self.pid_file
-        )
-
     def _bg_execute(self, command):
         # run in background
-        errfile = self.error_file
+        isolation = self._bg_isolation
+
         self._execute('echo "" > {output_file} > {error_file} > {exitcode_file} > {pid_file}'.format(
-            **self._bg_files
+            **isolation._asdict()
         ))
 
         self._execute(
             'tee {command_file} > /dev/null && chmod +x {command_file}'.format(
-                command_file=self.command_file
+                **isolation._asdict()
             ),
             writein='{command}; echo $? > {exitcode_file}\n'.format(
                 command=command,
-                exitcode_file=self.exitcode_file
+                exitcode_file=isolation.exitcode_file
             )
         )
 
         bg_command = 'nohup ./{command_file} > {output_file} 2> {error_file} & echo $! | tee {pid_file}'.format(
-            **self._bg_files
+            **isolation._asdict()
         )
 
         pid = self._execute(bg_command)
@@ -196,18 +218,21 @@ class SSHperformer(object):
 
         self._bg_wait(pid)
 
-        exit_code = int(self._cat_file(self.exitcode_file))
+        exit_code = int(self._cat_file(isolation.exitcode_file))
 
-        out = self._cat_file(self.output_file)
+        output = self._cat_file(isolation.output_file)
 
         if exit_code:
-            err = self._cat_file(errfile)
+            err = self._cat_file(isolation.error_file)
             raise CommandError(command, exit_code, err)
 
-        return out
+        return output
 
     def _cat_file(self, catfile):
         return self._execute('cat %s' % catfile)
+
+    def _get_bg_running_pid(self):
+        return self._cat_file(self._bg_isolation.pid_file)
 
     def send_file(self, source, target):
         sftp = self.client.open_sftp()
@@ -223,8 +248,12 @@ class SSHperformer(object):
     def join(self):
         if not self.client:
             self._connect()
+
         logger.debug('Join SSH command')
-        pid = self._cat_file(self.pid_file)
+        try:
+            pid = self._get_bg_running_pid()
+        except CommandError as e:
+            raise PerformerError('No active isolation %s' % self._bg_isolation_directory)
         if pid:
             self._bg_wait(pid)
         else:
@@ -236,4 +265,4 @@ class Performer(object):
         parsed_url = urlparse(url)
         scheme = parsed_url.scheme
         if scheme == 'ssh':
-            return SSHperformer(parsed_url, isolation_directory=isolation_ident)
+            return SSHperformer(parsed_url, isolation_ident=isolation_ident)
