@@ -44,8 +44,8 @@ class Control(BaseExecutor):
     def install(self):
         logger.info("Installation project '{project}' environment '{environment}' infrastructure '{infrastructure}' installation '{installation}'".format(
             project=self.configuration.project,
-            environment_name=self.environment_name,
-            infrastructure_name=self.infrastructure_name,
+            environment=self.environment_name,
+            infrastructure=self.infrastructure_name,
             installation=self.installation
         ))
 

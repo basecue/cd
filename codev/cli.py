@@ -83,7 +83,7 @@ def nice_exception(func):
         try:
             return func(*args, **kwargs)
         except Exception as e:
-            if configuration.debug.show_client_exceptions:
+            if configuration.debug.show_client_exception:
                 raise
             if issubclass(type(e), click.ClickException) or issubclass(type(e), RuntimeError):
                 raise

@@ -62,8 +62,8 @@ class DebugConfiguration(BaseConfiguration):
         return bool(self.data.get('perform_command_output', False))
 
     @property
-    def show_client_exceptions(self):
-        return bool(self.data.get('show_client_exceptions', False))
+    def show_client_exception(self):
+        return bool(self.data.get('show_client_exception', False))
 
 
 class InfrastructureConfiguration(BaseConfiguration):
