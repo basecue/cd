@@ -1,5 +1,6 @@
 from .environment import Environment
 from .infrastructure import Infrastructure
+from .performers import LocalPerformer
 
 
 class Deployment(object):
@@ -10,8 +11,8 @@ class Deployment(object):
         if installation_name not in environment_configuration.installations:
             raise ValueError('Bad installation')
 
-        self.environment = Environment(environment_configuration)
-        self.infrastructure = Infrastructure(infrastructure_configuration)
+        self._environment = Environment(environment_configuration)
+        self._infrastructure = Infrastructure(infrastructure_configuration)
 
         self.isolation_ident = '%s_%s_%s_%s' % (
             configuration.project,
@@ -19,3 +20,12 @@ class Deployment(object):
             infrastructure_name,
             installation_name
         )
+
+    def performer(self):
+        return self._environment.performer(self.isolation_ident)
+
+    def create_isolation(self):
+        return self._environment.create_isolation(self.isolation_ident)
+
+    def create_infrastructure(self):
+        return self._infrastructure.create_machines(LocalPerformer())

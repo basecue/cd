@@ -111,7 +111,7 @@ class LXCMachinesConfiguration(BaseConfiguration):
 class LXCMachinesProvider(ConfigurableMachinesProvider):
     configuration_class = LXCMachinesConfiguration
 
-    def machines(self):
+    def create_machines(self):
         machines = []
         for i in range(1, self.configuration.number + 1):
             ident = '%s_%000d' % (self.machines_name, i)

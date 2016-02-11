@@ -16,7 +16,7 @@ class RealMachinesConfiguration(BaseConfiguration):
 class RealMachinesProvider(ConfigurableMachinesProvider):
     configuration_class = RealMachinesConfiguration
 
-    def machines(self):
+    def create_machines(self):
         machines = []
         for ip in self.configuration.ips:
             machines.append(RealMachine(ip))

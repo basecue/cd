@@ -32,13 +32,9 @@ class Perform(BaseExecutor):
 
     def install(self):
         # infrastructure provision
-        # infrastructure = self.deployment.environment.create_infrastructure()
+        machines = self.deployment.create_infrastructure()
 
         # configuration provision
-        from time import sleep
-        for i in range(1, 200):
-            logger.info(i)
-            sleep(0.25)
 
 
         # provision = self.deployment.provision()
@@ -60,7 +56,7 @@ class Control(BaseExecutor):
         # ))
 
         # create isolation
-        isolation = self.deployment.environment.create_isolation(self.deployment.isolation_ident)
+        isolation = self.deployment.create_isolation()
 
         # logger.info("Installation codev version '{version}'".format(
         #     version=self.deployment.configuration.version
@@ -94,5 +90,5 @@ class Control(BaseExecutor):
     def control(self):
         logger.info('Transfer of control.')
         command_logger.set_control_perform_command_output()
-        self.deployment.environment.performer(self.deployment.isolation_ident).join()
+        self.deployment.performer().join()
         logger.info('Control successful.')

@@ -21,14 +21,13 @@ class Environment(object):
     def _isolation_provider(self, performer):
         return IsolationProvider(self.configuration.isolation_provider, performer)
 
-    def create_isolation(self, ident, performer=None):
+    def create_isolation(self, isolation_ident):
         logger.info("Create isolation '{ident}' at '{performer}'".format(
-            ident=ident,
+            ident=isolation_ident,
             performer=self.configuration.performer
         ))
-        if not performer:
-            performer = self.performer(ident)
-        return self._isolation_provider(performer).create_isolation(ident)
+        performer = self.performer(isolation_ident)
+        return self._isolation_provider(performer).create_isolation(isolation_ident)
 
     # def get_isolation(self, ident, performer=None):
     #     if not performer:
