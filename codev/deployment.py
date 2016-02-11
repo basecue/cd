@@ -29,3 +29,6 @@ class Deployment(object):
 
     def create_infrastructure(self):
         return self._infrastructure.create_machines(LocalPerformer())
+
+    def provision(self, machines):
+        pass

@@ -35,32 +35,26 @@ class Perform(BaseExecutor):
         machines = self.deployment.create_infrastructure()
 
         # configuration provision
-
-
-        # provision = self.deployment.provision()
+        self.deployment.provision(machines)
 
 
 class Control(BaseExecutor):
     logging = control_logging
 
-    def __init__(self, configuration, environment_name, infrastructure_name, installation):
-        super(Control, self).__init__(configuration, environment_name, infrastructure_name, installation)
-
-    # @property
-    # def isolation_ident(self):
-    #     return '{project}_{environment}_{infrastructure}_{installation}'.format(**self.deployment)
-
     def install(self):
-        # logger.info("Installation project '{project}' environment '{environment}' infrastructure '{infrastructure}' installation '{installation}'".format(
-        #     **self.deployment
-        # ))
+        logger.info("Installation project '{project}' environment '{environment}' infrastructure '{infrastructure}' installation '{installation}'".format(
+            project=self.configuration.project,
+            environment_name=self.environment_name,
+            infrastructure_name=self.infrastructure_name,
+            installation=self.installation
+        ))
 
         # create isolation
         isolation = self.deployment.create_isolation()
 
-        # logger.info("Installation codev version '{version}'".format(
-        #     version=self.deployment.configuration.version
-        # ))
+        logger.info("Installation codev version '{installation}'".format(
+            installation=self.installation
+        ))
         # install python3 pip
         isolation.execute('apt-get install python3-pip -y --force-yes')
 
