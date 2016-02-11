@@ -1,6 +1,5 @@
 from .isolation import IsolationProvider
-from .infrastructure import Infrastructure
-from .performers import Performer, LocalPerformer
+from .performers import Performer
 
 from logging import getLogger
 logger = getLogger(__name__)
