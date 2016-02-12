@@ -1,8 +1,5 @@
-from os import unlink
-
 from logging import getLogger
 
-from .configuration import YAMLConfiguration
 from .deployment import Deployment
 from .logging import command_logger, control_logging, perform_logging
 
@@ -32,7 +29,8 @@ class Perform(BaseExecutor):
 
     def install(self):
         # infrastructure provision
-        machines = self.deployment.create_infrastructure()
+        machines = self.deployment.machines()
+        logger.info(machines)
 
         # configuration provision
         self.deployment.provision(machines)
@@ -50,25 +48,7 @@ class Control(BaseExecutor):
         ))
 
         # create isolation
-        isolation = self.deployment.create_isolation()
-
-        logger.info("Installation codev version '{installation}'".format(
-            installation=self.installation
-        ))
-        # install python3 pip
-        isolation.execute('apt-get install python3-pip -y --force-yes')
-
-        # install proper version of codev
-        if self.configuration.debug.distfile:
-            isolation.send_file(self.configuration.debug.distfile.format(version=self.configuration.version), 'codev.tar.gz')
-            isolation.execute('pip3 install --upgrade codev.tar.gz')
-        else:
-            isolation.execute('pip3 install --upgrade codev=={version}'.format(version=self.configuration.version))
-
-        # send configuration file
-        YAMLConfiguration.from_configuration(self.configuration).save_to_file('tmp')
-        isolation.send_file('tmp', '.codev')
-        unlink('tmp')
+        isolation = self.deployment.isolation()
 
         logger.info('Transfer of control.')
         # predani rizeni

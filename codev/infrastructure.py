@@ -5,7 +5,7 @@ class Infrastructure(object):
     def __init__(self, configuration):
         self.configuration = configuration
 
-    def create_machines(self, performer):
+    def machines(self, performer):
         machines = {}
         for machines_name, machines_configuration in self.configuration.machines.items():
             machines_provider = MachinesProvider(

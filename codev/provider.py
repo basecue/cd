@@ -11,7 +11,15 @@ class BaseProvider(object, metaclass=BaseProviderMetaClass):
     provider_class = None
 
     def __new__(cls, provider_name, *args, **kwargs):
-        provider = cls.providers[provider_name]
+        try:
+            provider = cls.providers[provider_name]
+        except KeyError as e:
+            raise ValueError(
+                "Provider '{provider}' does not exist for class '{cls}'.".format(
+                    provider=provider_name,
+                    cls=cls.__name__
+                )
+            )
         return provider(*args, **kwargs)
 
     @classmethod
