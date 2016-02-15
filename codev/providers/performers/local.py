@@ -12,7 +12,8 @@ logger = getLogger(__name__)
 
 
 class LocalPerformer(BasePerformer):
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
+        super(LocalPerformer, self).__init__(*args, **kwargs)
         self._output_lines = []
         self._error_lines = []
 

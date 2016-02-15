@@ -28,12 +28,7 @@ class Perform(BaseExecutor):
             command_logger.set_perform_command_output()
 
     def install(self):
-        # infrastructure provision
-        machines = self.deployment.machines()
-        logger.info(machines)
-
-        # configuration provision
-        self.deployment.provision(machines)
+        self.deployment.provision()
 
 
 class Control(BaseExecutor):

@@ -8,13 +8,13 @@ class LXCIsolationProvider(BaseIsolationProvider):
         super(LXCIsolationProvider, self).__init__(*args, **kwargs)
         self._lxc_machine = None
 
-    def _enable_container_nesting(self, ident):
+    def _enable_container_nesting(self):
         is_root = int(self.performer.execute('id -u')) == 0
         if is_root:
             lxc_config = '/var/lib/lxc/%s/config'
         else:
             lxc_config = '~/.local/share/lxc/%s/config'
-        lxc_config = lxc_config % ident
+        lxc_config = lxc_config % self.ident
 
         self.performer.execute('echo "lxc.mount.auto = cgroup" >> %s' % lxc_config)
         self.performer.execute('echo "lxc.aa_profile = lxc-container-default-with-nesting" >> %s' % lxc_config)
@@ -25,9 +25,9 @@ class LXCIsolationProvider(BaseIsolationProvider):
             architecture = 'amd64'
         return architecture
 
-    def _machine(self, ident):
+    def _machine(self):
         architecture = self._get_architecture()
-        return LXCMachine(self.performer, ident, 'ubuntu', 'wily', architecture)
+        return LXCMachine(self.performer, self.ident, 'ubuntu', 'wily', architecture)
 
     # def get_isolation(self, ident):
     #     machine = self._machine(ident)
@@ -36,13 +36,13 @@ class LXCIsolationProvider(BaseIsolationProvider):
     #     else:
     #         return None
 
-    def create_isolation(self, ident):
-        machine = self._machine(ident)
+    def create_isolation(self):
+        machine = self._machine()
 
         created = machine.create()
 
         if created:
-            self._enable_container_nesting(ident)
+            self._enable_container_nesting()
 
         machine.start()
 

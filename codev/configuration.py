@@ -31,7 +31,7 @@ class BaseConfiguration(object):
         self.data = data
 
 
-class MachinesConfiguration(BaseConfiguration):
+class ProviderConfiguration(BaseConfiguration):
     @property
     def provider(self):
         return self.data.get('provider')
@@ -69,13 +69,17 @@ class DebugConfiguration(BaseConfiguration):
 class InfrastructureConfiguration(BaseConfiguration):
     @property
     def machines(self):
-        return DictConfiguration(MachinesConfiguration, self.data.get('machines', {}))
+        return DictConfiguration(ProviderConfiguration, self.data.get('machines', {}))
+
+    @property
+    def provision(self):
+        return ProviderConfiguration(self.data.get('provision', {}))
 
 
 class EnvironmentConfiguration(BaseConfiguration):
     @property
     def performer(self):
-        return self.data.get('performer')
+        return ProviderConfiguration(self.data.get('performer', {}))
 
     @property
     def isolation_provider(self):

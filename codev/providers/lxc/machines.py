@@ -2,7 +2,8 @@ import re
 
 from time import sleep
 from codev.configuration import BaseConfiguration
-from codev.machines import ConfigurableMachinesProvider, MachinesProvider
+from codev.machines import MachinesProvider, BaseMachinesProvider
+from codev.provider import ConfigurableProvider
 
 
 class LXCMachine(object):
@@ -108,7 +109,7 @@ class LXCMachinesConfiguration(BaseConfiguration):
         return int(self.data.get('number'))
 
 
-class LXCMachinesProvider(ConfigurableMachinesProvider):
+class LXCMachinesProvider(BaseMachinesProvider, ConfigurableProvider):
     configuration_class = LXCMachinesConfiguration
 
     def create_machines(self):

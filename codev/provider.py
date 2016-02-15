@@ -11,6 +11,15 @@ class BaseProvider(object, metaclass=BaseProviderMetaClass):
     provider_class = None
 
     def __new__(cls, provider_name, *args, **kwargs):
+        """
+        :param provider_name:
+        :type provider_name: str
+        :param args:
+        :param kwargs:
+        :return:
+        :rtype: cls.provider_class
+        """
+
         try:
             provider = cls.providers[provider_name]
         except KeyError as e:
@@ -27,3 +36,16 @@ class BaseProvider(object, metaclass=BaseProviderMetaClass):
         if not issubclass(provider, cls.provider_class):
             raise ValueError("Class '{provider}' has to be subclass of '{provider_class}'.".format(provider=provider, provider_class=cls.provider_class))
         cls.providers[provider_name] = provider
+
+
+class ConfigurableProvider(object):
+    configuration_class = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls.configuration_class is None:
+            raise AttributeError("Attribute 'configuration_class' has to be defined in class '{name}'.".format(name=cls.__name__))
+        return super(ConfigurableProvider, cls).__new__(cls)
+
+    def __init__(self, *args, configuration_data={}, **kwargs):
+        self.configuration = self.__class__.configuration_class(configuration_data)
+        super(ConfigurableProvider, self).__init__()

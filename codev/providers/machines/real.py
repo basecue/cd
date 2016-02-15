@@ -1,5 +1,6 @@
 from codev.configuration import BaseConfiguration
-from codev.machines import ConfigurableMachinesProvider, MachinesProvider
+from codev.machines import MachinesProvider, BaseMachinesProvider
+from codev.provider import ConfigurableProvider
 
 
 class RealMachine(object):
@@ -13,7 +14,7 @@ class RealMachinesConfiguration(BaseConfiguration):
         return self.data.get('ips')
 
 
-class RealMachinesProvider(ConfigurableMachinesProvider):
+class RealMachinesProvider(BaseMachinesProvider, ConfigurableProvider):
     configuration_class = RealMachinesConfiguration
 
     def create_machines(self):

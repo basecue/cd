@@ -1,37 +1,33 @@
 from .isolation import IsolationProvider
 from .performer import Performer
+from .infrastructure import Infrastructure
 
 from logging import getLogger
 logger = getLogger(__name__)
 
 
 class Environment(object):
-    def __init__(self, configuration):
-        self.configuration = configuration
-
-    def performer(self, isolation_ident=None):
-        logger.debug(
-            "Create performer {performer} isolation ident {isolation_ident}".format(
-                performer=self.configuration.performer, isolation_ident=isolation_ident
-            )
+    def __init__(self, configuration, infrastructure_name, isolation_ident):
+        self.performer = Performer(
+            configuration.performer.provider,
+            configuration_data=configuration.performer.specific,
+            isolation_ident=isolation_ident
         )
-        return Performer(self.configuration.performer, isolation_ident=isolation_ident)
 
-    def _isolation_provider(self, performer):
-        return IsolationProvider(self.configuration.isolation_provider, performer)
+        self._isolation_provider = IsolationProvider(
+            configuration.isolation_provider,
+            self.performer,
+            isolation_ident
+        )
 
-    def create_isolation(self, isolation_ident):
-        logger.info("Create isolation '{ident}' at '{performer}'".format(
-            ident=isolation_ident,
-            performer=self.configuration.performer
-        ))
-        performer = self.performer(isolation_ident)
-        return self._isolation_provider(performer).create_isolation(isolation_ident)
+        infrastructure_configuration = configuration.infrastructures[infrastructure_name]
+        self._infrastructure = Infrastructure(infrastructure_name, infrastructure_configuration)
 
-    # def get_isolation(self, ident, performer=None):
-    #     if not performer:
-    #         performer = self.performer(ident)
-    #     return self._isolation_provider(performer).get_isolation(ident)
+    def create_isolation(self):
+        return self._isolation_provider.create_isolation()
+
+    def provision(self):
+        self._infrastructure.provision()
 
 
 

@@ -6,10 +6,31 @@ from logging import getLogger
 from codev.logging import command_logger
 
 from codev.performer import Performer, BasePerformer, PerformerError, CommandError
+from codev.provider import ConfigurableProvider
+from codev.configuration import BaseConfiguration
+
 
 logger = getLogger(__name__)
 
 Isolation = namedtuple('Isolation', ['output_file', 'error_file', 'exitcode_file', 'command_file', 'pid_file'])
+
+
+class SSHPerformerConfiguration(BaseConfiguration):
+    @property
+    def hostname(self):
+        return self.data.get('hostname', 'localhost')
+
+    @property
+    def port(self):
+        return self.data.get('port', None)
+
+    @property
+    def username(self):
+        return self.data.get('username', None)
+
+    @property
+    def password(self):
+        return self.data.get('password', None)
 
 
 OUTPUT_FILE = 'codev.out'
@@ -19,10 +40,11 @@ COMMAND_FILE = 'codev.command'
 PID_FILE = 'codev.pid'
 
 
-class SSHperformer(BasePerformer):
-    def __init__(self, parsed_url, isolation_ident=None):
-        self.isolation_ident = isolation_ident
-        self.parsed_url = parsed_url
+class SSHperformer(BasePerformer, ConfigurableProvider):
+    configuration_class = SSHPerformerConfiguration
+
+    def __init__(self, *args, **kwargs):
+        super(SSHperformer, self).__init__(*args, **kwargs)
         self._bg_isolation_cache = None
         self.client = None
 
@@ -32,16 +54,16 @@ class SSHperformer(BasePerformer):
         self.client.load_system_host_keys()
 
         connection_details = {}
-        if self.parsed_url.port:
-            connection_details['port'] = self.parsed_url.port
-        if self.parsed_url.username:
-            connection_details['username'] = self.parsed_url.username
-        if self.parsed_url.password:
-            connection_details['password'] = self.parsed_url.password
+        if self.configuration.port:
+            connection_details['port'] = self.configuration.port
+        if self.configuration.username:
+            connection_details['username'] = self.configuration.username
+        if self.configuration.password:
+            connection_details['password'] = self.configuration.password
         try:
-            self.client.connect(self.parsed_url.hostname, **connection_details)
+            self.client.connect(self.configuration.hostname, **connection_details)
         except NoValidConnectionsError as e:
-            raise PerformerError('Cant connect to %s' % self.parsed_url.hostnam)
+            raise PerformerError('Cant connect to %s' % self.configuration.hostnam)
 
     @property
     def _bg_isolation_directory(self):

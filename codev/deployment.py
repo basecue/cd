@@ -1,6 +1,4 @@
 from .environment import Environment
-from .infrastructure import Infrastructure
-from .performer import Performer
 from .installation import Installation
 
 import logging
@@ -12,26 +10,26 @@ class Deployment(object):
         #check
         self.configuration = configuration
         environment_configuration = configuration.environments[environment_name]
-        infrastructure_configuration = environment_configuration.infrastructures[infrastructure_name]
+
         if installation_name not in environment_configuration.installations:
             raise ValueError('Bad installation')
 
-        self._environment = Environment(environment_configuration)
-        self._infrastructure = Infrastructure(infrastructure_configuration)
-        self._installation = Installation(installation_name, configuration)
-
-        self.isolation_ident = '%s_%s_%s_%s' % (
+        isolation_ident = '%s_%s_%s_%s' % (
             configuration.project,
             environment_name,
             infrastructure_name,
             installation_name
         )
 
+        self._environment = Environment(environment_configuration, infrastructure_name, isolation_ident)
+        self._installation = Installation(installation_name, configuration)
+
+    @property
     def performer(self):
-        return self._environment.performer(self.isolation_ident)
+        return self._environment.performer
 
     def isolation(self):
-        isolation = self._environment.create_isolation(self.isolation_ident)
+        isolation = self._environment.create_isolation()
 
         configuration = self._installation.configuration(isolation)
 
@@ -47,9 +45,5 @@ class Deployment(object):
 
         return isolation
 
-    def machines(self):
-        local_performer = Performer('local')
-        return self._infrastructure.machines(local_performer)
-
-    def provision(self, machines):
-        pass
+    def provision(self):
+        self._environment.provision()

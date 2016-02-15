@@ -1,4 +1,3 @@
-from urllib.parse import urlparse
 from .provider import BaseProvider
 
 
@@ -16,13 +15,10 @@ class CommandError(PerformerError):
 
 
 class BasePerformer(object):
-    pass
+    def __init__(self, *args, isolation_ident=None, **kwargs):
+        self.isolation_ident = isolation_ident
+        super(BasePerformer, self).__init__(*args, **kwargs)
 
 
 class Performer(BaseProvider):
     provider_class = BasePerformer
-
-    def __new__(cls, provider_url, isolation_ident=None):
-        parsed_url = urlparse(provider_url)
-        provider_name = parsed_url.scheme
-        return super(Performer, cls).__new__(cls, provider_name, parsed_url, isolation_ident)

@@ -29,7 +29,7 @@ infrastructures:
         distribution: ubuntu
         release: trusty
 
-configurations:
+provision:
   standard:
     provider: ansible
     specific:
@@ -37,7 +37,12 @@ configurations:
 
 environments:
   development:
-    performer: ssh://codev:codev@192.168.1.14
+    performer:
+      provider: ssh
+      specific:
+        hostname: 192.168.1.16
+        username: codev
+        password: codev
     isolation: lxc
 #    instalace?
 #    spustitelny script? - napr pro konfiguraci vpn
@@ -55,9 +60,11 @@ environments:
             provider: real
             specific:
               ips: [10.0.1.9, 10.0.1.10]
-#        provider: ansible
-#        specific:
-#          playbooks: provisioning/%(infrastructure)s.yml
+        provision:
+          provider: ansible
+          specific:
+            version: 2.0
+            playbook: provisioning/{infrastructure}.yml
 
       simple:
         machines:
