@@ -1,27 +1,15 @@
-
+from collections import namedtuple
 from paramiko.client import SSHClient, AutoAddPolicy, NoValidConnectionsError
-from subprocess import Popen, PIPE, call
-from urllib.parse import urlparse
 from time import sleep
-from threading import Thread
 
 from logging import getLogger
-from .logging import command_logger
+from codev.logging import command_logger
+
+from codev.performer import Performer, BasePerformer, PerformerError, CommandError
 
 logger = getLogger(__name__)
 
-
-class PerformerError(Exception):
-    pass
-
-
-class CommandError(PerformerError):
-    def __init__(self, command, exit_code, error):
-        super(CommandError, self).__init__(
-            "Command '{command}' failed with exit code '{exit_code}' with error '{error}'".format(
-                command=command, exit_code=exit_code, error=error
-            )
-        )
+Isolation = namedtuple('Isolation', ['output_file', 'error_file', 'exitcode_file', 'command_file', 'pid_file'])
 
 
 OUTPUT_FILE = 'codev.out'
@@ -31,60 +19,7 @@ COMMAND_FILE = 'codev.command'
 PID_FILE = 'codev.pid'
 
 
-class LocalPerformer(object):
-    def __init__(self):
-        self._output_lines = []
-        self._error_lines = []
-
-    def _reader_out(self, stream):
-        while True:
-            line = stream.readline()
-            if not line:
-                break
-            output_line = line.decode('utf-8').strip()
-            self._output_lines.append(output_line)
-            command_logger.info(output_line)
-        stream.close()
-
-    def _reader_err(self, stream):
-        while True:
-            line = stream.readline()
-            if not line:
-                break
-            output_line = line.decode('utf-8').strip()
-            self._error_lines.append(output_line)
-        stream.close()
-
-    # def _terminator(self, process):
-    #     while process.poll() is None:
-    #         #check file
-    #         process.terminate()
-
-    def execute(self, command):
-        logger.debug('Executing LOCAL command: %s' % command)
-        self._output_lines = []
-        self._error_lines = []
-        process = Popen(command.split(), stdout=PIPE, stderr=PIPE)
-        reader_out = Thread(target=self._reader_out, args=(process.stdout,))
-        reader_out.start()
-        reader_err = Thread(target=self._reader_err, args=(process.stderr,))
-        reader_err.start()
-        # terminator = Thread(target=self._terminator, args=(process,))
-        # terminator.start()
-        exit_code = process.wait()
-        if exit_code:
-            raise CommandError(command, exit_code, '\n'.join(self._error_lines))
-        return '\n'.join(self._output_lines)
-
-    def send_file(self, source, target):
-        call('cp', source, target)
-
-
-from collections import namedtuple
-Isolation = namedtuple('Isolation', ['output_file', 'error_file', 'exitcode_file', 'command_file', 'pid_file'])
-
-
-class SSHperformer(object):
+class SSHperformer(BasePerformer):
     def __init__(self, parsed_url, isolation_ident=None):
         self.isolation_ident = isolation_ident
         self.parsed_url = parsed_url
@@ -260,9 +195,4 @@ class SSHperformer(object):
             raise PerformerError('No running command.')
 
 
-class Performer(object):
-    def __new__(cls, url, isolation_ident=None):
-        parsed_url = urlparse(url)
-        scheme = parsed_url.scheme
-        if scheme == 'ssh':
-            return SSHperformer(parsed_url, isolation_ident=isolation_ident)
+Performer.register('ssh', SSHperformer)

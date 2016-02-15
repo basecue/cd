@@ -1,5 +1,5 @@
 from .isolation import IsolationProvider
-from .performers import Performer
+from .performer import Performer
 
 from logging import getLogger
 logger = getLogger(__name__)

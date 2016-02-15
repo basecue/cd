@@ -6,7 +6,7 @@ repositories:
 debug:
   distfile: dist/codev-{version}.tar.gz
   show_client_exception: true
-#  loglevel: debug
+  loglevel: debug
 
 scripts:
   end to end:

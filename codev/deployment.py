@@ -1,7 +1,6 @@
 from .environment import Environment
 from .infrastructure import Infrastructure
-from .performers import LocalPerformer
-
+from .performer import Performer
 from .installation import Installation
 
 import logging
@@ -49,7 +48,8 @@ class Deployment(object):
         return isolation
 
     def machines(self):
-        return self._infrastructure.machines(LocalPerformer())
+        local_performer = Performer('local')
+        return self._infrastructure.machines(local_performer)
 
     def provision(self, machines):
         pass

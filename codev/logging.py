@@ -8,27 +8,22 @@ LOGLEVELS = {
 }
 
 
-def control_logging(loglevel):
-    loggers = ['codev.executors', 'codev.environment', 'codev.performers']
-
+def config_logging(loglevel, formatting):
     handler = logging.StreamHandler(stream=sys.stdout)
 
     handler.level = loglevel
-    handler.formatter = logging.Formatter(colorama.Fore.BLUE + '[CONTROL]' + colorama.Fore.RESET + ' [%(levelname)s] %(message)s')
-    for logger in map(logging.getLogger, loggers):
-        logger.level = loglevel
-        logger.addHandler(handler)
+    handler.formatter = logging.Formatter(formatting)
+    logger = logging.getLogger('codev')
+    logger.level = loglevel
+    logger.addHandler(handler)
+
+
+def control_logging(loglevel):
+    config_logging(loglevel, colorama.Fore.BLUE + '[CONTROL]' + colorama.Fore.RESET + ' [%(levelname)s] %(message)s')
 
 
 def perform_logging(loglevel):
-    loggers = ['codev.executors', 'codev.environment', 'codev.performers']
-
-    handler = logging.StreamHandler(stream=sys.stdout)
-    handler.level = loglevel
-    handler.formatter = logging.Formatter('[%(levelname)s] %(message)s')
-    for logger in map(logging.getLogger, loggers):
-        logger.level = loglevel
-        logger.addHandler(handler)
+    config_logging(loglevel, '[%(levelname)s] %(message)s')
 
 
 class CommandLogger(logging.Logger):

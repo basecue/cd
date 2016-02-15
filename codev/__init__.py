@@ -1,2 +1,2 @@
 from . import logging
-from .modules import *
+from .providers import *
