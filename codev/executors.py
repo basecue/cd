@@ -56,8 +56,14 @@ class Control(BaseExecutor):
         ))
         logger.info('Installation successful.')
 
-    def control(self):
+    def join(self):
         logger.info('Transfer of control.')
         command_logger.set_control_perform_command_output()
         self.deployment.performer().join()
-        logger.info('Control successful.')
+        logger.info('Join successful.')
+
+    def execute(self, command):
+        isolation = self.deployment.isolation()
+        logger.info('Transfer of control.')
+        command_logger.set_control_perform_command_output()
+        isolation.execute(command)

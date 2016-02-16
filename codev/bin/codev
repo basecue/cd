@@ -54,18 +54,37 @@ def init(path):
 )
 def install(executor):
     """
-    install project on environment infrastructure version
+    Install project
     """
     executor.install()
 
 
 @main.command()
-@execution()
-def control(executor):
+@execution(control_only=True)
+def join(executor):
     """
-    install project on environment infrastructure version
+    Join the actual running command in isolation
     """
-    executor.control()
+    executor.join()
+
+
+@main.command()
+@execution(control_only=True)
+@click.argument('command', nargs=-1)
+def execute(executor, command):
+    """
+    Execute command in isolation
+    """
+    executor.execute(' '.join(command))
+
+
+# @control.command()
+# @execution()
+# def execute(executor):
+#     """
+#     install project on environment infrastructure version
+#     """
+#     executor.control()
 
 
 @main.command()

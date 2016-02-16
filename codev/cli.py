@@ -16,23 +16,22 @@ def configuration_option(f):
                         callback=callback)(f)
 
 
-def environment_option(f):
-    return click.argument('environment')(f)
+def deployment_option(f):
+    @wraps(f)
+    def deployment_wrapper(*args, **kwargs):
+        deployment = kwargs.pop('deployment')
+        kwargs.update(dict(
+            environment=deployment[0],
+            infrastructure=deployment[1],
+            installation=deployment[2]
+        ))
+        return f(*args, **kwargs)
 
-
-def infrastructure_option(f):
-    return click.argument('infrastructure')(f)
-
-
-def installation_option(f):
-    return click.argument('installation')(f)
-
-
-def deployment_options(f):
-    f = installation_option(f)
-    f = infrastructure_option(f)
-    f = environment_option(f)
-    return f
+    return click.option('-d', '--deployment',
+                        required=True,
+                        is_eager=True,
+                        nargs=3,
+                        help='environment infrastructure installation')(deployment_wrapper)
 
 
 def confirmation_message(message):
@@ -70,15 +69,15 @@ def execution_choice(f):
 
 def control_execution(func):
     @wraps(func)
-    def wrapper(configuration, environment, infrastructure, installation, **kwargs):
+    def control_execution_wrapper(configuration, environment, infrastructure, installation, **kwargs):
         executor = Control(configuration, environment, infrastructure, installation)
         return func(executor, **kwargs)
-    return wrapper
+    return control_execution_wrapper
 
 
 def nice_exception(func):
     @wraps(func)
-    def wrapper(*args, **kwargs):
+    def nice_exception_wrapper(*args, **kwargs):
         configuration = kwargs.get('configuration')
         try:
             return func(*args, **kwargs)
@@ -88,7 +87,7 @@ def nice_exception(func):
             if issubclass(type(e), click.ClickException) or issubclass(type(e), RuntimeError):
                 raise
             raise click.ClickException(e)
-    return wrapper
+    return nice_exception_wrapper
 
 
 class execution(object):
@@ -101,10 +100,10 @@ class execution(object):
             func = execution_choice(func)
         else:
             func = control_execution(func)
-        func = deployment_options(func)
+
         func = configuration_option(func)
         if self.confirmation:
             func = confirmation_message(self.confirmation)(func)
-
+        func = deployment_option(func)
         func = nice_exception(func)
         return func

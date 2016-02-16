@@ -1,12 +1,11 @@
 #version: 0.0.5a3
 project: hranipex
-repositories:
-  - ./
+repository: git@bitbucket.org:coex/hranipex.git
 
 debug:
   distfile: dist/codev-{version}.tar.gz
-  show_client_exception: true
-  loglevel: debug
+#  show_client_exception: true
+#  loglevel: debug
 
 scripts:
   end to end:
@@ -40,7 +39,7 @@ environments:
     performer:
       provider: ssh
       specific:
-        hostname: 192.168.1.16
+        hostname: 192.168.23.25
         username: codev
         password: codev
     isolation: lxc
