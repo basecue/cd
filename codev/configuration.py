@@ -126,6 +126,10 @@ class Configuration(BaseConfiguration):
     def environments(self):
         return DictConfiguration(EnvironmentConfiguration, self.data['environments'])
 
+    @property
+    def repository(self):
+        return self.data.get('repository', None)
+
 
 class YAMLConfiguration(Configuration):
     @classmethod

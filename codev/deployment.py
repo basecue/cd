@@ -31,7 +31,7 @@ class Deployment(object):
     def isolation(self):
         isolation = self._environment.create_isolation()
 
-        configuration = self._installation.configuration(isolation)
+        configuration = self._installation.install(isolation)
 
         # install python3 pip
         isolation.execute('apt-get install python3-pip -y --force-yes')

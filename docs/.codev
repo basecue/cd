@@ -81,7 +81,7 @@ environments:
     installations:
       - actual
       - live
-      - svc
+      - repository
 
   staging:
     infrastructures:

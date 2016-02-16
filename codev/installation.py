@@ -3,9 +3,9 @@ from .provider import BaseProvider
 
 class BaseInstallation(object):
     def __init__(self, configuration):
-        self._configuration = configuration
+        self.configuration = configuration
 
-    def configuration(self, performer):
+    def install(self, performer):
         raise NotImplementedError()
 
 
