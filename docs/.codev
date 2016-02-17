@@ -4,7 +4,7 @@ repository: git@bitbucket.org:coex/hranipex.git
 
 debug:
   distfile: dist/codev-{version}.tar.gz
-#  show_client_exception: true
+  show_client_exception: true
 #  loglevel: debug
 
 scripts:
@@ -39,7 +39,7 @@ environments:
     performer:
       provider: ssh
       specific:
-        hostname: 192.168.23.25
+        hostname: 192.168.56.101
         username: codev
         password: codev
     isolation: lxc
@@ -58,7 +58,12 @@ environments:
           elasticservers:
             provider: real
             specific:
-              ips: [10.0.1.9, 10.0.1.10]
+              hosts: [10.0.1.9, 10.0.1.10]
+          databases:
+            provider: real
+            specific:
+              hosts:
+                - devdbsrv.coex.cz
         provision:
           provider: ansible
           specific:
@@ -76,7 +81,7 @@ environments:
           databases:
             provider: real
             specific:
-              ip: 10.0.1.5
+              hosts: [10.0.1.5]
 
     installations:
       - actual

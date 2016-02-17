@@ -48,4 +48,4 @@ class ConfigurableProvider(object):
 
     def __init__(self, *args, configuration_data={}, **kwargs):
         self.configuration = self.__class__.configuration_class(configuration_data)
-        super(ConfigurableProvider, self).__init__()
+        super(ConfigurableProvider, self).__init__(*args, **kwargs)

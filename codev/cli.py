@@ -50,21 +50,18 @@ def confirmation_message(message):
 
 def execution_choice(f):
     @wraps(f)
-    def executor_wrapper(configuration, environment, infrastructure, installation, mode, **kwargs):
-        executor_class = None
-        if mode == 'control':
-            executor_class = Control
-
-        elif mode == 'perform':
+    def executor_wrapper(configuration, environment, infrastructure, installation, perform, **kwargs):
+        if perform:
             executor_class = Perform
+        else:
+            executor_class = Control
 
         executor = executor_class(configuration, environment, infrastructure, installation)
         return f(executor=executor, **kwargs)
 
-    return click.option('-m', '--mode',
-                        type=click.Choice(['control', 'perform']),
-                        default='control',
-                        help='Mode')(executor_wrapper)
+    return click.option('--perform',
+                        is_flag=True,
+                        help='Perform mode')(executor_wrapper)
 
 
 def control_execution(func):

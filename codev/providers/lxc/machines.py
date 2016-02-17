@@ -74,6 +74,10 @@ class LXCMachine(object):
 
         return None
 
+    @property
+    def host(self):
+        return self.ip
+
     def send_file(self, source, target):
         TMPFILE = 'tempfile'
         self.performer.send_file(source, TMPFILE)

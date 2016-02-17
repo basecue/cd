@@ -2,6 +2,7 @@ from logging import getLogger
 
 from .deployment import Deployment
 from .logging import command_logger, control_logging, perform_logging
+from .info import VERSION
 
 logger = getLogger(__name__)
 
@@ -23,6 +24,7 @@ class Perform(BaseExecutor):
     logging = perform_logging
 
     def __init__(self, configuration, environment_name, infrastructure_name, installation):
+        assert configuration.version == VERSION
         super(Perform, self).__init__(configuration, environment_name, infrastructure_name, installation)
         if configuration.debug.perform_command_output:
             command_logger.set_perform_command_output()
@@ -49,7 +51,7 @@ class Control(BaseExecutor):
         # predani rizeni
 
         command_logger.set_control_perform_command_output()
-        isolation.execute('codev install {environment} {infrastructure} {installation} -m perform -f'.format(
+        isolation.execute('codev install -d {environment} {infrastructure} {installation} --perform -f'.format(
             environment=self.environment_name,
             infrastructure=self.infrastructure_name,
             installation=self.installation,
@@ -59,7 +61,7 @@ class Control(BaseExecutor):
     def join(self):
         logger.info('Transfer of control.')
         command_logger.set_control_perform_command_output()
-        self.deployment.performer().join()
+        self.deployment.performer.join()
         logger.info('Join successful.')
 
     def execute(self, command):

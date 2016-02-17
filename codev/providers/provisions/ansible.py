@@ -38,7 +38,7 @@ class AnsibleProvision(BaseProvision, ConfigurableProvider):
         for name, machines in machines_groups.items():
             inventory.add_section(name)
             for machine in machines:
-                inventory.set(name, machine.ip, '')
+                inventory.set(name, machine.host, '')
 
         inventory_filepath = 'codev.ansible.inventory'
 

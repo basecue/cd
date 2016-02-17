@@ -4,14 +4,14 @@ from codev.provider import ConfigurableProvider
 
 
 class RealMachine(object):
-    def __init__(self, ip):
-        self.ip = ip
+    def __init__(self, host):
+        self.host = host
 
 
 class RealMachinesConfiguration(BaseConfiguration):
     @property
-    def ips(self):
-        return self.data.get('ips')
+    def hosts(self):
+        return self.data.get('hosts')
 
 
 class RealMachinesProvider(BaseMachinesProvider, ConfigurableProvider):
@@ -19,8 +19,8 @@ class RealMachinesProvider(BaseMachinesProvider, ConfigurableProvider):
 
     def create_machines(self):
         machines = []
-        for ip in self.configuration.ips:
-            machines.append(RealMachine(ip))
+        for host in self.configuration.hosts:
+            machines.append(RealMachine(host))
         return machines
 
 
