@@ -69,3 +69,18 @@ class Control(BaseExecutor):
         logger.info('Transfer of control.')
         command_logger.set_control_perform_command_output()
         isolation.execute(command)
+        logger.info('Execute successful.')
+
+    def stop(self):
+        logger.info('Transfer of control.')
+        command_logger.set_control_perform_command_output()
+        if self.deployment.performer.stop():
+            self.deployment.performer.join()
+        logger.info('Stop successful.')
+
+    def kill(self):
+        logger.info('Transfer of control.')
+        command_logger.set_control_perform_command_output()
+        if self.deployment.performer.kill():
+            self.deployment.performer.join()
+        logger.info('Kill successful.')

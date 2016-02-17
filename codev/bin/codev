@@ -77,14 +77,22 @@ def execute(executor, command):
     """
     executor.execute(' '.join(command))
 
+@main.command()
+@execution(control_only=True)
+def stop(executor):
+    """
+    Stop the actual running command in isolation
+    """
+    executor.stop()
 
-# @control.command()
-# @execution()
-# def execute(executor):
-#     """
-#     install project on environment infrastructure version
-#     """
-#     executor.control()
+
+@main.command()
+@execution(control_only=True)
+def kill(executor):
+    """
+    Kill the actual running command in isolation
+    """
+    executor.kill()
 
 
 @main.command()

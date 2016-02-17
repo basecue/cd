@@ -101,6 +101,9 @@ class SSHperformer(BasePerformer, ConfigurableProvider):
     # def _exists_isolation(self):
     #     return self._check_execute('[ -d %s ]' % self.isolation_directory)
 
+    def _file_exists(self, filepath):
+        return self._check_execute('[ -f %s ]' % filepath)
+
     def _check_execute(self, command):
         try:
             self._execute(command)
@@ -128,6 +131,7 @@ class SSHperformer(BasePerformer, ConfigurableProvider):
         return self._execute('ps -p %s -o pid=' % pid, ignore_exit_codes=[1]) == pid
 
     def _bg_log(self, skip_lines, omit_last):
+        command_logger.debug('_bg_log', skip_lines, omit_last)
         output = self._execute('tail {output_file} -n+{skip_lines}'.format(output_file=self._bg_isolation.output_file, skip_lines=skip_lines))
         if not output:
             return 0
@@ -137,6 +141,12 @@ class SSHperformer(BasePerformer, ConfigurableProvider):
         for line in output_lines:
             command_logger.info(line)
         return len(output_lines)
+
+    def _bg_stop(self, pid):
+        return self.execute('kill %s' % pid)
+
+    def _bg_kill(self, pid):
+        return self.execute('kill -9 %s' % pid)
 
     def _bg_wait(self, pid):
         skip_lines = 0
@@ -149,6 +159,9 @@ class SSHperformer(BasePerformer, ConfigurableProvider):
     def _bg_execute(self, command):
         # run in background
         isolation = self._bg_isolation
+
+        if self._file_exists(isolation.exitcode_file) and self._cat_file(isolation.exitcode_file) == '':
+            raise PerformerError('Another process is running.')
 
         self._execute('echo "" > {output_file} > {error_file} > {exitcode_file} > {pid_file}'.format(
             **isolation._asdict()
@@ -202,7 +215,7 @@ class SSHperformer(BasePerformer, ConfigurableProvider):
             self._connect()
         return self._bg_execute(command)
 
-    def join(self):
+    def _control(self, method):
         if not self.client:
             self._connect()
 
@@ -210,11 +223,27 @@ class SSHperformer(BasePerformer, ConfigurableProvider):
         try:
             pid = self._get_bg_running_pid()
         except CommandError as e:
-            raise PerformerError('No active isolation %s' % self._bg_isolation_directory)
-        if pid:
-            self._bg_wait(pid)
-        else:
-            raise PerformerError('No running command.')
+            command_logger.info('No active isolation %s' % self._bg_isolation_directory)
+            return False
 
+        if pid:
+            try:
+                method(pid)
+                return True
+            except CommandError as e:
+                command_logger.info('No running command.')
+                return False
+        else:
+            command_logger.info('No running command.')
+            return False
+
+    def join(self):
+        self._control(self._bg_wait)
+
+    def stop(self):
+        self._control(self._bg_stop)
+
+    def kill(self):
+        self._control(self._bg_kill)
 
 Performer.register('ssh', SSHperformer)

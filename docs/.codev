@@ -4,7 +4,7 @@ repository: git@bitbucket.org:coex/hranipex.git
 
 debug:
   distfile: dist/codev-{version}.tar.gz
-  show_client_exception: true
+#  show_client_exception: true
 #  loglevel: debug
 
 scripts:
