@@ -5,7 +5,7 @@ repository: git@bitbucket.org:coex/hranipex.git
 debug:
   distfile: dist/codev-{version}.tar.gz
 #  show_client_exception: true
-#  loglevel: debug
+  loglevel: debug
 
 scripts:
   end to end:
@@ -86,7 +86,13 @@ environments:
     installations:
       - actual
       - live
-      - repository
+      - repository:
+        - master/HEAD
+        - testing/*
+      - livable:
+        - ble
+      - actual
+
 
   staging:
     infrastructures:
@@ -100,7 +106,6 @@ environments:
     protected: true
     infrastructures:
       full:
-
         machines:
           webservers:
             provision: real

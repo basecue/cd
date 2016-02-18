@@ -48,6 +48,22 @@ class DictConfiguration(OrderedDict):
             self[name] = cls(itemdata)
 
 
+class ListDictConfiguration(OrderedDict):
+    def __init__(self, data):
+        super(ListDictConfiguration, self).__init__()
+        for obj in data:
+            if isinstance(obj, OrderedDict):
+                if len(obj) == 1:
+                    key = list(obj.keys())[0]
+                    value = obj[key]
+                else:
+                    raise ValueError('Bad configuration')
+            else:
+                key = obj
+                value = None
+            self[key] = value
+
+
 class DebugConfiguration(BaseConfiguration):
     @property
     def loglevel(self):
@@ -91,7 +107,7 @@ class EnvironmentConfiguration(BaseConfiguration):
 
     @property
     def installations(self):
-        return self.data.get('installations', [])
+        return ListDictConfiguration(self.data.get('installations', []))
 
 
 class Configuration(BaseConfiguration):

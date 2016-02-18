@@ -1,5 +1,6 @@
 from collections import namedtuple
 from paramiko.client import SSHClient, AutoAddPolicy, NoValidConnectionsError
+from paramiko.agent import AgentRequestHandler
 from time import sleep
 
 from logging import getLogger
@@ -63,7 +64,11 @@ class SSHperformer(BasePerformer, ConfigurableProvider):
         try:
             self.client.connect(self.configuration.hostname, **connection_details)
         except NoValidConnectionsError as e:
-            raise PerformerError('Cant connect to %s' % self.configuration.hostnam)
+            raise PerformerError('Cant connect to %s' % self.configuration.hostname)
+        else:
+            #ssh agent forwarding
+            s = self.client.get_transport().open_session()
+            AgentRequestHandler(s)
 
     @property
     def _bg_isolation_directory(self):
@@ -143,10 +148,15 @@ class SSHperformer(BasePerformer, ConfigurableProvider):
         return len(output_lines)
 
     def _bg_stop(self, pid):
-        return self.execute('kill %s' % pid)
+        return self._execute('kill %s' % pid)
 
     def _bg_kill(self, pid):
-        return self.execute('kill -9 %s' % pid)
+        return self._execute(
+            'kill -9 {pid};rm {exitcode_file}'.format(
+                pid=pid,
+                exitcode_file=self._bg_isolation.exitcode_file
+            )
+        )
 
     def _bg_wait(self, pid):
         skip_lines = 0
@@ -157,7 +167,6 @@ class SSHperformer(BasePerformer, ConfigurableProvider):
         self._bg_log(skip_lines, False)
 
     def _bg_execute(self, command):
-        # run in background
         isolation = self._bg_isolation
 
         if self._file_exists(isolation.exitcode_file) and self._cat_file(isolation.exitcode_file) == '':
