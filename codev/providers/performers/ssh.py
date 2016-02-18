@@ -109,6 +109,13 @@ class SSHperformer(BasePerformer, ConfigurableProvider):
     def _file_exists(self, filepath):
         return self._check_execute('[ -f %s ]' % filepath)
 
+    def check_execute(self, command):
+        try:
+            self.execute(command)
+            return True
+        except CommandError as e:
+            return False
+
     def _check_execute(self, command):
         try:
             self._execute(command)
@@ -170,7 +177,10 @@ class SSHperformer(BasePerformer, ConfigurableProvider):
         isolation = self._bg_isolation
 
         if self._file_exists(isolation.exitcode_file) and self._cat_file(isolation.exitcode_file) == '':
-            raise PerformerError('Another process is running.')
+            if self._file_exists(isolation.pid_file):
+                pid = self._cat_file(isolation.pid_file)
+                if pid and self._bg_check(pid):
+                    raise PerformerError('Another process is running.')
 
         self._execute('echo "" > {output_file} > {error_file} > {exitcode_file} > {pid_file}'.format(
             **isolation._asdict()

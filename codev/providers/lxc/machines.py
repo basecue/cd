@@ -105,23 +105,27 @@ class LXCMachine(object):
 
     def execute(self, command):
         ssh_agent_forwarding_pid = None
-        if self.performer.execute('echo $SSH_AUTH_SOCK'):
+
+        ssh_auth_sock = self.performer.execute('echo $SSH_AUTH_SOCK')
+        if ssh_auth_sock and self.performer.check_execute('[ -S %s ]' % ssh_auth_sock):
             self.performer.execute('lxc-usernsexec -- rm -f {container_directory}rootfs/tmp/ssh-agent-sock'.format(
                  container_directory=self.container_directory
             ))
-            ssh_agent_forward_command = """
-                bash -c "
-                    while true;
-                        do socat UNIX:$SSH_AUTH_SOCK EXEC:'lxc-usernsexec socat STDIN UNIX-LISTEN\:{container_directory}rootfs/tmp/ssh-agent-sock';
-                    done
-                " & echo $!
-            """.format(
+            ssh_agent_forward_command = "socat UNIX:{ssh_auth_sock} EXEC:'lxc-usernsexec socat STDIN UNIX-LISTEN\:{container_directory}rootfs/tmp/ssh-agent-sock' & echo $!".format(
+                ssh_auth_sock=ssh_auth_sock,
                 container_directory=self.container_directory
             )
+
             ssh_agent_forwarding_pid = self.performer.execute(ssh_agent_forward_command)
             env_vars = '-v SSH_AUTH_SOCK=/tmp/ssh-agent-sock'
         else:
             env_vars = ''
+
+        logger.info('lxc-attach {env_vars} -n {container_name} -- {command}'.format(
+            container_name=self.ident,
+            command=command,
+            env_vars=env_vars
+        ))
 
         output = self.performer.execute('lxc-attach {env_vars} -n {container_name} -- {command}'.format(
             container_name=self.ident,
@@ -129,7 +133,7 @@ class LXCMachine(object):
             env_vars=env_vars
         ))
         if ssh_agent_forwarding_pid:
-            self.performer.execute('kill -sigint {pid}'.format(ssh_agent_forwarding_pid))
+            self.performer.execute('kill -9 {pid}'.format(pid=ssh_agent_forwarding_pid))
         return output
 
 

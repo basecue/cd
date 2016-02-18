@@ -10,7 +10,7 @@ class LXCIsolationProvider(BaseIsolationProvider):
 
     def _enable_container_nesting(self):
         lxc_config = '{container_directory}config'.format(
-            self.machine.container_directory
+            container_directory=self.machine.container_directory
         )
 
         self.performer.execute('echo "lxc.mount.auto = cgroup" >> %s' % lxc_config)
