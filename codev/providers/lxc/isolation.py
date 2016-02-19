@@ -21,13 +21,15 @@ class LXCIsolationProvider(BaseIsolationProvider):
             isolation_ident=self.ident
         ))
         home_dir = self.performer.execute('pwd')
+        #TODO CHECK LAST 0.0 mount option
         self.performer.execute(
-            'echo "lxc.mount.entry = {home_dir}/{isolation_ident}/share share none ro,bind 0.0" >> {lxc_config}'.format(
+            'echo "lxc.mount.entry = {home_dir}/{isolation_ident}/share share none bind 0.0" >> {lxc_config}'.format(
                 home_dir=home_dir,
                 isolation_ident=self.ident,
                 lxc_config=lxc_config
             )
         )
+        #TODO REPLACEABLE WITH mount option "create=dir"
         self.performer.execute('lxc-usernsexec -- mkdir -p {container_directory}/rootfs/share'.format(
             container_directory=self.machine.container_directory
         ))

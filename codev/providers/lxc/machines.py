@@ -106,30 +106,14 @@ class LXCMachine(object):
     def execute(self, command):
         ssh_auth_sock = self.performer.execute('echo $SSH_AUTH_SOCK')
         if ssh_auth_sock and self.performer.check_execute('[ -S %s ]' % ssh_auth_sock):
+
             self.performer.execute('rm -f {isolation_ident}/share/ssh-agent-sock && ln $SSH_AUTH_SOCK {isolation_ident}/share/ssh-agent-sock && chmod 7777 {isolation_ident}/share/ssh-agent-sock'.format(
                   isolation_ident=self.ident
             ))
 
-            #SOCAT SOLUTUION - for future
-            # ssh_agent_forward_command = "while [ -S {ssh_auth_sock} ]; do socat UNIX:{ssh_auth_sock} EXEC:'lxc-usernsexec socat STDIN UNIX-LISTEN\:{container_directory}rootfs/share/ssh-agent-sock'; done & echo $!".format(
-            #     ssh_auth_sock=ssh_auth_sock,
-            #     container_directory=self.container_directory
-            # )
+            #possible solution via socat
+            #https://gist.github.com/mgwilliams/4d929e10024912670152 or https://gist.github.com/schnittchen/a47e40760e804a5cc8b9
 
-            # ssh_agent_forward_command = "while [ -S {ssh_auth_sock} ]; do socat UNIX:{ssh_auth_sock} EXEC:'lxc-attach -n {container_name} -- socat STDIN UNIX-LISTEN\:/share/ssh-agent-sock'; done & echo $!".format(
-            #     ssh_auth_sock=ssh_auth_sock,
-            #     container_name=self.ident,
-            # )
-            # self.performer.execute('rm -f {isolation_ident}/share/ssh-agent-sock')
-            # ssh_agent_forward_command = "socat UNIX:{ssh_auth_sock} EXEC:'lxc-usernsexec socat STDIN UNIX-LISTEN\:{container_directory}rootfs/share/ssh-agent-sock' & echo $!".format(
-            #     ssh_auth_sock=ssh_auth_sock,
-            #     container_directory=self.container_directory
-            # )
-            # ssh_agent_forward_command = "socat UNIX:{ssh_auth_sock} EXEC:'lxc-attach -n {container_name} -- socat STDIN UNIX-LISTEN\:/share/ssh-agent-sock'".format(
-            #     ssh_auth_sock=ssh_auth_sock,
-            #     container_name=self.ident,
-            # )
-            # ssh_agent_forwarding_pid = self.performer.execute(ssh_agent_forward_command)
             env_vars = '-v SSH_AUTH_SOCK=/share/ssh-agent-sock'
         else:
             env_vars = ''
