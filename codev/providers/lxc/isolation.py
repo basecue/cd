@@ -8,13 +8,29 @@ class LXCIsolationProvider(BaseIsolationProvider):
         super(LXCIsolationProvider, self).__init__(*args, **kwargs)
         self._machine = None
 
-    def _enable_container_nesting(self):
+    def configure_container(self):
         lxc_config = '{container_directory}config'.format(
             container_directory=self.machine.container_directory
         )
 
         self.performer.execute('echo "lxc.mount.auto = cgroup" >> %s' % lxc_config)
         self.performer.execute('echo "lxc.aa_profile = lxc-container-default-with-nesting" >> %s' % lxc_config)
+
+
+        self.performer.execute('mkdir -p {isolation_ident}/share && chmod 7777 {isolation_ident}/share'.format(
+            isolation_ident=self.ident
+        ))
+        home_dir = self.performer.execute('pwd')
+        self.performer.execute(
+            'echo "lxc.mount.entry = {home_dir}/{isolation_ident}/share share none ro,bind 0.0" >> {lxc_config}'.format(
+                home_dir=home_dir,
+                isolation_ident=self.ident,
+                lxc_config=lxc_config
+            )
+        )
+        self.performer.execute('lxc-usernsexec -- mkdir -p {container_directory}/rootfs/share'.format(
+            container_directory=self.machine.container_directory
+        ))
 
     def _get_architecture(self):
         architecture = self.performer.execute('uname -m')
@@ -33,7 +49,7 @@ class LXCIsolationProvider(BaseIsolationProvider):
         created = self.machine.create()
 
         if created:
-            self._enable_container_nesting()
+            self.configure_container()
 
         self.machine.start()
 
