@@ -3,7 +3,6 @@ from os import path
 import yaml
 
 from collections import OrderedDict
-from .logging import LOGLEVELS
 
 """
 YAML OrderedDict mapping
@@ -64,24 +63,6 @@ class ListDictConfiguration(OrderedDict):
             self[key] = value
 
 
-class DebugConfiguration(BaseConfiguration):
-    @property
-    def loglevel(self):
-        return LOGLEVELS[self.data.get('loglevel', 'info').lower()]
-
-    @property
-    def distfile(self):
-        return self.data.get('distfile', '')
-
-    @property
-    def perform_command_output(self):
-        return bool(self.data.get('perform_command_output', False))
-
-    @property
-    def show_client_exception(self):
-        return bool(self.data.get('show_client_exception', False))
-
-
 class InfrastructureConfiguration(BaseConfiguration):
     @property
     def machines(self):
@@ -133,10 +114,6 @@ class Configuration(BaseConfiguration):
     @property
     def project(self):
         return self.data['project']
-
-    @property
-    def debug(self):
-        return DebugConfiguration(self.data.get('debug', {}))
 
     @property
     def environments(self):

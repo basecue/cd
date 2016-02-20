@@ -1,11 +1,16 @@
 #version: 0.0.5a3
 project: hranipex
-repository: git@bitbucket.org:coex/hranipex.git
+installations:
+  - actual
+  repository:
+    url: git@bitbucket.org:coex/hranipex.git
 
+#remove and create special DEBUG cli option - this is too dangerous for deployment, "distfile" override standard installation of codev
 debug:
   distfile: dist/codev-{version}.tar.gz
-#  show_client_exception: true
+  show_client_exception: true
   loglevel: debug
+#
 
 scripts:
   end to end:

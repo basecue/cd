@@ -3,6 +3,7 @@ from functools import wraps
 
 from .configuration import YAMLConfiguration
 from .executors import Control, Perform
+from . import debug
 
 
 def configuration_option(f):
@@ -75,11 +76,10 @@ def control_execution(func):
 def nice_exception(func):
     @wraps(func)
     def nice_exception_wrapper(*args, **kwargs):
-        configuration = kwargs.get('configuration')
         try:
             return func(*args, **kwargs)
         except Exception as e:
-            if configuration.debug.show_client_exception:
+            if debug.show_client_exception:
                 raise
             if issubclass(type(e), click.ClickException) or issubclass(type(e), RuntimeError):
                 raise
