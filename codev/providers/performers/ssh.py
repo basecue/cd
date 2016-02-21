@@ -9,6 +9,7 @@ from codev.logging import command_logger
 from codev.performer import Performer, BasePerformer, PerformerError, CommandError
 from codev.provider import ConfigurableProvider
 from codev.configuration import BaseConfiguration
+from os.path import expanduser
 
 
 logger = getLogger(__name__)
@@ -224,6 +225,7 @@ class SSHperformer(BasePerformer, ConfigurableProvider):
         return self._cat_file(self._bg_isolation.pid_file)
 
     def send_file(self, source, target):
+        source = expanduser(source)
         sftp = self.client.open_sftp()
         sftp.put(source, target)
         sftp.close()

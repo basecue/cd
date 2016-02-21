@@ -1,14 +1,14 @@
 import click
 from functools import wraps
 
-from .configuration import YAMLConfiguration
+from .configuration import YAMLConfigurationReader
 from .executors import Control, Perform
-from . import debug
+from .debug import DebugConfiguration
 
 
 def configuration_option(f):
     def callback(ctx, param, value):
-        configuration = YAMLConfiguration.from_file(value)
+        configuration = YAMLConfigurationReader().from_file(value)
         return configuration
 
     return click.option('-c', '--configuration',
@@ -79,12 +79,24 @@ def nice_exception(func):
         try:
             return func(*args, **kwargs)
         except Exception as e:
-            if debug.show_client_exception:
+            if DebugConfiguration.configuration.show_client_exception:
                 raise
             if issubclass(type(e), click.ClickException) or issubclass(type(e), RuntimeError):
                 raise
             raise click.ClickException(e)
     return nice_exception_wrapper
+
+
+def debug_option(func):
+    @wraps(func)
+    def debug_wrapper(debug, **kwargs):
+        if debug:
+            DebugConfiguration.configuration = YAMLConfigurationReader(DebugConfiguration).from_file(debug)
+        return func(**kwargs)
+
+    return click.option('--debug',
+                        default=None,
+                        help='Path to debug configuration file.')(debug_wrapper)
 
 
 class execution(object):
@@ -103,4 +115,5 @@ class execution(object):
             func = confirmation_message(self.confirmation)(func)
         func = deployment_option(func)
         func = nice_exception(func)
+        func = debug_option(func)
         return func

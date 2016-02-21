@@ -21,7 +21,7 @@ codev run [script] [environment] [infrastructure] [version]
 import click
 import os.path
 
-from codev.configuration import YAMLConfiguration
+from codev.configuration import YAMLConfigurationWriter
 from codev.cli import execution
 
 
@@ -41,9 +41,8 @@ def init(path):
         if not click.confirm('A file "%(filepath)s" already exists. Overwrite?' % {'filepath': path}):
             raise click.Abort()
 
-    configuration = YAMLConfiguration()
     try:
-        configuration.save_to_file(path)
+        YAMLConfigurationWriter().save_to_file(path)
     except Exception as e:
         raise click.ClickException(e)
 

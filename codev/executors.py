@@ -3,16 +3,20 @@ from logging import getLogger
 from .deployment import Deployment
 from .logging import command_logger, control_logging, perform_logging
 from .info import VERSION
-from . import debug
+from .debug import DebugConfiguration
 
 logger = getLogger(__name__)
+
+"""
+TODO remove this layer - it`s not necessary - deployment class is sufficient
+"""
 
 
 class BaseExecutor(object):
     logging = None
 
     def __init__(self, configuration, environment_name, infrastructure_name, installation):
-        self.__class__.logging(debug.loglevel)
+        self.__class__.logging(DebugConfiguration.configuration.loglevel)
 
         self.configuration = configuration
         self.environment_name = environment_name
@@ -27,7 +31,7 @@ class Perform(BaseExecutor):
     def __init__(self, configuration, environment_name, infrastructure_name, installation):
         assert configuration.version == VERSION
         super(Perform, self).__init__(configuration, environment_name, infrastructure_name, installation)
-        if debug.perform_command_output:
+        if DebugConfiguration.configuration.perform_command_output:
             command_logger.set_perform_command_output()
 
     def install(self):
@@ -45,9 +49,8 @@ class Control(BaseExecutor):
             installation=self.installation
         ))
 
-        logger.info('Transfer of control.')
+
         # predani rizeni
-        command_logger.set_control_perform_command_output()
         self.deployment.install()
         logger.info('Installation successful.')
 

@@ -1,9 +1,9 @@
 from codev.installation import Installation, BaseInstallation
-from codev.configuration import YAMLConfiguration
+from codev.configuration import YAMLConfigurationReader
 
 
 class RepositoryInstallation(BaseInstallation):
-    def install(self, performer):
+    def configure(self, performer):
         """
         TODO RENAME method
         :param performer:
@@ -28,7 +28,7 @@ class RepositoryInstallation(BaseInstallation):
         ))
 
         #load configuration
-        version = YAMLConfiguration.from_file('repository/.codev').version
+        version = YAMLConfigurationReader().from_file('repository/.codev').version
 
         return directory, version
 

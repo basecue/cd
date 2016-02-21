@@ -1,9 +1,11 @@
 from .environment import Environment
 from .installation import Installation
 
-from . import debug
+from .debug import DebugConfiguration
 import logging
 logger = logging.getLogger(__name__)
+
+from .logging import command_logger
 
 
 class Deployment(object):
@@ -30,26 +32,29 @@ class Deployment(object):
         return self._environment.performer
 
     def isolation(self):
+        logger.info("Switching to isolation...")
         isolation = self._environment.create_isolation()
         return isolation
 
     def install(self):
         isolation = self.isolation()
 
-        directory, version = self._installation.install(isolation)
+        directory, version = self._installation.configure(isolation)
 
         # install python3 pip
         isolation.execute('apt-get install python3-pip -y --force-yes')
 
         # install proper version of codev
-        if not debug.distfile:
+        if not DebugConfiguration.configuration.distfile:
             isolation.execute('pip3 install --upgrade codev=={version}'.format(version=version))
         else:
-            isolation.send_file(debug.distfile.format(version=version), 'codev.tar.gz')
+            isolation.send_file(DebugConfiguration.configuration.distfile.format(version=version), 'codev.tar.gz')
             isolation.execute('pip3 install --upgrade codev.tar.gz')
 
         isolation.execute('cd %s' % directory)
+        logger.info("Run 'codev {version}' in isolation.".format(version=version))
 
+        command_logger.set_control_perform_command_output()
         isolation.execute('codev install -d {environment} {infrastructure} {installation} --perform -f'.format(
             environment=self.environment_name,
             infrastructure=self.infrastructure_name,

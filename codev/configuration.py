@@ -124,19 +124,22 @@ class Configuration(BaseConfiguration):
         return self.data.get('repository', None)
 
 
-class YAMLConfiguration(Configuration):
-    @classmethod
-    def from_configuration(cls, configuration):
-        return cls(configuration.data)
+class YAMLConfigurationReader(object):
+    def __init__(self, configuration_class=Configuration):
+        self.configuration_class = configuration_class
 
-    @classmethod
-    def from_file(cls, filepath):
-        return cls.from_yaml(open(filepath))
+    def from_file(self, filepath):
+        return self.from_yaml(open(filepath))
 
-    @classmethod
-    def from_yaml(cls, yamldata):
-        return cls(yaml.load(yamldata))
+    def from_yaml(self, yamldata):
+        return self.configuration_class(yaml.load(yamldata))
+
+
+class YAMLConfigurationWriter(object):
+    def __init__(self, configuration=None):
+        if configuration is None:
+            configuration = Configuration()
+        self.configuration = configuration
 
     def save_to_file(self, filepath):
-        yaml.dump(self.data, open(filepath, 'w+'))
-
+        yaml.dump(self.configuration.data, open(filepath, 'w+'))
