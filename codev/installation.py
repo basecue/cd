@@ -2,10 +2,10 @@ from .provider import BaseProvider
 
 
 class BaseInstallation(object):
-    def __init__(self, configuration):
-        self.configuration = configuration
+    def __init__(self, options):
+        self.options = options
 
-    def install(self, performer):
+    def configure(self, performer):
         raise NotImplementedError()
 
 

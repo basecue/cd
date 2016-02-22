@@ -2,11 +2,17 @@ import click
 from functools import wraps
 
 from .configuration import YAMLConfigurationReader
-from .executors import Control, Perform
+from .deployment import Deployment
 from .debug import DebugConfiguration
+from .logging import control_logging, perform_logging, command_logger
+from .info import VERSION
 
 
-def configuration_option(f):
+def configuration_option(func):
+    @wraps(func)
+    def configuration_wrapper(configuration, *args, **kwargs):
+        return func(*args, **kwargs)
+
     def callback(ctx, param, value):
         configuration = YAMLConfigurationReader().from_file(value)
         return configuration
@@ -14,23 +20,26 @@ def configuration_option(f):
     return click.option('-c', '--configuration',
                         default='.codev',
                         help='Path to configuration file.',
-                        callback=callback)(f)
+                        callback=callback)(configuration_wrapper)
 
 
-def deployment_option(f):
-    @wraps(f)
-    def deployment_wrapper(*args, **kwargs):
-        deployment = kwargs.pop('deployment')
-        kwargs.update(dict(
-            environment=deployment[0],
-            infrastructure=deployment[1],
-            installation=deployment[2]
-        ))
-        return f(*args, **kwargs)
+def deployment_option(func):
+    @wraps(func)
+    def deployment_wrapper(configuration, deployment, **kwargs):
+        environment_name = deployment[0]
+        infrastructure_name = deployment[1]
+        installation = deployment[2]
+
+        parsed_installation = installation.split(':', 1)
+        installation_name = parsed_installation[0]
+        installation_options = parsed_installation[1] if len(parsed_installation) == 2 else ''
+        deployment = Deployment(
+            configuration, environment_name, infrastructure_name, installation_name, installation_options
+        )
+        return func(configuration, deployment, **kwargs)
 
     return click.option('-d', '--deployment',
                         required=True,
-                        is_eager=True,
                         nargs=3,
                         help='environment infrastructure installation')(deployment_wrapper)
 
@@ -38,39 +47,29 @@ def deployment_option(f):
 def confirmation_message(message):
     def decorator(f):
         @wraps(f)
-        def confirmation_wrapper(force, **kwargs):
+        def confirmation_wrapper(configuration, deployment, force, **kwargs):
             if not force:
-                if not click.confirm(message.format(**kwargs)):
+                if not click.confirm(message.format(configuration=configuration, deployment=deployment)):
                     raise click.Abort()
-            return f(**kwargs)
+            return f(configuration, deployment, **kwargs)
 
         return click.option('-f', '--force', is_flag=True,  help='Force')(confirmation_wrapper)
 
     return decorator
 
 
-def execution_choice(f):
-    @wraps(f)
-    def executor_wrapper(configuration, environment, infrastructure, installation, perform, **kwargs):
-        if perform:
-            executor_class = Perform
-        else:
-            executor_class = Control
-
-        executor = executor_class(configuration, environment, infrastructure, installation)
-        return f(executor=executor, **kwargs)
+def perform_option(func):
+    @wraps(func)
+    def perform_wrapper(configuration, *args, **kwargs):
+        perform_logging(DebugConfiguration.configuration.loglevel)
+        if DebugConfiguration.configuration.perform_command_output:
+            command_logger.set_perform_command_output()
+        assert configuration.version == VERSION
+        return func(configuration, *args, **kwargs)
 
     return click.option('--perform',
                         is_flag=True,
-                        help='Perform mode')(executor_wrapper)
-
-
-def control_execution(func):
-    @wraps(func)
-    def control_execution_wrapper(configuration, environment, infrastructure, installation, **kwargs):
-        executor = Control(configuration, environment, infrastructure, installation)
-        return func(executor, **kwargs)
-    return control_execution_wrapper
+                        help='Perform mode')(perform_wrapper)
 
 
 def nice_exception(func):
@@ -89,31 +88,32 @@ def nice_exception(func):
 
 def debug_option(func):
     @wraps(func)
-    def debug_wrapper(debug, **kwargs):
+    def debug_wrapper(debug, *args, **kwargs):
         if debug:
             DebugConfiguration.configuration = YAMLConfigurationReader(DebugConfiguration).from_file(debug)
-        return func(**kwargs)
+        control_logging(DebugConfiguration.configuration.loglevel)
+        return func(*args, **kwargs)
 
     return click.option('--debug',
                         default=None,
                         help='Path to debug configuration file.')(debug_wrapper)
 
 
-class execution(object):
-    def __init__(self, confirmation=None, control_only=False):
-        self.control_only = control_only
-        self.confirmation = confirmation
+@click.group()
+def main():
+    pass
 
-    def __call__(self, func):
-        if not self.control_only:
-            func = execution_choice(func)
-        else:
-            func = control_execution(func)
 
+def command(confirmation=None, perform=False):
+    def decorator(func):
         func = configuration_option(func)
-        if self.confirmation:
-            func = confirmation_message(self.confirmation)(func)
+        if confirmation:
+            func = confirmation_message(confirmation)(func)
         func = deployment_option(func)
         func = nice_exception(func)
+        if perform:
+            func = perform_option(func)
         func = debug_option(func)
+        func = main.command()(func)
         return func
+    return decorator

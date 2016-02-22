@@ -22,12 +22,7 @@ import click
 import os.path
 
 from codev.configuration import YAMLConfigurationWriter
-from codev.cli import execution
-
-
-@click.group()
-def main():
-    pass
+from codev.cli import command, main
 
 
 @main.command()
@@ -36,6 +31,8 @@ def init(path):
     """
     Create .codev file in current directory or in given file path.
     """
+    if os.path.isdir(path):
+        path = os.path.join(path, '.codev')
 
     if os.path.exists(path):
         if not click.confirm('A file "%(filepath)s" already exists. Overwrite?' % {'filepath': path}):
@@ -47,60 +44,62 @@ def init(path):
         raise click.ClickException(e)
 
 
-@main.command()
-@execution(
-    confirmation='Install project "{configuration.project}" on environment "{environment}" with infrastructure "{infrastructure}" at installation "{installation}"'
+@command(
+    confirmation='Install project "{configuration.project}" on environment "{deployment.environment_name}" with infrastructure "{deployment.infrastructure_name}" at installation "{deployment.installation_name}"',
+    perform=True
 )
-def install(executor):
+def install(deployment, perform):
     """
     Install project
     """
-    executor.install()
+    if perform:
+        deployment.provision()
+    else:
+        deployment.install()
 
 
-@main.command()
-@execution(control_only=True)
-def join(executor):
+@command()
+def join(deployment):
     """
     Join the actual running command in isolation
     """
-    executor.join()
+    deployment.join()
 
 
-@main.command()
-@execution(control_only=True)
+@command()
 @click.argument('command', nargs=-1)
-def execute(executor, command):
+def execute(deployment, command):
     """
     Execute command in isolation
     """
-    executor.execute(' '.join(command))
+    deployment.execute(' '.join(command))
 
-@main.command()
-@execution(control_only=True)
-def stop(executor):
+
+@command()
+def stop(deployment):
     """
     Stop the actual running command in isolation
     """
-    executor.stop()
+    if deployment.stop():
+        deployment.join()
 
 
-@main.command()
-@execution(control_only=True)
-def kill(executor):
+@command()
+def kill(deployment):
     """
     Kill the actual running command in isolation
     """
-    executor.kill()
+    if deployment.kill():
+        deployment.join()
 
 
-@main.command()
-@execution(
-    confirmation='Execute script "{script}" at project "{configuration.project}" on environment "{environment}" with infrastructure "{infrastructure}" at installation "{installation}"'
+@command(
+    confirmation='Execute script "{script}" at project "{configuration.project}" on environment "{deployment.environment_name}" with infrastructure "{deployment.infrastructure_name}" at installation "{deployment.installation_name}"'
 )
 @click.argument('script')
-def run(executor, script):
-    executor.run(script)
+def run(deployment, script):
+    deployment.run(script)
+
 
 if __name__ == "__main__":
     main()

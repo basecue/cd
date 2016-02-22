@@ -83,14 +83,12 @@ class LXCMachine(object):
         return self.ip
 
     def send_file(self, source, target):
-        TMPFILE = 'tempfile'
-        self.performer.send_file(source, TMPFILE)
-        self.performer.execute('cat %(tmpfile)s | lxc-attach -n %(name)s -- tee %(target)s > /dev/null' % {
-            'name': self.ident,
-            'tmpfile': TMPFILE,
-            'target': target
-        })
-        self.performer.execute('rm -f %(tmpfile)s' % {'tmpfile': TMPFILE})
+        with self.performer.send_temp_file(source) as tempfile:
+            self.performer.execute('cat %(tempfile)s | lxc-attach -n %(name)s -- tee %(target)s > /dev/null' % {
+                'name': self.ident,
+                'tempfile': tempfile,
+                'target': target
+            })
 
     @property
     def container_directory(self):

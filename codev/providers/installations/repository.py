@@ -1,5 +1,6 @@
 from codev.installation import Installation, BaseInstallation
 from codev.configuration import YAMLConfigurationReader
+from git import Repo
 
 
 class RepositoryInstallation(BaseInstallation):
@@ -18,16 +19,23 @@ class RepositoryInstallation(BaseInstallation):
         # ssh-keyscan -t rsa,dsa github.com 2> /dev/null > /tmp/key && ssh-keygen -lf /tmp/key
         # ssh-keygen -H -F github.com
         # github.com,192.30.252.*,192.30.253.*,192.30.254.*,192.30.255.* ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAq2A7hRGmdnm9tUDbO9IDSwBK6TbQa+PXYPCPy6rbTrTtw7PHkccKrpp0yVhp5HdEIcKr6pLlVDBfOLX9QUsyCOV0wzfjIJNlGEYsdlLJizHhbn2mUjvSAHQqZETYP81eFzLQNnPHt4EVVUh7VfDESU84KezmD5QlWpXLmvU31/yMf+Se8xhHTvKSCZIFImWwoG6mbUoWf9nzpIoaSjB+weqqUUmpaaasXVal72J+UX2B+2RPW3RcT0eOzQgqlJL3RKrTJvdsjE3JEAvGq3lGHSZXy28G3skua2SmVi/w4yCE6gbODqnTWlg7+wC604ydGXA8VJiS5ap43JXiUFFAaQ==
-        directory = 'repository'
 
-        performer.execute('mkdir -p .ssh')
-        performer.send_file('~/.ssh/known_hosts', '.ssh/known_hosts')
+        performer.send_file('~/.ssh/known_hosts', '/root/.ssh/known_hosts')
+
+        repo = Repo(search_parent_directories=True)
+        url = repo.remotes.origin.url
+
+        directory = 'repository'
         performer.execute('git clone {url} {directory}'.format(
-            url=self.configuration.url,
+            url=url,
             directory=directory
         ))
 
         #load configuration
+        #TODO configuration filepath should be placed anywhere
+        # codev_path = os.path.relpath(repo.working_dir)
+        # change cli configuration option etc.
+
         version = YAMLConfigurationReader().from_file('repository/.codev').version
 
         return directory, version

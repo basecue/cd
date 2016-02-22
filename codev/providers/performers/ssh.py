@@ -1,4 +1,5 @@
 from collections import namedtuple
+from contextlib import contextmanager
 from paramiko.client import SSHClient, AutoAddPolicy, NoValidConnectionsError
 from paramiko.agent import AgentRequestHandler
 from time import sleep
@@ -14,7 +15,7 @@ from os.path import expanduser
 
 logger = getLogger(__name__)
 
-Isolation = namedtuple('Isolation', ['output_file', 'error_file', 'exitcode_file', 'command_file', 'pid_file'])
+Isolation = namedtuple('Isolation', ['output_file', 'error_file', 'exitcode_file', 'command_file', 'pid_file', 'temp_file'])
 
 
 class SSHPerformerConfiguration(BaseConfiguration):
@@ -40,6 +41,7 @@ ERROR_FILE = 'codev.err'
 EXITCODE_FILE = 'codev.exit'
 COMMAND_FILE = 'codev.command'
 PID_FILE = 'codev.pid'
+TEMP_FILE = 'codev.temp'
 
 
 class SSHperformer(BasePerformer, ConfigurableProvider):
@@ -47,7 +49,7 @@ class SSHperformer(BasePerformer, ConfigurableProvider):
 
     def __init__(self, *args, **kwargs):
         super(SSHperformer, self).__init__(*args, **kwargs)
-        self._bg_isolation_cache = None
+        self._isolation_cache = None
         self.client = None
 
     def _connect(self):
@@ -72,7 +74,7 @@ class SSHperformer(BasePerformer, ConfigurableProvider):
             AgentRequestHandler(s)
 
     @property
-    def _bg_isolation_directory(self):
+    def _isolation_directory(self):
         if not self.isolation_ident:
             ssh_info = self._execute('echo $SSH_CLIENT')
             ip, remote_port, local_port = ssh_info.split()
@@ -82,12 +84,12 @@ class SSHperformer(BasePerformer, ConfigurableProvider):
 
         return self.isolation_ident
 
-    def _create_bg_isolation(self):
-        self._execute('mkdir -p %s' % self._bg_isolation_directory)
+    def _create_isolation(self):
+        self._execute('mkdir -p %s' % self._isolation_directory)
 
-        output_file, error_file, exitcode_file, command_file, pid_file = map(
-            lambda f: '%s/%s' % (self._bg_isolation_directory, f),
-            [OUTPUT_FILE, ERROR_FILE, EXITCODE_FILE, COMMAND_FILE, PID_FILE]
+        output_file, error_file, exitcode_file, command_file, pid_file, temp_file = map(
+            lambda f: '%s/%s' % (self._isolation_directory, f),
+            [OUTPUT_FILE, ERROR_FILE, EXITCODE_FILE, COMMAND_FILE, PID_FILE, TEMP_FILE]
         )
 
         return Isolation(
@@ -95,14 +97,15 @@ class SSHperformer(BasePerformer, ConfigurableProvider):
             output_file=output_file,
             error_file=error_file,
             exitcode_file=exitcode_file,
-            pid_file=pid_file
+            pid_file=pid_file,
+            temp_file=temp_file
         )
 
     @property
-    def _bg_isolation(self):
-        if not self._bg_isolation_cache:
-            self._bg_isolation_cache = self._create_bg_isolation()
-        return self._bg_isolation_cache
+    def _isolation(self):
+        if not self._isolation_cache:
+            self._isolation_cache = self._create_isolation()
+        return self._isolation_cache
 
     # def _exists_isolation(self):
     #     return self._check_execute('[ -d %s ]' % self.isolation_directory)
@@ -145,7 +148,7 @@ class SSHperformer(BasePerformer, ConfigurableProvider):
 
     def _bg_log(self, skip_lines, omit_last):
         command_logger.debug('_bg_log', skip_lines, omit_last)
-        output = self._execute('tail {output_file} -n+{skip_lines}'.format(output_file=self._bg_isolation.output_file, skip_lines=skip_lines))
+        output = self._execute('tail {output_file} -n+{skip_lines}'.format(output_file=self._isolation.output_file, skip_lines=skip_lines))
         if not output:
             return 0
         output_lines = output.splitlines()
@@ -162,7 +165,7 @@ class SSHperformer(BasePerformer, ConfigurableProvider):
         return self._execute(
             'kill -9 {pid};rm {exitcode_file}'.format(
                 pid=pid,
-                exitcode_file=self._bg_isolation.exitcode_file
+                exitcode_file=self._isolation.exitcode_file
             )
         )
 
@@ -175,7 +178,7 @@ class SSHperformer(BasePerformer, ConfigurableProvider):
         self._bg_log(skip_lines, False)
 
     def _bg_execute(self, command):
-        isolation = self._bg_isolation
+        isolation = self._isolation
 
         if self._file_exists(isolation.exitcode_file) and self._cat_file(isolation.exitcode_file) == '':
             if self._file_exists(isolation.pid_file):
@@ -222,13 +225,19 @@ class SSHperformer(BasePerformer, ConfigurableProvider):
         return self._execute('cat %s' % catfile)
 
     def _get_bg_running_pid(self):
-        return self._cat_file(self._bg_isolation.pid_file)
+        return self._cat_file(self._isolation.pid_file)
 
     def send_file(self, source, target):
         source = expanduser(source)
         sftp = self.client.open_sftp()
         sftp.put(source, target)
         sftp.close()
+
+    @contextmanager
+    def send_temp_file(self, source):
+        self.send_file(source, self._isolation.temp_file)
+        yield self._isolation.temp_file
+        self.execute('rm -f %(tmpfile)s' % {'tmpfile': self._isolation.temp_file})
 
     def execute(self, command):
         logger.debug('Executing SSH command: %s' % command)
@@ -244,7 +253,7 @@ class SSHperformer(BasePerformer, ConfigurableProvider):
         try:
             pid = self._get_bg_running_pid()
         except CommandError as e:
-            command_logger.info('No active isolation %s' % self._bg_isolation_directory)
+            command_logger.info('No active isolation %s' % self._isolation_directory)
             return False
 
         if pid:

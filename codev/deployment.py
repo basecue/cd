@@ -9,7 +9,7 @@ from .logging import command_logger
 
 
 class Deployment(object):
-    def __init__(self, configuration, environment_name, infrastructure_name, installation_name):
+    def __init__(self, configuration, environment_name, infrastructure_name, installation_name, installation_options):
         environment_configuration = configuration.environments[environment_name]
 
         if installation_name not in environment_configuration.installations:
@@ -23,13 +23,10 @@ class Deployment(object):
         )
 
         self._environment = Environment(environment_configuration, infrastructure_name, isolation_ident)
+        self._installation = Installation(installation_name, installation_options)
 
-        #TODO configuration = only specific configuration for chosen installation
-        self._installation = Installation(installation_name, configuration)
-
-    @property
-    def performer(self):
-        return self._environment.performer
+        self.environment_name, self.infrastructure_name, self.installation_name, self.installation_options = \
+            environment_name, infrastructure_name, installation_name, installation_options
 
     def isolation(self):
         logger.info("Switching to isolation...")
@@ -55,11 +52,34 @@ class Deployment(object):
         logger.info("Run 'codev {version}' in isolation.".format(version=version))
 
         command_logger.set_control_perform_command_output()
-        isolation.execute('codev install -d {environment} {infrastructure} {installation} --perform -f'.format(
-            environment=self.environment_name,
-            infrastructure=self.infrastructure_name,
-            installation=self.installation,
+        isolation.execute('codev install -d {environment_name} {infrastructure_name} {installation_name}:{installation_options} --perform -f'.format(
+            environment_name=self.environment_name,
+            infrastructure_name=self.infrastructure_name,
+            installation_name=self.installation_name,
+            installation_options=self.installation_options
         ))
 
     def provision(self):
         self._environment.provision()
+
+    @property
+    def _performer(self):
+        return self._environment.performer
+
+    def join(self):
+        command_logger.set_control_perform_command_output()
+        self._performer.join()
+
+    def stop(self):
+        command_logger.set_control_perform_command_output()
+        self._performer.stop()
+
+    def kill(self):
+        command_logger.set_control_perform_command_output()
+        self._performer.kill()
+
+    def execute(self, command):
+        isolation = self.isolation()
+
+        command_logger.set_control_perform_command_output()
+        isolation.execute(command)

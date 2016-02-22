@@ -1,3 +1,4 @@
 distfile: dist/codev-{version}.tar.gz
 show_client_exception: true
 loglevel: debug
+configfile: docs/.codev
