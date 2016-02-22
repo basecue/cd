@@ -1,6 +1,8 @@
 from codev.installation import Installation, BaseInstallation
 from codev.configuration import YAMLConfigurationReader
+from codev.debug import DebugConfiguration
 from git import Repo
+
 
 
 class RepositoryInstallation(BaseInstallation):
@@ -22,21 +24,35 @@ class RepositoryInstallation(BaseInstallation):
 
         performer.send_file('~/.ssh/known_hosts', '/root/.ssh/known_hosts')
 
-        repo = Repo(search_parent_directories=True)
-        url = repo.remotes.origin.url
+        if not DebugConfiguration.configuration.repository:
+            repo = Repo(search_parent_directories=True)
+            url = repo.remotes.origin.url
+        else:
+            url = DebugConfiguration.configuration.repository
+
 
         directory = 'repository'
-        performer.execute('git clone {url} {directory}'.format(
+
+        if performer.check_execute('[ -d repository ]'):
+            performer.check_execute('rm -rf repository')
+
+        if self.options:
+            branch_options = '--branch {branch} --single-branch'.format(branch=self.options)
+        else:
+            branch_options = ''
+
+        performer.execute('git clone {url} {branch_options} {directory}'.format(
             url=url,
-            directory=directory
+            directory=directory,
+            branch_options=branch_options
         ))
 
         #load configuration
         #TODO configuration filepath should be placed anywhere
         # codev_path = os.path.relpath(repo.working_dir)
         # change cli configuration option etc.
-
-        version = YAMLConfigurationReader().from_file('repository/.codev').version
+        with performer.get_fo('repository/.codev') as codev_file:
+            version = YAMLConfigurationReader().from_yaml(codev_file).version
 
         return directory, version
 

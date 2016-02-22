@@ -1,9 +1,11 @@
 import re
+from contextlib import contextmanager
 
 from time import sleep
 from codev.configuration import BaseConfiguration
 from codev.machines import MachinesProvider, BaseMachinesProvider
 from codev.provider import ConfigurableProvider
+from codev.performer import CommandError
 
 from logging import getLogger
 logger = getLogger(__name__)
@@ -23,9 +25,9 @@ class LXCMachine(object):
         return self.ident in output.split()
 
     def is_started(self):
-        output = self.performer.execute('lxc-info -n %(name)s -s' % {
-            'name': self.ident
-        })
+        output = self.performer.execute('lxc-info -n {name} -s'.format(
+            name=self.ident,
+        ))
 
         r = re.match('^State:\s+(.*)$', output.strip())
         if r:
@@ -42,21 +44,21 @@ class LXCMachine(object):
 
     def create(self):
         if not self.exists():
-            self.performer.execute('lxc-create -t download -n %(name)s -- --dist %(distribution)s --release %(release)s --arch %(architecture)s' % {
-                'name': self.ident,
-                'distribution': self.distribution,
-                'release': self.release,
-                'architecture': self.architecture
-            })
+            self.performer.execute('lxc-create -t download -n {name} -- --dist {distribution} --release {release} --arch {architecture}'.format(
+                name=self.ident,
+                distribution=self.distribution,
+                release=self.release,
+                architecture=self.architecture
+            ))
             return True
         else:
             return False
 
     def start(self):
         if not self.is_started():
-            self.performer.execute('lxc-start -n %(name)s' % {
-                'name': self.ident
-            })
+            self.performer.execute('lxc-start -n {name}'.format(
+                name=self.ident,
+            ))
 
             while not self.ip:
                 sleep(0.5)
@@ -67,9 +69,9 @@ class LXCMachine(object):
 
     @property
     def ip(self):
-        output = self.performer.execute('lxc-info -n %(name)s -i' % {
-            'name': self.ident
-        })
+        output = self.performer.execute('lxc-info -n {name} -i'.format(
+            name=self.ident,
+        ))
 
         for line in output.splitlines():
             r = re.match('^IP:\s+([0-9\.]+)$', line)
@@ -83,12 +85,34 @@ class LXCMachine(object):
         return self.ip
 
     def send_file(self, source, target):
-        with self.performer.send_temp_file(source) as tempfile:
-            self.performer.execute('cat %(tempfile)s | lxc-attach -n %(name)s -- tee %(target)s > /dev/null' % {
-                'name': self.ident,
-                'tempfile': tempfile,
-                'target': target
-            })
+        with self.performer.send_to_temp_file(source) as tempfile:
+            #TODO direct access over share directory or with lxc-usernsexec
+            self.performer.execute('cat {tempfile} | lxc-attach -n {name} -- tee {target} > /dev/null'.format(
+                name=self.ident,
+                tempfile=tempfile,
+                target=target
+            ))
+
+    # def get_file(self, source, target):
+    #     with self.performer.get_temp_file(target) as tempfile:
+    #         #TODO direct access over share directory or with lxc-usernsexec
+    #         self.performer.execute('lxc-attach -n {name} -- cat {source} > {tempfile}'.format(
+    #             name=self.ident,
+    #             tempfile=tempfile,
+    #             source=source
+    #         ))
+
+    @contextmanager
+    def get_fo(self, source):
+        with self.performer.get_temp_fo() as (tempfile, opener):
+            #TODO direct access over share directory or with lxc-usernsexec
+            self.performer.execute('lxc-attach -n {name} -- cat {source} > {tempfile}'.format(
+                name=self.ident,
+                tempfile=tempfile,
+                source=source
+            ))
+            with opener() as fo:
+                yield fo
 
     @property
     def container_directory(self):
@@ -100,6 +124,13 @@ class LXCMachine(object):
                 container_directory = '.local/share/lxc/{container_name}/'
             self._container_directory = container_directory.format(container_name=self.ident)
         return self._container_directory
+
+    def check_execute(self, command):
+        try:
+            self.execute(command)
+            return True
+        except CommandError:
+            return False
 
     def execute(self, command):
         ssh_auth_sock = self.performer.execute('echo $SSH_AUTH_SOCK')

@@ -147,7 +147,7 @@ class SSHperformer(BasePerformer, ConfigurableProvider):
         return self._execute('ps -p %s -o pid=' % pid, ignore_exit_codes=[1]) == pid
 
     def _bg_log(self, skip_lines, omit_last):
-        command_logger.debug('_bg_log', skip_lines, omit_last)
+        logger.debug('_bg_log %s %s' % (skip_lines, omit_last))
         output = self._execute('tail {output_file} -n+{skip_lines}'.format(output_file=self._isolation.output_file, skip_lines=skip_lines))
         if not output:
             return 0
@@ -228,19 +228,55 @@ class SSHperformer(BasePerformer, ConfigurableProvider):
         return self._cat_file(self._isolation.pid_file)
 
     def send_file(self, source, target):
+        logger.debug('Send file: %s %s' % (source, target))
         source = expanduser(source)
         sftp = self.client.open_sftp()
         sftp.put(source, target)
         sftp.close()
 
+    # def get_file(self, source, target):
+    #     logger.debug('SSH Get file: %s %s' % (source, target))
+    #     target = expanduser(target)
+    #     sftp = self.client.open_sftp()
+    #     sftp.get(source, target)
+    #     sftp.close()
+
     @contextmanager
-    def send_temp_file(self, source):
+    def get_fo(self, source):
+        from tempfile import SpooledTemporaryFile
+        logger.debug('SSH Get fo: %s' % (source))
+        sftp = self.client.open_sftp()
+        with SpooledTemporaryFile(1024000) as fo:
+            size = sftp.getfo(source, fo)
+            yield fo
+        sftp.close()
+
+    @contextmanager
+    def get_temp_fo(self):
+        @contextmanager
+        def opener():
+            with self.get_fo(self._isolation.temp_file) as fo:
+                yield fo
+        yield self._isolation.temp_file, opener
+
+    # @contextmanager
+    # def get_temp_file(self, target):
+    #     yield self._isolation.temp_file
+    #     self.get_file(self._isolation.temp_file, target)
+    #
+    # @contextmanager
+    # def get_temp_fo(self):
+    #     yield self._isolation.temp_file
+    #     self.get_fo(self._isolation.temp_file)
+
+    @contextmanager
+    def send_to_temp_file(self, source):
         self.send_file(source, self._isolation.temp_file)
         yield self._isolation.temp_file
         self.execute('rm -f %(tmpfile)s' % {'tmpfile': self._isolation.temp_file})
 
     def execute(self, command):
-        logger.debug('Executing SSH command: %s' % command)
+        logger.debug('SSH Executing command: %s' % command)
         if not self.client:
             self._connect()
         return self._bg_execute(command)
@@ -249,7 +285,7 @@ class SSHperformer(BasePerformer, ConfigurableProvider):
         if not self.client:
             self._connect()
 
-        logger.debug('Join SSH command')
+        logger.debug('SSH Join command')
         try:
             pid = self._get_bg_running_pid()
         except CommandError as e:

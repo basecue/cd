@@ -4,7 +4,7 @@ from functools import wraps
 from .configuration import YAMLConfigurationReader
 from .deployment import Deployment
 from .debug import DebugConfiguration
-from .logging import control_logging, perform_logging, command_logger
+from .logging import logging_config
 from .info import VERSION
 
 
@@ -19,6 +19,7 @@ def configuration_option(func):
 
     return click.option('-c', '--configuration',
                         default='.codev',
+                        metavar='<configuration file name>',
                         help='Path to configuration file.',
                         callback=callback)(configuration_wrapper)
 
@@ -39,6 +40,7 @@ def deployment_option(func):
         return func(configuration, deployment, **kwargs)
 
     return click.option('-d', '--deployment',
+                        metavar='<deployment identification>',
                         required=True,
                         nargs=3,
                         help='environment infrastructure installation')(deployment_wrapper)
@@ -53,7 +55,7 @@ def confirmation_message(message):
                     raise click.Abort()
             return f(configuration, deployment, **kwargs)
 
-        return click.option('-f', '--force', is_flag=True,  help='Force')(confirmation_wrapper)
+        return click.option('-f', '--force', is_flag=True,  help='Force to run the command. Avoid the confirmation.')(confirmation_wrapper)
 
     return decorator
 
@@ -61,15 +63,17 @@ def confirmation_message(message):
 def perform_option(func):
     @wraps(func)
     def perform_wrapper(configuration, *args, **kwargs):
-        perform_logging(DebugConfiguration.configuration.loglevel)
-        if DebugConfiguration.configuration.perform_command_output:
-            command_logger.set_perform_command_output()
+        perform = kwargs.get('perform')
+        if perform:
+            logging_config(perform=True)
+            if DebugConfiguration.configuration.perform_command_output:
+                command_logger.set_perform_debug_command_output()
         assert configuration.version == VERSION
         return func(configuration, *args, **kwargs)
 
     return click.option('--perform',
                         is_flag=True,
-                        help='Perform mode')(perform_wrapper)
+                        help='Enable perform mode')(perform_wrapper)
 
 
 def nice_exception(func):
@@ -91,10 +95,11 @@ def debug_option(func):
     def debug_wrapper(debug, *args, **kwargs):
         if debug:
             DebugConfiguration.configuration = YAMLConfigurationReader(DebugConfiguration).from_file(debug)
-        control_logging(DebugConfiguration.configuration.loglevel)
+            logging_config(DebugConfiguration.configuration.loglevel)
         return func(*args, **kwargs)
 
     return click.option('--debug',
+                        metavar='<debug file name>',
                         default=None,
                         help='Path to debug configuration file.')(debug_wrapper)
 
@@ -104,7 +109,7 @@ def main():
     pass
 
 
-def command(confirmation=None, perform=False):
+def command(confirmation=None, perform=False, **kwargs):
     def decorator(func):
         func = configuration_option(func)
         if confirmation:
@@ -114,6 +119,7 @@ def command(confirmation=None, perform=False):
         if perform:
             func = perform_option(func)
         func = debug_option(func)
-        func = main.command()(func)
+
+        func = main.command(**kwargs)(func)
         return func
     return decorator

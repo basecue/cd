@@ -5,7 +5,7 @@ from .debug import DebugConfiguration
 import logging
 logger = logging.getLogger(__name__)
 
-from .logging import command_logger
+from .logging import logging_config
 
 
 class Deployment(object):
@@ -48,10 +48,13 @@ class Deployment(object):
             isolation.send_file(DebugConfiguration.configuration.distfile.format(version=version), 'codev.tar.gz')
             isolation.execute('pip3 install --upgrade codev.tar.gz')
 
-        isolation.execute('cd %s' % directory)
         logger.info("Run 'codev {version}' in isolation.".format(version=version))
 
-        command_logger.set_control_perform_command_output()
+        logging_config(control_perform=True)
+        #TODO change actual directory in codev with some option - cd directory
+        # logger = logging.getLogger('command')
+        # logger.info('test')
+        isolation.execute('pwd')
         isolation.execute('codev install -d {environment_name} {infrastructure_name} {installation_name}:{installation_options} --perform -f'.format(
             environment_name=self.environment_name,
             infrastructure_name=self.infrastructure_name,
@@ -67,19 +70,22 @@ class Deployment(object):
         return self._environment.performer
 
     def join(self):
-        command_logger.set_control_perform_command_output()
+        logging_config(control_perform=True)
         self._performer.join()
 
     def stop(self):
-        command_logger.set_control_perform_command_output()
+        logging_config(control_perform=True)
         self._performer.stop()
 
     def kill(self):
-        command_logger.set_control_perform_command_output()
+        logging_config(control_perform=True)
         self._performer.kill()
 
     def execute(self, command):
         isolation = self.isolation()
 
-        command_logger.set_control_perform_command_output()
+        logging_config(control_perform=True)
         isolation.execute(command)
+
+    def run(self, script):
+        pass

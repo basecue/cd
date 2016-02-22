@@ -1,5 +1,5 @@
 import logging
-import sys
+from logging.config import dictConfig
 import colorama
 
 LOGLEVELS = {
@@ -7,37 +7,102 @@ LOGLEVELS = {
     'debug': logging.DEBUG,
 }
 
-
-def config_logging(loglevel, formatting):
-    handler = logging.StreamHandler(stream=sys.stdout)
-
-    handler.level = loglevel
-    handler.formatter = logging.Formatter(formatting)
-    logger = logging.getLogger('codev')
-    logger.level = loglevel
-    logger.addHandler(handler)
+actual_loglevel = 'info'
 
 
-def control_logging(loglevel):
-    config_logging(loglevel, colorama.Fore.BLUE + '[CONTROL]' + colorama.Fore.RESET + ' [%(levelname)s] %(message)s')
+def logging_config(loglevel=None, control_command=False, perform=False, control_perform=False):
+    print(10*'#')
+    print(loglevel, perform, control_perform)
+    global actual_loglevel
+    if loglevel is None:
+        loglevel = actual_loglevel
+    else:
+        actual_loglevel = loglevel
+    print(loglevel, perform, control_perform)
 
+    loglevel = LOGLEVELS[loglevel]
+    config = dict(
+        version=1,
+        formatters=dict(
+            control=dict(
+                format=colorama.Fore.BLUE + '[CONTROL]' + colorama.Fore.RESET + ' [%(levelname)s] %(message)s'
+            ),
+            perform=dict(
+                format='perform [%(levelname)s] %(message)s'
+            ),
+            command_perform=dict(
+                format='command perform [%(levelname)s] %(message)s'
+            ),
+            command_control_perform=dict(
+                format=colorama.Fore.YELLOW + '[PERFORM]' + colorama.Fore.RESET + ' %(message)s'
+            )
+        ),
+        handlers=dict(
+            control={
+                'class': 'logging.StreamHandler',
+                'stream': 'ext://sys.stdout',
+                'formatter': 'control',
+                'level': loglevel
+            },
+            perform={
+                'class': 'logging.StreamHandler',
+                'stream': 'ext://sys.stdout',
+                'formatter': 'perform',
+                'level': loglevel
+            },
+            command_perform={
+                'class': 'logging.StreamHandler',
+                'stream': 'ext://sys.stdout',
+                'formatter': 'command_perform',
+                'level': loglevel
+            },
+            command_control_perform={
+                'class': 'logging.StreamHandler',
+                'stream': 'ext://sys.stdout',
+                'formatter': 'command_control_perform',
+                'level': loglevel
+            },
+        )
+    )
+    control_config = {
+        'loggers': {
+            'codev': {
+                'level': loglevel,
+                'handlers': ['control'],
+            }
+        }
+    }
+    if control_command:
+        control_config['loggers']['command'] = {
+            'level': loglevel,
+            'handlers': ['control']
+        }
 
-def perform_logging(loglevel):
-    config_logging(loglevel, '[%(levelname)s] %(message)s')
+    if control_perform:
+        control_config['loggers']['command'] = {
+            'level': loglevel,
+            'handlers': ['command_control_perform']
+        }
 
+    perform_config = {
+        'loggers': {
+            'codev': {
+                'level': loglevel,
+                'handlers': ['perform'],
+            },
+            'command': {
+                'level': loglevel,
+                'handlers': ['command_perform']
+            }
+        }
+    }
+    if perform:
+        config.update(perform_config)
+    else:
+        config.update(control_config)
 
-class CommandLogger(logging.Logger):
-    def __init__(self):
-        super(CommandLogger, self).__init__('control', logging.INFO)
+    dictConfig(config)
 
-    def set_perform_command_output(self):
-        perform_debug_handler = logging.StreamHandler(stream=sys.stdout)
-        perform_debug_handler.formatter = logging.Formatter('[%(levelname)s] %(message)s')
-        self.addHandler(perform_debug_handler)
+logging_config()
 
-    def set_control_perform_command_output(self):
-        control_perform_handler = logging.StreamHandler(stream=sys.stdout)
-        control_perform_handler.formatter = logging.Formatter(colorama.Fore.YELLOW + '[PERFORM]' + colorama.Fore.RESET + ' %(message)s')
-        self.addHandler(control_perform_handler)
-
-command_logger = CommandLogger()
+command_logger = logging.getLogger('command')

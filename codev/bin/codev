@@ -25,11 +25,17 @@ from codev.configuration import YAMLConfigurationWriter
 from codev.cli import command, main
 
 
-@main.command()
+@main.command(
+    help='Create .codev file with basic settings in current directory or in given file path.',
+    short_help='Create .codev file with basic settings.'
+              )
+# TODO ?Merge with configuration option?
 @click.option('-p', '--path', default='.codev', help='Path to configuration file.')
 def init(path):
     """
-    Create .codev file in current directory or in given file path.
+    :param path:
+    :type path: str
+    :return:
     """
     if os.path.isdir(path):
         path = os.path.join(path, '.codev')
@@ -45,12 +51,19 @@ def init(path):
 
 
 @command(
+    help='Install project',
     confirmation='Install project "{configuration.project}" on environment "{deployment.environment_name}" with infrastructure "{deployment.infrastructure_name}" at installation "{deployment.installation_name}"',
     perform=True
 )
 def install(deployment, perform):
     """
     Install project
+
+    :param deployment:
+    :type deployment: codev.deployment.Deployment
+    :param perform:
+    :type perform: bool
+    :return:
     """
     if perform:
         deployment.provision()
@@ -58,46 +71,63 @@ def install(deployment, perform):
         deployment.install()
 
 
-@command()
+@command(help='Join the actual running command in isolation')
 def join(deployment):
     """
-    Join the actual running command in isolation
+    :param deployment:
+    :type deployment: codev.deployment.Deployment
+    :return:
     """
     deployment.join()
 
 
-@command()
+@command(help='Execute command in isolation')
 @click.argument('command', nargs=-1)
 def execute(deployment, command):
     """
-    Execute command in isolation
+    :param deployment:
+    :type deployment: codev.deployment.Deployment
+    :param command:
+    :type command: str
+    :return:
     """
     deployment.execute(' '.join(command))
 
 
-@command()
+@command(help='Stop the actual running command in isolation')
 def stop(deployment):
     """
-    Stop the actual running command in isolation
+    :param deployment:
+    :type deployment: codev.deployment.Deployment
+    :return:
     """
     if deployment.stop():
         deployment.join()
 
 
-@command()
+@command(help='Kill the actual running command in isolation')
 def kill(deployment):
     """
-    Kill the actual running command in isolation
+    :param deployment:
+    :type deployment: codev.deployment.Deployment
+    :return:
     """
     if deployment.kill():
         deployment.join()
 
 
 @command(
+    help='Run the script in isolation',
     confirmation='Execute script "{script}" at project "{configuration.project}" on environment "{deployment.environment_name}" with infrastructure "{deployment.infrastructure_name}" at installation "{deployment.installation_name}"'
 )
 @click.argument('script')
 def run(deployment, script):
+    """
+    :param deployment:
+    :type deployment: codev.deployment.Deployment
+    :param script:
+    :return:
+    """
     deployment.run(script)
 
 
