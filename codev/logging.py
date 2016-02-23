@@ -1,6 +1,6 @@
 import logging
-from logging.config import dictConfig
 import colorama
+import sys
 
 LOGLEVELS = {
     'info': logging.INFO,
@@ -11,98 +11,68 @@ actual_loglevel = 'info'
 
 
 def logging_config(loglevel=None, control_command=False, perform=False, control_perform=False):
-    print(10*'#')
-    print(loglevel, perform, control_perform)
     global actual_loglevel
     if loglevel is None:
         loglevel = actual_loglevel
     else:
         actual_loglevel = loglevel
-    print(loglevel, perform, control_perform)
 
     loglevel = LOGLEVELS[loglevel]
-    config = dict(
-        version=1,
-        formatters=dict(
-            control=dict(
-                format=colorama.Fore.BLUE + '[CONTROL]' + colorama.Fore.RESET + ' [%(levelname)s] %(message)s'
-            ),
-            perform=dict(
-                format='perform [%(levelname)s] %(message)s'
-            ),
-            command_perform=dict(
-                format='command perform [%(levelname)s] %(message)s'
-            ),
-            command_control_perform=dict(
-                format=colorama.Fore.YELLOW + '[PERFORM]' + colorama.Fore.RESET + ' %(message)s'
-            )
-        ),
-        handlers=dict(
-            control={
-                'class': 'logging.StreamHandler',
-                'stream': 'ext://sys.stdout',
-                'formatter': 'control',
-                'level': loglevel
-            },
-            perform={
-                'class': 'logging.StreamHandler',
-                'stream': 'ext://sys.stdout',
-                'formatter': 'perform',
-                'level': loglevel
-            },
-            command_perform={
-                'class': 'logging.StreamHandler',
-                'stream': 'ext://sys.stdout',
-                'formatter': 'command_perform',
-                'level': loglevel
-            },
-            command_control_perform={
-                'class': 'logging.StreamHandler',
-                'stream': 'ext://sys.stdout',
-                'formatter': 'command_control_perform',
-                'level': loglevel
-            },
-        )
-    )
-    control_config = {
-        'loggers': {
-            'codev': {
-                'level': loglevel,
-                'handlers': ['control'],
-            }
-        }
-    }
+
+    perform_formatter = logging.Formatter('perform [%(levelname)s] %(message)s')
+    command_perform_formatter = logging.Formatter('command perform [%(levelname)s] %(message)s')
+    control_formatter = logging.Formatter(colorama.Fore.BLUE + '[CONTROL]' + colorama.Fore.RESET + ' [%(levelname)s] %(message)s')
+    command_control_perform_formatter = logging.Formatter(colorama.Fore.YELLOW + '[PERFORM]' + colorama.Fore.RESET + ' %(message)s')
+
+    control_handler = logging.StreamHandler(stream=sys.stdout)
+    control_handler.setLevel(loglevel)
+    control_handler.formatter = control_formatter
+
+    command_control_perform_handler = logging.StreamHandler(stream=sys.stdout)
+    command_control_perform_handler.setLevel(loglevel)
+    command_control_perform_handler.formatter = command_control_perform_formatter
+
+    perform_handler = logging.StreamHandler(stream=sys.stdout)
+    perform_handler.setLevel(loglevel)
+    perform_handler.formatter = perform_formatter
+
+    command_perform_handler = logging.StreamHandler(stream=sys.stdout)
+    command_perform_handler.setLevel(loglevel)
+    command_perform_handler.formatter = command_perform_formatter
+
+
     if control_command:
-        control_config['loggers']['command'] = {
-            'level': loglevel,
-            'handlers': ['control']
-        }
+        command_logger = logging.getLogger('command')
+        command_logger.setLevel(loglevel)
+        for handler in command_logger.handlers:
+            command_logger.removeHandler(handler)
+        command_logger.addHandler(control_handler)
 
     if control_perform:
-        control_config['loggers']['command'] = {
-            'level': loglevel,
-            'handlers': ['command_control_perform']
-        }
+        command_logger = logging.getLogger('command')
+        command_logger.setLevel(loglevel)
+        for handler in command_logger.handlers:
+            command_logger.removeHandler(handler)
+        command_logger.addHandler(command_control_perform_handler)
 
-    perform_config = {
-        'loggers': {
-            'codev': {
-                'level': loglevel,
-                'handlers': ['perform'],
-            },
-            'command': {
-                'level': loglevel,
-                'handlers': ['command_perform']
-            }
-        }
-    }
+
     if perform:
-        config.update(perform_config)
-    else:
-        config.update(control_config)
+        codev_logger = logging.getLogger('codev')
+        codev_logger.setLevel(loglevel)
+        for handler in codev_logger.handlers:
+            codev_logger.removeHandler(handler)
+        codev_logger.addHandler(perform_handler)
 
-    dictConfig(config)
+        command_logger = logging.getLogger('command')
+        command_logger.setLevel(loglevel)
+        for handler in command_logger.handlers:
+            command_logger.removeHandler(handler)
+        command_logger.addHandler(command_perform_handler)
+    else:
+        codev_logger = logging.getLogger('codev')
+        codev_logger.setLevel(loglevel)
+        for handler in codev_logger.handlers:
+            codev_logger.removeHandler(handler)
+        codev_logger.addHandler(control_handler)
 
 logging_config()
-
-command_logger = logging.getLogger('command')

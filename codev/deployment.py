@@ -6,6 +6,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 from .logging import logging_config
+command_logger = logging.getLogger('command')
 
 
 class Deployment(object):
@@ -51,16 +52,14 @@ class Deployment(object):
         logger.info("Run 'codev {version}' in isolation.".format(version=version))
 
         logging_config(control_perform=True)
+
         #TODO change actual directory in codev with some option - cd directory
-        # logger = logging.getLogger('command')
-        # logger.info('test')
-        isolation.execute('pwd')
         isolation.execute('codev install -d {environment_name} {infrastructure_name} {installation_name}:{installation_options} --perform -f'.format(
             environment_name=self.environment_name,
             infrastructure_name=self.infrastructure_name,
             installation_name=self.installation_name,
             installation_options=self.installation_options
-        ))
+        ), logger=command_logger)
 
     def provision(self):
         self._environment.provision()
@@ -71,21 +70,29 @@ class Deployment(object):
 
     def join(self):
         logging_config(control_perform=True)
-        self._performer.join()
+        if self._performer.join():
+            logger.info('Command finished.')
+        else:
+            logger.info('No running command.')
 
     def stop(self):
-        logging_config(control_perform=True)
-        self._performer.stop()
+        if self._performer.stop():
+            logger.info('Stop signal has been sent.')
+        else:
+            logger.info('No running command.')
 
     def kill(self):
-        logging_config(control_perform=True)
-        self._performer.kill()
+        if self._performer.kill():
+            logger.info('Command killed.')
+        else:
+            logger.info('No running command.')
 
     def execute(self, command):
         isolation = self.isolation()
 
         logging_config(control_perform=True)
         isolation.execute(command)
+        logger.info('Command finished.')
 
     def run(self, script):
         pass

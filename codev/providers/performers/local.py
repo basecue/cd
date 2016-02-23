@@ -6,8 +6,8 @@ from threading import Thread
 from codev.performer import CommandError, BasePerformer, Performer
 
 from logging import getLogger
-from codev.logging import command_logger
 
+command_logger = getLogger('command')
 logger = getLogger(__name__)
 
 

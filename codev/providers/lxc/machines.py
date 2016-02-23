@@ -8,7 +8,6 @@ from codev.provider import ConfigurableProvider
 from codev.performer import CommandError
 
 from logging import getLogger
-logger = getLogger(__name__)
 
 
 class LXCMachine(object):
@@ -19,6 +18,7 @@ class LXCMachine(object):
         self.release = release
         self.architecture = architecture
         self._container_directory = None
+        self.logger = getLogger(__name__)
 
     def exists(self):
         output = self.performer.execute('lxc-ls')
@@ -132,7 +132,7 @@ class LXCMachine(object):
         except CommandError:
             return False
 
-    def execute(self, command):
+    def execute(self, command, logger=None):
         ssh_auth_sock = self.performer.execute('echo $SSH_AUTH_SOCK')
         if ssh_auth_sock and self.performer.check_execute('[ -S %s ]' % ssh_auth_sock):
 
@@ -151,7 +151,7 @@ class LXCMachine(object):
             container_name=self.ident,
             command=command,
             env_vars=env_vars
-        ))
+        ), logger=logger)
         return output
 
 

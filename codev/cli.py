@@ -66,8 +66,8 @@ def perform_option(func):
         perform = kwargs.get('perform')
         if perform:
             logging_config(perform=True)
-            if DebugConfiguration.configuration.perform_command_output:
-                command_logger.set_perform_debug_command_output()
+            # if DebugConfiguration.configuration.perform_command_output:
+            #     command_logger.set_perform_debug_command_output()
         assert configuration.version == VERSION
         return func(configuration, *args, **kwargs)
 
@@ -96,6 +96,7 @@ def debug_option(func):
         if debug:
             DebugConfiguration.configuration = YAMLConfigurationReader(DebugConfiguration).from_file(debug)
             logging_config(DebugConfiguration.configuration.loglevel)
+
         return func(*args, **kwargs)
 
     return click.option('--debug',

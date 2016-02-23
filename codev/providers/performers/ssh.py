@@ -5,15 +5,11 @@ from paramiko.agent import AgentRequestHandler
 from time import sleep
 
 from logging import getLogger
-from codev.logging import command_logger
 
 from codev.performer import Performer, BasePerformer, PerformerError, CommandError
 from codev.provider import ConfigurableProvider
 from codev.configuration import BaseConfiguration
 from os.path import expanduser
-
-
-logger = getLogger(__name__)
 
 Isolation = namedtuple('Isolation', ['output_file', 'error_file', 'exitcode_file', 'command_file', 'pid_file', 'temp_file'])
 
@@ -51,6 +47,7 @@ class SSHperformer(BasePerformer, ConfigurableProvider):
         super(SSHperformer, self).__init__(*args, **kwargs)
         self._isolation_cache = None
         self.client = None
+        self.logger = getLogger(__name__)
 
     def _connect(self):
         self.client = SSHClient()
@@ -128,7 +125,7 @@ class SSHperformer(BasePerformer, ConfigurableProvider):
             return False
 
     def _execute(self, command, ignore_exit_codes=[], writein=None):
-        logger.debug('command: %s' % command)
+        self.logger.debug('command: %s' % command)
         stdin, stdout, stderr = self.client.exec_command(command)
         if writein:
             stdin.write(writein)
@@ -146,8 +143,7 @@ class SSHperformer(BasePerformer, ConfigurableProvider):
     def _bg_check(self, pid):
         return self._execute('ps -p %s -o pid=' % pid, ignore_exit_codes=[1]) == pid
 
-    def _bg_log(self, skip_lines, omit_last):
-        logger.debug('_bg_log %s %s' % (skip_lines, omit_last))
+    def _bg_log(self, logger, skip_lines, omit_last):
         output = self._execute('tail {output_file} -n+{skip_lines}'.format(output_file=self._isolation.output_file, skip_lines=skip_lines))
         if not output:
             return 0
@@ -155,7 +151,7 @@ class SSHperformer(BasePerformer, ConfigurableProvider):
         if omit_last:
             output_lines.pop()
         for line in output_lines:
-            command_logger.info(line)
+            logger.info(line)
         return len(output_lines)
 
     def _bg_stop(self, pid):
@@ -169,15 +165,17 @@ class SSHperformer(BasePerformer, ConfigurableProvider):
             )
         )
 
-    def _bg_wait(self, pid):
+    def _bg_wait(self, pid, logger=None):
         skip_lines = 0
         while self._bg_check(pid):
-            skip_lines += self._bg_log(skip_lines, True)
+            if logger:
+                skip_lines += self._bg_log(logger, skip_lines, True)
             sleep(0.5)
 
-        self._bg_log(skip_lines, False)
+        if logger:
+            self._bg_log(logger, skip_lines, False)
 
-    def _bg_execute(self, command):
+    def _bg_execute(self, command, logger=None):
         isolation = self._isolation
 
         if self._file_exists(isolation.exitcode_file) and self._cat_file(isolation.exitcode_file) == '':
@@ -209,7 +207,7 @@ class SSHperformer(BasePerformer, ConfigurableProvider):
         if not pid.isdigit():
             raise ValueError('not a pid %s' % pid)
 
-        self._bg_wait(pid)
+        self._bg_wait(pid, logger=logger)
 
         exit_code = int(self._cat_file(isolation.exitcode_file))
 
@@ -228,7 +226,7 @@ class SSHperformer(BasePerformer, ConfigurableProvider):
         return self._cat_file(self._isolation.pid_file)
 
     def send_file(self, source, target):
-        logger.debug('Send file: %s %s' % (source, target))
+        self.logger.debug('Send file: %s %s' % (source, target))
         source = expanduser(source)
         sftp = self.client.open_sftp()
         sftp.put(source, target)
@@ -244,7 +242,7 @@ class SSHperformer(BasePerformer, ConfigurableProvider):
     @contextmanager
     def get_fo(self, source):
         from tempfile import SpooledTemporaryFile
-        logger.debug('SSH Get fo: %s' % (source))
+        self.logger.debug('SSH Get fo: %s' % (source))
         sftp = self.client.open_sftp()
         with SpooledTemporaryFile(1024000) as fo:
             size = sftp.getfo(source, fo)
@@ -275,41 +273,38 @@ class SSHperformer(BasePerformer, ConfigurableProvider):
         yield self._isolation.temp_file
         self.execute('rm -f %(tmpfile)s' % {'tmpfile': self._isolation.temp_file})
 
-    def execute(self, command):
-        logger.debug('SSH Executing command: %s' % command)
+    def execute(self, command, logger=None):
+        self.logger.debug('SSH Executing command: %s' % command)
         if not self.client:
             self._connect()
-        return self._bg_execute(command)
+        return self._bg_execute(command, logger=logger)
 
-    def _control(self, method):
+    def _control(self, method, *args, **kwargs):
         if not self.client:
             self._connect()
 
-        logger.debug('SSH Join command')
+        self.logger.debug('SSH Join command')
         try:
             pid = self._get_bg_running_pid()
         except CommandError as e:
-            command_logger.info('No active isolation %s' % self._isolation_directory)
-            return False
+            raise PerformerError('No active isolation.')
 
         if pid:
             try:
-                method(pid)
+                method(pid, *args, **kwargs)
                 return True
             except CommandError as e:
-                command_logger.info('No running command.')
                 return False
         else:
-            command_logger.info('No running command.')
             return False
 
-    def join(self):
-        self._control(self._bg_wait)
+    def join(self, logger=None):
+        return self._control(self._bg_wait, logger=logger)
 
     def stop(self):
-        self._control(self._bg_stop)
+        return self._control(self._bg_stop)
 
     def kill(self):
-        self._control(self._bg_kill)
+        return self._control(self._bg_kill)
 
 Performer.register('ssh', SSHperformer)
