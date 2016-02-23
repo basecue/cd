@@ -14,7 +14,7 @@ class Deployment(object):
         environment_configuration = configuration.environments[environment_name]
 
         if installation_name not in environment_configuration.installations:
-            raise ValueError('Bad installation')
+            raise ValueError('Incorrect installation {installation_name}'.format(installation_name=installation_name))
 
         isolation_ident = '%s_%s_%s_%s' % (
             configuration.project,

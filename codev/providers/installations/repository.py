@@ -13,7 +13,8 @@ class RepositoryInstallation(BaseInstallation):
         :return:
         """
         performer.execute('apt-get install git -y --force-yes')
-        #TODO fingerprints
+
+        #TODO checking fingerprints instead of copying known_hosts
         # http://serverfault.com/questions/132970/can-i-automatically-add-a-new-host-to-known-hosts
         # http://serverfault.com/questions/447028/non-interactive-git-clone-ssh-fingerprint-prompt
         # http://unix.stackexchange.com/questions/94448/how-to-add-an-ip-range-to-known-hosts
@@ -29,7 +30,6 @@ class RepositoryInstallation(BaseInstallation):
             url = repo.remotes.origin.url
         else:
             url = DebugConfiguration.configuration.repository
-
 
         directory = 'repository'
 
