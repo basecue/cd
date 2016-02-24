@@ -1,8 +1,10 @@
 from .configuration import BaseConfiguration
+from ast import literal_eval
 
 
 class DebugConfiguration(BaseConfiguration):
     configuration = None
+    perform_configuration = None
 
     @property
     def loglevel(self):
@@ -13,12 +15,8 @@ class DebugConfiguration(BaseConfiguration):
         return self.data.get('distfile', '')
 
     @property
-    def perform_command_output(self):
-        return bool(self.data.get('perform_command_output', False))
-
-    @property
     def show_client_exception(self):
-        return bool(self.data.get('show_client_exception', False))
+        return literal_eval(self.data.get('show_client_exception', 'False'))
 
     @property
     def repository(self):
@@ -29,3 +27,4 @@ class DebugConfiguration(BaseConfiguration):
         return self.data.get('directory', None)
 
 DebugConfiguration.configuration = DebugConfiguration()
+DebugConfiguration.perform_configuration = DebugConfiguration()

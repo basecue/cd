@@ -53,9 +53,7 @@ def perform_option(func):
         perform = kwargs.get('perform')
         if perform:
             logging_config(perform=True)
-            # if DebugConfiguration.configuration.perform_command_output:
-            #     command_logger.set_perform_debug_command_output()
-        assert configuration.version == VERSION
+            assert configuration.version == VERSION
         return func(configuration, *args, **kwargs)
 
     return click.option('--perform',
@@ -95,17 +93,33 @@ def path_option(func):
 
 def debug_option(func):
     @wraps(func)
-    def debug_wrapper(debug, *args, **kwargs):
+    def debug_wrapper(debug, debug_perform, **kwargs):
         if debug:
-            DebugConfiguration.configuration = YAMLConfigurationReader(DebugConfiguration).from_file(debug)
+            DebugConfiguration.configuration = DebugConfiguration(dict(debug))
             logging_config(DebugConfiguration.configuration.loglevel)
 
-        return func(*args, **kwargs)
+        if debug_perform:
+            DebugConfiguration.perform_configuration = DebugConfiguration(dict(debug_perform))
 
-    return click.option('--debug',
-                        metavar='<debug file name>',
-                        default=None,
-                        help='Path to debug configuration file.')(debug_wrapper)
+        return func(**kwargs)
+
+    f = click.option(
+        '--debug-perform',
+        type=click.Tuple([str, str]),
+        multiple=True,
+        metavar='<variable> <value>',
+        help='Debug perform options.'
+    )
+
+    return f(
+        click.option(
+            '--debug',
+            type=click.Tuple([str, str]),
+            multiple=True,
+            metavar='<variable> <value>',
+            help='Debug options.'
+        )(debug_wrapper)
+    )
 
 
 @click.group()

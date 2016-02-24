@@ -55,20 +55,18 @@ class Deployment(object):
         logger.info("Run 'codev {version}' in isolation.".format(version=version))
 
         logging_config(control_perform=True)
-
-        if DebugConfiguration.configuration:
-            # TODO make it simple with YAMLConfigurationWriter.save_to_fo -> isolation.send_fo
-            from os import unlink
-            from codev.configuration import YAMLConfigurationWriter
-            YAMLConfigurationWriter(DebugConfiguration.configuration).save_to_file('tmp')
-            isolation.send_file('tmp', '.codev.debug')
-            unlink('tmp')
-            debug = ' --debug .codev.debug'
+        if DebugConfiguration.perform_configuration:
+            debug = ' '.join(
+                (
+                    '--debug {key} {value}'.format(key=key, value=value)
+                    for key, value in DebugConfiguration.perform_configuration.data.items()
+                )
+            )
         else:
             debug = ''
 
         #TODO change actual directory in codev with some option - cd directory
-        isolation.execute('codev install -d {environment_name} {infrastructure_name} {installation_name}:{installation_options} --path {directory} --perform --force{debug}'.format(
+        isolation.execute('codev install -d {environment_name} {infrastructure_name} {installation_name}:{installation_options} --path {directory} --perform --force {debug}'.format(
             environment_name=self.environment_name,
             infrastructure_name=self.infrastructure_name,
             installation_name=self.installation_name,
