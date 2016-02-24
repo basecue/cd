@@ -1,6 +1,9 @@
 from .machines import MachinesProvider
 from .provision import Provision
 from .performer import Performer
+from logging import getLogger
+
+logger = getLogger(__name__)
 
 
 class Infrastructure(object):
@@ -28,6 +31,9 @@ class Infrastructure(object):
         return machines_groups
 
     def provision(self):
+        logger.info('Installing provisioner...')
         self._provision_provider.install()
+        logger.info('Creating machines...')
         machines_groups = self._machines_groups()
+        logger.info('Starting provisioning...')
         self._provision_provider.run(machines_groups)

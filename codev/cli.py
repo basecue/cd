@@ -8,6 +8,7 @@ from .debug import DebugConfiguration
 from .logging import logging_config
 from .info import VERSION
 from os import chdir
+import sys
 
 
 def confirmation_message(message):
@@ -53,7 +54,8 @@ def perform_option(func):
         perform = kwargs.get('perform')
         if perform:
             logging_config(perform=True)
-            assert configuration.version == VERSION
+            if not DebugConfiguration.configuration.disable_version_check:
+                assert configuration.version == VERSION
         return func(configuration, *args, **kwargs)
 
     return click.option('--perform',
@@ -122,12 +124,24 @@ def debug_option(func):
     )
 
 
+def bool_exit_enable(func):
+    @wraps(func)
+    def bool_exit(*args, **kwargs):
+        value = func(*args, **kwargs)
+        if value:
+            sys.exit(0)
+        else:
+            sys.exit(1)
+
+    return bool_exit
+
+
 @click.group()
 def main():
     pass
 
 
-def command(confirmation=None, perform=False, **kwargs):
+def command(confirmation=None, perform=False, bool_exit=True, **kwargs):
     def decorator(func):
         if confirmation:
             func = confirmation_message(confirmation)(func)
@@ -137,6 +151,8 @@ def command(confirmation=None, perform=False, **kwargs):
             func = perform_option(func)
         func = path_option(func)
         func = debug_option(func)
+        if bool_exit:
+            func = bool_exit_enable(func)
         func = main.command(**kwargs)(func)
         return func
     return decorator

@@ -1,12 +1,14 @@
 from .environment import Environment
 from .installation import Installation
-
 from .debug import DebugConfiguration
-import logging
-logger = logging.getLogger(__name__)
-
 from .logging import logging_config
-command_logger = logging.getLogger('command')
+from .performer import CommandError
+
+from logging import getLogger
+
+logger = getLogger(__name__)
+command_logger = getLogger('command')
+debug_logger = getLogger('debug')
 
 
 class Deployment(object):
@@ -32,13 +34,14 @@ class Deployment(object):
         self.environment_name, self.infrastructure_name, self.installation_name, self.installation_options = \
             environment_name, infrastructure_name, installation_name, installation_options
 
-    def isolation(self):
+    def _isolation(self):
         logger.info("Switching to isolation...")
         isolation = self._environment.create_isolation()
         return isolation
 
     def install(self):
-        isolation = self.isolation()
+        logger.info("Starting installation...")
+        isolation = self._isolation()
 
         directory, version = self._installation.configure(isolation)
 
@@ -49,34 +52,46 @@ class Deployment(object):
         if not DebugConfiguration.configuration.distfile:
             isolation.execute('pip3 install --upgrade codev=={version}'.format(version=version))
         else:
-            isolation.send_file(DebugConfiguration.configuration.distfile.format(version=version), 'codev.tar.gz')
+            distfile = DebugConfiguration.configuration.distfile.format(version=version)
+            debug_logger.info('Install codev {distfile}'.format(distfile=distfile))
+            isolation.send_file(distfile, 'codev.tar.gz')
             isolation.execute('pip3 install --upgrade codev.tar.gz')
 
         logger.info("Run 'codev {version}' in isolation.".format(version=version))
 
         logging_config(control_perform=True)
         if DebugConfiguration.perform_configuration:
-            debug = ' '.join(
+            perform_debug = ' '.join(
                 (
                     '--debug {key} {value}'.format(key=key, value=value)
                     for key, value in DebugConfiguration.perform_configuration.data.items()
                 )
             )
         else:
-            debug = ''
+            perform_debug = ''
 
-        #TODO change actual directory in codev with some option - cd directory
-        isolation.execute('codev install -d {environment_name} {infrastructure_name} {installation_name}:{installation_options} --path {directory} --perform --force {debug}'.format(
-            environment_name=self.environment_name,
-            infrastructure_name=self.infrastructure_name,
-            installation_name=self.installation_name,
-            installation_options=self.installation_options,
-            directory=directory,
-            debug=debug
-        ), logger=command_logger)
+        try:
+            isolation.execute('codev install -d {environment_name} {infrastructure_name} {installation_name}:{installation_options} --path {directory} --perform --force {perform_debug}'.format(
+                environment_name=self.environment_name,
+                infrastructure_name=self.infrastructure_name,
+                installation_name=self.installation_name,
+                installation_options=self.installation_options,
+                directory=directory,
+                perform_debug=perform_debug
+            ), logger=command_logger)
+        except CommandError as e:
+            logger.error("Installation failed.")
+            return False
+        else:
+            logger.info("Installation has been successfully completed.")
+            return True
 
     def provision(self):
-        self._environment.provision()
+        try:
+            self._environment.provision()
+        except CommandError as e:
+            logger.error(e)
+            return False
 
     @property
     def _performer(self):
@@ -86,27 +101,39 @@ class Deployment(object):
         logging_config(control_perform=True)
         if self._performer.join():
             logger.info('Command finished.')
+            return True
         else:
-            logger.info('No running command.')
+            logger.error('No running command.')
+            return False
 
     def stop(self):
         if self._performer.stop():
             logger.info('Stop signal has been sent.')
+            return True
         else:
-            logger.info('No running command.')
+            logger.error('No running command.')
+            return False
 
     def kill(self):
         if self._performer.kill():
             logger.info('Command killed.')
+            return True
         else:
-            logger.info('No running command.')
+            logger.error('No running command.')
+            return False
 
     def execute(self, command):
-        isolation = self.isolation()
+        isolation = self._isolation()
 
         logging_config(control_perform=True)
-        isolation.execute(command)
-        logger.info('Command finished.')
+        try:
+            isolation.execute(command)
+        except CommandError as e:
+            logger.error(e)
+            return False
+        else:
+            logger.info('Command finished.')
+            return True
 
     def run(self, script):
         pass

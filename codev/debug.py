@@ -26,5 +26,9 @@ class DebugConfiguration(BaseConfiguration):
     def directory(self):
         return self.data.get('directory', None)
 
+    @property
+    def disable_version_check(self):
+        return literal_eval(self.data.get('disable_version_check', 'False'))
+
 DebugConfiguration.configuration = DebugConfiguration()
 DebugConfiguration.perform_configuration = DebugConfiguration()

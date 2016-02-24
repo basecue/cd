@@ -66,9 +66,9 @@ def install(deployment, perform):
     :return:
     """
     if perform:
-        deployment.provision()
+        return deployment.provision()
     else:
-        deployment.install()
+        return deployment.install()
 
 
 @command(help='Join the actual running command in isolation')
@@ -78,7 +78,7 @@ def join(deployment):
     :type deployment: codev.deployment.Deployment
     :return:
     """
-    deployment.join()
+    return deployment.join()
 
 
 @command(help='Execute command in isolation')
@@ -91,7 +91,7 @@ def execute(deployment, command):
     :type command: str
     :return:
     """
-    deployment.execute(' '.join(command))
+    return deployment.execute(' '.join(command))
 
 
 @command(help='Stop the actual running command in isolation')
@@ -102,7 +102,9 @@ def stop(deployment):
     :return:
     """
     if deployment.stop():
-        deployment.join()
+        return deployment.join()
+    else:
+        return False
 
 
 @command(help='Kill the actual running command in isolation')
@@ -113,7 +115,9 @@ def kill(deployment):
     :return:
     """
     if deployment.kill():
-        deployment.join()
+        return deployment.join()
+    else:
+        return False
 
 
 @command(
