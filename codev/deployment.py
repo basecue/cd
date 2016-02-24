@@ -12,9 +12,7 @@ command_logger = logging.getLogger('command')
 class Deployment(object):
     def __init__(self, configuration, environment_name, infrastructure_name, installation_name, installation_options):
         environment_configuration = configuration.environments[environment_name]
-
-        if installation_name not in environment_configuration.installations:
-            raise ValueError('Incorrect installation {installation_name}'.format(installation_name=installation_name))
+        installation_configuration = environment_configuration.installations[installation_name]
 
         isolation_ident = '%s_%s_%s_%s' % (
             configuration.project,
@@ -24,8 +22,13 @@ class Deployment(object):
         )
 
         self._environment = Environment(environment_configuration, infrastructure_name, isolation_ident)
-        self._installation = Installation(installation_name, installation_options)
+        self._installation = Installation(
+            installation_name,
+            installation_options,
+            configuration_data=installation_configuration
+        )
 
+        self.project_name = configuration.project
         self.environment_name, self.infrastructure_name, self.installation_name, self.installation_options = \
             environment_name, infrastructure_name, installation_name, installation_options
 
@@ -53,12 +56,25 @@ class Deployment(object):
 
         logging_config(control_perform=True)
 
+        if DebugConfiguration.configuration:
+            # TODO make it simple with YAMLConfigurationWriter.save_to_fo -> isolation.send_fo
+            from os import unlink
+            from codev.configuration import YAMLConfigurationWriter
+            YAMLConfigurationWriter(DebugConfiguration.configuration).save_to_file('tmp')
+            isolation.send_file('tmp', '.codev.debug')
+            unlink('tmp')
+            debug = ' --debug .codev.debug'
+        else:
+            debug = ''
+
         #TODO change actual directory in codev with some option - cd directory
-        isolation.execute('codev install -d {environment_name} {infrastructure_name} {installation_name}:{installation_options} --perform -f'.format(
+        isolation.execute('codev install -d {environment_name} {infrastructure_name} {installation_name}:{installation_options} --path {directory} --perform --force{debug}'.format(
             environment_name=self.environment_name,
             infrastructure_name=self.infrastructure_name,
             installation_name=self.installation_name,
-            installation_options=self.installation_options
+            installation_options=self.installation_options,
+            directory=directory,
+            debug=debug
         ), logger=command_logger)
 
     def provision(self):

@@ -81,10 +81,10 @@ environments:
       - actual
       - live
       - repository:
-        - master/HEAD
-        - testing/*
-      - livable:
-        - ble
+          branches:
+          - master/HEAD
+          - testing/*
+      - livable
       - actual
 
 

@@ -1,11 +1,18 @@
 from codev.installation import Installation, BaseInstallation
 from codev.configuration import YAMLConfigurationReader
-from codev.debug import DebugConfiguration
-from git import Repo
+from codev.provider import ConfigurableProvider
+from codev.configuration import BaseConfiguration
 
 
+class RepositoryConfiguration(BaseConfiguration):
+    @property
+    def url(self):
+        return self.data['url']
 
-class RepositoryInstallation(BaseInstallation):
+
+class RepositoryInstallation(BaseInstallation, ConfigurableProvider):
+    configuration_class = RepositoryConfiguration
+
     def configure(self, performer):
         """
         TODO RENAME method
@@ -25,12 +32,6 @@ class RepositoryInstallation(BaseInstallation):
 
         performer.send_file('~/.ssh/known_hosts', '/root/.ssh/known_hosts')
 
-        if not DebugConfiguration.configuration.repository:
-            repo = Repo(search_parent_directories=True)
-            url = repo.remotes.origin.url
-        else:
-            url = DebugConfiguration.configuration.repository
-
         directory = 'repository'
 
         if performer.check_execute('[ -d repository ]'):
@@ -42,7 +43,7 @@ class RepositoryInstallation(BaseInstallation):
             branch_options = ''
 
         performer.execute('git clone {url} {branch_options} {directory}'.format(
-            url=url,
+            url=self.configuration.url,
             directory=directory,
             branch_options=branch_options
         ))

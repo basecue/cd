@@ -4,9 +4,6 @@ from .configuration import BaseConfiguration
 class DebugConfiguration(BaseConfiguration):
     configuration = None
 
-    def __init__(self, data):
-        super(DebugConfiguration, self).__init__(data)
-
     @property
     def loglevel(self):
         return self.data.get('loglevel', 'info').lower()
@@ -27,5 +24,8 @@ class DebugConfiguration(BaseConfiguration):
     def repository(self):
         return self.data.get('repository', None)
 
+    @property
+    def directory(self):
+        return self.data.get('directory', None)
 
-
+DebugConfiguration.configuration = DebugConfiguration()

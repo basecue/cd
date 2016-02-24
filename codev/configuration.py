@@ -26,8 +26,13 @@ yaml.add_constructor(_mapping_tag, dict_constructor)
 
 
 class BaseConfiguration(object):
-    def __init__(self, data):
+    def __init__(self, data=None):
+        if data is None:
+            data = {}
         self.data = data
+
+    def __bool__(self):
+        return bool(self.data)
 
 
 class ProviderConfiguration(BaseConfiguration):
@@ -41,26 +46,42 @@ class ProviderConfiguration(BaseConfiguration):
 
 
 class DictConfiguration(OrderedDict):
-    def __init__(self, cls, data):
+    def __init__(self, cls, data, *args, **kwargs):
         super(DictConfiguration, self).__init__()
         for name, itemdata in data.items():
-            self[name] = cls(itemdata)
+            self[name] = cls(itemdata, *args, **kwargs)
 
 
 class ListDictConfiguration(OrderedDict):
-    def __init__(self, data):
+    def __init__(self, data, intersect_default=None):
+        if intersect_default is None:
+            intersect_default = {}
         super(ListDictConfiguration, self).__init__()
-        for obj in data:
-            if isinstance(obj, OrderedDict):
-                if len(obj) == 1:
-                    key = list(obj.keys())[0]
-                    value = obj[key]
+
+        if isinstance(data, dict) or isinstance(data, OrderedDict):
+            for key, value in data.items():
+                if not (isinstance(value, dict) or isinstance(value, OrderedDict)):
+                    raise ValueError('Object {value} must be dictionary like object.'.format(value=value))
+
+                self[key] = intersect_default.get(key, {})
+                self[key].update(value)
+
+        elif isinstance(data, list):
+            for obj in data:
+                if isinstance(obj, OrderedDict):
+                    if len(obj) == 1:
+                        key = list(obj.keys())[0]
+                        value = obj[key]
+                    else:
+                        raise ValueError('Object {obj} must have length equal to 1.'.format(obj))
                 else:
-                    raise ValueError('Bad configuration')
-            else:
-                key = obj
-                value = None
-            self[key] = value
+                    key = obj
+                    value = {}
+
+                self[key] = intersect_default.get(key, {})
+                self[key].update(value)
+        else:
+            raise ValueError('Object {data} must be list or dictionary like object.'.format(data=data))
 
 
 class InfrastructureConfiguration(BaseConfiguration):
@@ -74,6 +95,10 @@ class InfrastructureConfiguration(BaseConfiguration):
 
 
 class EnvironmentConfiguration(BaseConfiguration):
+    def __init__(self, data, default_installations):
+        super(EnvironmentConfiguration, self).__init__(data)
+        self.default_installations = default_installations
+
     @property
     def performer(self):
         return ProviderConfiguration(self.data.get('performer', {}))
@@ -84,20 +109,28 @@ class EnvironmentConfiguration(BaseConfiguration):
 
     @property
     def infrastructures(self):
-        return DictConfiguration(InfrastructureConfiguration, self.data.get('infrastructures', {}))
+        return DictConfiguration(
+            InfrastructureConfiguration,
+            self.data.get('infrastructures', {}),
+        )
 
     @property
     def installations(self):
-        return ListDictConfiguration(self.data.get('installations', []))
+        return ListDictConfiguration(
+            self.data.get('installations', []),
+            intersect_default=self.default_installations
+        )
 
 
 class Configuration(BaseConfiguration):
 
-    def __init__(self, data=None):
+    def __init__(self, data=None, repository_url=''):
         super(Configuration, self).__init__(self.default_data)
         if data:
             self.data.update(data)
-        self.current_data = None
+
+        # TODO hook?
+        self.data.setdefault('installations', {}).setdefault('repository', {})['url'] = repository_url
 
     @property
     def default_data(self):
@@ -117,22 +150,26 @@ class Configuration(BaseConfiguration):
 
     @property
     def environments(self):
-        return DictConfiguration(EnvironmentConfiguration, self.data['environments'])
+        return DictConfiguration(
+            EnvironmentConfiguration,
+            self.data['environments'],
+            default_installations=self.installations
+        )
 
     @property
-    def repository(self):
-        return self.data.get('repository', None)
+    def installations(self):
+        return ListDictConfiguration(self.data.get('installations', []))
 
 
 class YAMLConfigurationReader(object):
     def __init__(self, configuration_class=Configuration):
         self.configuration_class = configuration_class
 
-    def from_file(self, filepath):
-        return self.from_yaml(open(filepath))
+    def from_file(self, filepath, *args, **kwargs):
+        return self.from_yaml(open(filepath), *args, **kwargs)
 
-    def from_yaml(self, yamldata):
-        return self.configuration_class(yaml.load(yamldata))
+    def from_yaml(self, yamldata, *args, **kwargs):
+        return self.configuration_class(yaml.load(yamldata), *args, **kwargs)
 
 
 class YAMLConfigurationWriter(object):
