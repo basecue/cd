@@ -98,9 +98,13 @@ def path_option(func):
     def configuration_wrapper(path, *args, **kwargs):
         chdir(path)
         repo = Repo(search_parent_directories=True)
-        directory = DebugConfiguration.configuration.directory or repo.working_dir
-        repository_url = DebugConfiguration.configuration.repository or repo.remotes.origin.url
-        configuration = YAMLConfigurationReader().from_file('%s/.codev' % directory, repository_url=repository_url)
+
+        repository_dir = DebugConfiguration.configuration.repository_dir or repo.working_dir
+        configuration_dir = DebugConfiguration.configuration.configuration_dir or repo.working_dir
+        repository_url = DebugConfiguration.configuration.repository_url or repo.remotes.origin.url
+        configuration = YAMLConfigurationReader().from_file('%s/.codev' % configuration_dir, repository_url=repository_url)
+
+        chdir(repository_dir)
         return func(configuration, *args, **kwargs)
 
     return click.option('-p', '--path',

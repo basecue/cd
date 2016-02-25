@@ -20,7 +20,7 @@ from .provider import BaseProvider
 class BaseInstallation(object):
     def __init__(self, options, *args, **kwargs):
         self.options = options
-        super(BaseInstallation, self).__init__(*args, **kwargs)
+        super(BaseInstallation, self).__init__()
 
     def configure(self, performer):
         raise NotImplementedError()

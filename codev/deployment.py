@@ -19,6 +19,7 @@ from .installation import Installation
 from .debug import DebugConfiguration
 from .logging import logging_config
 from .performer import CommandError
+from .configuration import YAMLConfigurationReader
 
 from logging import getLogger
 
@@ -51,7 +52,7 @@ class Deployment(object):
             environment_name, infrastructure_name, installation_name, installation_options
 
     def _isolation(self):
-        logger.info("Switching to isolation...")
+        logger.info("Creating isolation...")
         isolation = self._environment.create_isolation()
         return isolation
 
@@ -59,7 +60,11 @@ class Deployment(object):
         logger.info("Starting installation...")
         isolation = self._isolation()
 
-        directory, version = self._installation.configure(isolation)
+        logger.info("Configure installation...")
+        directory = self._installation.configure(isolation)
+
+        with isolation.get_fo('{directory}/.codev'.format(directory=directory)) as codev_file:
+            version = YAMLConfigurationReader().from_yaml(codev_file).version
 
         # install python3 pip
         isolation.execute('apt-get install python3-pip -y --force-yes')

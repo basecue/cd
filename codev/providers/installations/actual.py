@@ -14,18 +14,21 @@
 #     with this program; if not, write to the Free Software Foundation, Inc.,
 #     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-from os import unlink
-
-from codev.configuration import YAMLConfigurationWriter
 from codev.installation import Installation, BaseInstallation
+import shutil
 
 
 class ActualInstallation(BaseInstallation):
     def configure(self, performer):
-        YAMLConfigurationWriter(self.configuration).save_to_file('tmp')
-        performer.send_file('tmp', '.codev')
-        unlink('tmp')
-        return self.configuration.version
+        #gunzip is default for ubuntu
+        # performer.execute('apt-get install gunzip -y --force-yes')
+        directory = 'repository'
+        archive = shutil.make_archive(directory, 'gztar')
+        performer.send_file(archive, archive)
+        performer.execute('mkdir -p {directory}'.format(directory=directory))
+        performer.execute('tar -xzf {archive} --directory {directory}'.format(archive=archive, directory=directory))
+
+        return directory
 
 
 Installation.register('actual', ActualInstallation)

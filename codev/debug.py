@@ -35,12 +35,16 @@ class DebugConfiguration(BaseConfiguration):
         return literal_eval(self.data.get('show_client_exception', 'False'))
 
     @property
-    def repository(self):
-        return self.data.get('repository', None)
+    def repository_url(self):
+        return self.data.get('repository_url', None)
 
     @property
-    def directory(self):
-        return self.data.get('directory', None)
+    def configuration_dir(self):
+        return self.data.get('configuration_dir', None)
+
+    @property
+    def repository_dir(self):
+        return self.data.get('repository_dir', None)
 
     @property
     def disable_version_check(self):

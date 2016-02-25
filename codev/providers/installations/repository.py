@@ -66,13 +66,6 @@ class RepositoryInstallation(BaseInstallation, ConfigurableProvider):
             branch_options=branch_options
         ))
 
-        #load configuration
-        #TODO configuration filepath should be placed anywhere
-        # codev_path = os.path.relpath(repo.working_dir)
-        # change cli configuration option etc.
-        with performer.get_fo('repository/.codev') as codev_file:
-            version = YAMLConfigurationReader().from_yaml(codev_file).version
-
-        return directory, version
+        return directory
 
 Installation.register('repository', RepositoryInstallation)
