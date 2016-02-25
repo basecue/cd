@@ -33,7 +33,7 @@ environments:
     performer:
       provider: ssh
       specific:
-        hostname: 192.168.56.101
+        hostname: 192.168.56.100
         username: codev
         password: codev
     isolation: lxc

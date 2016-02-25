@@ -16,6 +16,7 @@
 
 from codev.installation import Installation, BaseInstallation
 from codev.configuration import BaseConfiguration
+from git import Repo
 
 
 class RepositoryConfiguration(BaseConfiguration):
@@ -26,6 +27,42 @@ class RepositoryConfiguration(BaseConfiguration):
 
 class RepositoryInstallation(BaseInstallation):
     configuration_class = RepositoryConfiguration
+
+    def __init__(self, *args, **kwargs):
+        self.branch = None
+        self.tag = None
+        self.commit = None
+        super(RepositoryInstallation, self).__init__(*args, **kwargs)
+
+    def process_options(self, options):
+        if not options:
+            raise ValueError('Repository options must be specified.')
+        repo = Repo()
+
+        remote = repo.remote()
+        remote.fetch()
+
+        #branch
+        if options in remote.refs:
+            self.branch = options
+            return
+
+        #tag
+        if options in repo.tags:
+            self.tag = options
+            return
+
+        #commit
+        for commit in repo.iter_commits():
+            if options == commit:
+                self.commit = commit
+                return
+
+        raise ValueError(options)
+
+    @property
+    def ident(self):
+        return self.branch or self.tag or self.commit
 
     def install(self, performer):
         """
@@ -53,16 +90,18 @@ class RepositoryInstallation(BaseInstallation):
         if performer.check_execute('[ -d repository ]'):
             performer.check_execute('rm -rf repository')
 
-        if self.options:
-            branch_options = '--branch {branch} --single-branch'.format(branch=self.options)
-        else:
-            branch_options = ''
-
-        performer.execute('git clone {url} {branch_options} {directory}'.format(
-            url=self.configuration.url,
-            directory=directory,
-            branch_options=branch_options
-        ))
+        if self.branch or self.tag:
+            performer.execute('git clone {url} --branch {object} --single-branch {directory}'.format(
+                url=self.configuration.url,
+                directory=directory,
+                object=self.branch or self.tag
+            ))
+        elif self.commit:
+            performer.execute('git init {directory}'.format(directory=directory))
+            performer.execute('cd {directory}'.format(directory=directory))
+            performer.execute('git remote add origin {url}'.format(url=self.configuration.url))
+            performer.execute('git fetch origin {commit}'.format(commit=self.commit))
+            performer.execute('git reset --hard FETCH_HEAD')
 
         return directory
 

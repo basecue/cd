@@ -64,6 +64,7 @@ class LXCIsolationProvider(BaseIsolationProvider):
         return self._machine
 
     def create_isolation(self):
+        #TODO make it idempotent
         created = self.machine.create()
 
         if created:

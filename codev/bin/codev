@@ -152,6 +152,15 @@ def run(deployment, script):
     deployment.run(script)
 
 
+@command(help='Destroy isolation.')
+def destroy(deployment):
+    deployment.destroy()
+
+
+# @command(help='List isolation.')
+# def list():
+#
+
 if __name__ == "__main__":
     main()
 

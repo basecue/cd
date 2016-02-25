@@ -16,6 +16,7 @@
 
 from codev.installation import Installation, BaseInstallation
 import shutil
+from time import time
 
 
 class ActualInstallation(BaseInstallation):
@@ -30,5 +31,11 @@ class ActualInstallation(BaseInstallation):
 
         return directory
 
+    def process_options(self, options):
+        self.name = options or str(time())
+
+    @property
+    def ident(self):
+        return self.name
 
 Installation.register('actual', ActualInstallation)

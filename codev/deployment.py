@@ -33,19 +33,20 @@ class Deployment(object):
         environment_configuration = configuration.environments[environment_name]
         installation_configuration = environment_configuration.installations[installation_name]
 
-        isolation_ident = '%s_%s_%s_%s' % (
-            configuration.project,
-            environment_name,
-            infrastructure_name,
-            installation_name
-        )
-
-        self._environment = Environment(environment_configuration, infrastructure_name, isolation_ident)
         self._installation = Installation(
             installation_name,
             installation_options,
             configuration_data=installation_configuration
         )
+
+        isolation_ident = '%s_%s_%s_%s_%s' % (
+            configuration.project,
+            environment_name,
+            infrastructure_name,
+            installation_name,
+            self._installation.ident
+        )
+        self._environment = Environment(environment_configuration, infrastructure_name, isolation_ident)
 
         self.project_name = configuration.project
         self.environment_name, self.infrastructure_name, self.installation_name, self.installation_options = \
