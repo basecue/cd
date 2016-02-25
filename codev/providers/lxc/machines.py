@@ -20,7 +20,6 @@ from contextlib import contextmanager
 from time import sleep
 from codev.configuration import BaseConfiguration
 from codev.machines import MachinesProvider, BaseMachinesProvider
-from codev.provider import ConfigurableProvider
 from codev.performer import CommandError
 
 from logging import getLogger
@@ -102,11 +101,15 @@ class LXCMachine(object):
 
     def send_file(self, source, target):
         with self.performer.send_to_temp_file(source) as tempfile:
-            #TODO direct access over share directory or with lxc-usernsexec
-            self.performer.execute('cat {tempfile} | lxc-attach -n {name} -- tee {target} > /dev/null'.format(
-                name=self.ident,
+            # self.performer.execute('cat {tempfile} | lxc-attach -n {name} -- tee {target} > /dev/null'.format(
+            #     name=self.ident,
+            #     tempfile=tempfile,
+            #     target=target
+            # ))
+            self.performer.execute('lxc-usernsexec -- cp {tempfile} {container_dir}rootfs/{target}'.format(
                 tempfile=tempfile,
-                target=target
+                target=target,
+                container_dir=self.container_directory
             ))
 
     # def get_file(self, source, target):
@@ -121,11 +124,15 @@ class LXCMachine(object):
     @contextmanager
     def get_fo(self, source):
         with self.performer.get_temp_fo() as (tempfile, opener):
-            #TODO direct access over share directory or with lxc-usernsexec
-            self.performer.execute('lxc-attach -n {name} -- cat {source} > {tempfile}'.format(
-                name=self.ident,
+            # self.performer.execute('lxc-attach -n {name} -- cat {source} > {tempfile}'.format(
+            #     name=self.ident,
+            #     tempfile=tempfile,
+            #     source=source
+            # ))
+            self.performer.execute('cp {container_dir}rootfs/{source} {tempfile}'.format(
                 tempfile=tempfile,
-                source=source
+                source=source,
+                container_dir=self.container_directory
             ))
             with opener() as fo:
                 yield fo
@@ -133,12 +140,11 @@ class LXCMachine(object):
     @property
     def container_directory(self):
         if not self._container_directory:
-            is_root = int(self.performer.execute('id -u')) == 0
-            if is_root:
-                container_directory = '/var/lib/lxc/{container_name}/'
-            else:
-                container_directory = '.local/share/lxc/{container_name}/'
-            self._container_directory = container_directory.format(container_name=self.ident)
+            lxc_path=self.performer.execute('lxc-config lxc.lxcpath')
+            self._container_directory = '{lxc_path}/{container_name}/'.format(
+                lxc_path=lxc_path,
+                container_name=self.ident
+            )
         return self._container_directory
 
     def check_execute(self, command):
@@ -189,7 +195,7 @@ class LXCMachinesConfiguration(BaseConfiguration):
         return int(self.data.get('number'))
 
 
-class LXCMachinesProvider(BaseMachinesProvider, ConfigurableProvider):
+class LXCMachinesProvider(BaseMachinesProvider):
     configuration_class = LXCMachinesConfiguration
 
     def create_machines(self):

@@ -16,7 +16,6 @@
 
 from codev.configuration import BaseConfiguration
 from codev.machines import MachinesProvider, BaseMachinesProvider
-from codev.provider import ConfigurableProvider
 
 
 class RealMachine(object):
@@ -30,7 +29,7 @@ class RealMachinesConfiguration(BaseConfiguration):
         return self.data.get('hosts')
 
 
-class RealMachinesProvider(BaseMachinesProvider, ConfigurableProvider):
+class RealMachinesProvider(BaseMachinesProvider):
     configuration_class = RealMachinesConfiguration
 
     def create_machines(self):

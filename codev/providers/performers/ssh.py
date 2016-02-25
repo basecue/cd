@@ -23,7 +23,6 @@ from time import sleep
 from logging import getLogger
 
 from codev.performer import Performer, BasePerformer, PerformerError, CommandError
-from codev.provider import ConfigurableProvider
 from codev.configuration import BaseConfiguration
 from os.path import expanduser
 
@@ -56,7 +55,7 @@ PID_FILE = 'codev.pid'
 TEMP_FILE = 'codev.temp'
 
 
-class SSHperformer(BasePerformer, ConfigurableProvider):
+class SSHperformer(BasePerformer):
     configuration_class = SSHPerformerConfiguration
 
     def __init__(self, *args, **kwargs):

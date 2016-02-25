@@ -14,6 +14,7 @@
 #     with this program; if not, write to the Free Software Foundation, Inc.,
 #     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+
 class BaseProviderMetaClass(type):
     def __new__(mcs, name, bases, attrs):
         attrs['providers'] = {}
@@ -56,11 +57,6 @@ class BaseProvider(object, metaclass=BaseProviderMetaClass):
 class ConfigurableProvider(object):
     configuration_class = None
 
-    def __new__(cls, *args, **kwargs):
-        if cls.configuration_class is None:
-            raise AttributeError("Attribute 'configuration_class' has to be defined in class '{name}'.".format(name=cls.__name__))
-        return super(ConfigurableProvider, cls).__new__(cls)
-
-    def __init__(self, *args, configuration_data={}, **kwargs):
-        self.configuration = self.__class__.configuration_class(configuration_data)
-        super(ConfigurableProvider, self).__init__(*args, **kwargs)
+    def __init__(self, configuration_data={}):
+        if self.__class__.configuration_class:
+            self.configuration = self.__class__.configuration_class(configuration_data)

@@ -60,8 +60,8 @@ class Deployment(object):
         logger.info("Starting installation...")
         isolation = self._isolation()
 
-        logger.info("Configure installation...")
-        directory = self._installation.configure(isolation)
+        logger.info("Install project to isolation.")
+        directory = self._installation.install(isolation)
 
         with isolation.get_fo('{directory}/.codev'.format(directory=directory)) as codev_file:
             version = YAMLConfigurationReader().from_yaml(codev_file).version

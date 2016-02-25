@@ -15,8 +15,6 @@
 #     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 from codev.installation import Installation, BaseInstallation
-from codev.configuration import YAMLConfigurationReader
-from codev.provider import ConfigurableProvider
 from codev.configuration import BaseConfiguration
 
 
@@ -26,10 +24,10 @@ class RepositoryConfiguration(BaseConfiguration):
         return self.data['url']
 
 
-class RepositoryInstallation(BaseInstallation, ConfigurableProvider):
+class RepositoryInstallation(BaseInstallation):
     configuration_class = RepositoryConfiguration
 
-    def configure(self, performer):
+    def install(self, performer):
         """
         TODO RENAME method
         :param performer:

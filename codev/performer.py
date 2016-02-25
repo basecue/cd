@@ -14,7 +14,7 @@
 #     with this program; if not, write to the Free Software Foundation, Inc.,
 #     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-from .provider import BaseProvider
+from .provider import BaseProvider, ConfigurableProvider
 
 
 class PerformerError(Exception):
@@ -30,7 +30,7 @@ class CommandError(PerformerError):
         )
 
 
-class BasePerformer(object):
+class BasePerformer(ConfigurableProvider):
     def __init__(self, *args, isolation_ident=None, **kwargs):
         self.isolation_ident = isolation_ident
         super(BasePerformer, self).__init__(*args, **kwargs)

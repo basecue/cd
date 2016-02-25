@@ -15,7 +15,6 @@
 #     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 from codev.provision import Provision, BaseProvision
-from codev.provider import ConfigurableProvider
 from codev.configuration import BaseConfiguration
 
 import configparser
@@ -34,7 +33,7 @@ class AnsibleProvisionConfiguration(BaseConfiguration):
         return self.data.get('version', None)
 
 
-class AnsibleProvision(BaseProvision, ConfigurableProvider):
+class AnsibleProvision(BaseProvision):
     configuration_class = AnsibleProvisionConfiguration
 
     def install(self):

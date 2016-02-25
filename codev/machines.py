@@ -14,10 +14,10 @@
 #     with this program; if not, write to the Free Software Foundation, Inc.,
 #     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-from .provider import BaseProvider
+from .provider import BaseProvider, ConfigurableProvider
 
 
-class BaseMachinesProvider(object):
+class BaseMachinesProvider(ConfigurableProvider):
     def __init__(self, machines_name, performer, *args, **kwargs):
         self.machines_name = machines_name
         self.performer = performer

@@ -14,15 +14,15 @@
 #     with this program; if not, write to the Free Software Foundation, Inc.,
 #     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-from .provider import BaseProvider
+from .provider import BaseProvider, ConfigurableProvider
 
 
-class BaseInstallation(object):
+class BaseInstallation(ConfigurableProvider):
     def __init__(self, options, *args, **kwargs):
         self.options = options
-        super(BaseInstallation, self).__init__()
+        super(BaseInstallation, self).__init__(*args, **kwargs)
 
-    def configure(self, performer):
+    def install(self, performer):
         raise NotImplementedError()
 
 

@@ -78,15 +78,8 @@ environments:
               hosts: [10.0.1.5]
 
     installations:
+      - repository
       - actual
-      - live
-      - repository:
-          branches:
-          - master/HEAD
-          - testing/*
-      - livable
-      - actual
-
 
   staging:
     infrastructures:
@@ -119,8 +112,8 @@ environments:
           after:
 
         configuration: standard
-    installations:
-      - svc
+#    installations:
+#      - svc
 
     branches:
       - master

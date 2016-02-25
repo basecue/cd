@@ -19,8 +19,8 @@ import shutil
 
 
 class ActualInstallation(BaseInstallation):
-    def configure(self, performer):
-        #gunzip is default for ubuntu
+    def install(self, performer):
+        # gunzip is in default ubuntu
         # performer.execute('apt-get install gunzip -y --force-yes')
         directory = 'repository'
         archive = shutil.make_archive(directory, 'gztar')

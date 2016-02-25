@@ -69,6 +69,13 @@ class DictConfiguration(OrderedDict):
 
 
 class ListDictConfiguration(OrderedDict):
+
+    @staticmethod
+    def _intersect_default_value(intersect_default, key, value):
+        ret_val = intersect_default.get(key, {})
+        ret_val.update(value)
+        return ret_val
+
     def __init__(self, data, intersect_default=None):
         if intersect_default is None:
             intersect_default = {}
@@ -78,9 +85,7 @@ class ListDictConfiguration(OrderedDict):
             for key, value in data.items():
                 if not (isinstance(value, dict) or isinstance(value, OrderedDict)):
                     raise ValueError('Object {value} must be dictionary like object.'.format(value=value))
-
-                self[key] = intersect_default.get(key, {})
-                self[key].update(value)
+                self[key] = self.__class__._intersect_default_value(intersect_default, key, value)
 
         elif isinstance(data, list):
             for obj in data:
@@ -93,9 +98,7 @@ class ListDictConfiguration(OrderedDict):
                 else:
                     key = obj
                     value = {}
-
-                self[key] = intersect_default.get(key, {})
-                self[key].update(value)
+                self[key] = self.__class__._intersect_default_value(intersect_default, key, value)
         else:
             raise ValueError('Object {data} must be list or dictionary like object.'.format(data=data))
 
