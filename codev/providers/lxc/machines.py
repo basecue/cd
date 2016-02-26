@@ -154,7 +154,7 @@ class LXCMachine(object):
         except CommandError:
             return False
 
-    def execute(self, command, logger=None):
+    def execute(self, command, logger=None, background=False):
         ssh_auth_sock = self.performer.execute('echo $SSH_AUTH_SOCK')
         if ssh_auth_sock and self.performer.check_execute('[ -S %s ]' % ssh_auth_sock):
 
@@ -173,7 +173,7 @@ class LXCMachine(object):
             container_name=self.ident,
             command=command,
             env_vars=env_vars
-        ), logger=logger)
+        ), logger=logger, background=background)
         return output
 
 

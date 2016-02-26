@@ -81,7 +81,6 @@ class Deployment(object):
 
         logger.info("Run 'codev {version}' in isolation.".format(version=version))
 
-        logging_config(control_perform=True)
         if DebugConfiguration.perform_configuration:
             perform_debug = ' '.join(
                 (
@@ -92,6 +91,7 @@ class Deployment(object):
         else:
             perform_debug = ''
 
+        logging_config(control_perform=True)
         try:
             isolation.execute('codev install -d {environment_name} {infrastructure_name} {installation_name}:{installation_options} --path {directory} --perform --force {perform_debug}'.format(
                 environment_name=self.environment_name,
@@ -100,7 +100,7 @@ class Deployment(object):
                 installation_options=self.installation_options,
                 directory=directory,
                 perform_debug=perform_debug
-            ), logger=command_logger)
+            ), logger=command_logger, background=True)
         except CommandError as e:
             logger.error("Installation failed.")
             return False
@@ -149,7 +149,7 @@ class Deployment(object):
 
         logging_config(control_perform=True)
         try:
-            isolation.execute(command)
+            isolation.execute(command, logger=command_logger, background=True)
         except CommandError as e:
             logger.error(e)
             return False

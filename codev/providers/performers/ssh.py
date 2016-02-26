@@ -125,9 +125,9 @@ class SSHperformer(BasePerformer):
     def _file_exists(self, filepath):
         return self._check_execute('[ -f %s ]' % filepath)
 
-    def check_execute(self, command):
+    def check_execute(self, command, background=False):
         try:
-            self.execute(command)
+            self.execute(command, background=background)
             return True
         except CommandError as e:
             return False
@@ -181,7 +181,7 @@ class SSHperformer(BasePerformer):
         )
 
     def _bg_wait(self, pid, logger=None):
-        skip_lines = 0
+        skip_lines = 1
         while self._bg_check(pid):
             if logger:
                 skip_lines += self._bg_log(logger, skip_lines, True)
@@ -288,11 +288,14 @@ class SSHperformer(BasePerformer):
         yield self._isolation.temp_file
         self.execute('rm -f %(tmpfile)s' % {'tmpfile': self._isolation.temp_file})
 
-    def execute(self, command, logger=None):
+    def execute(self, command, logger=None, background=False):
         self.logger.debug('SSH Executing command: %s' % command)
         if not self.client:
             self._connect()
-        return self._bg_execute(command, logger=logger)
+        if background:
+            return self._bg_execute(command, logger=logger)
+        else:
+            return self._execute(command)
 
     def _control(self, method, *args, **kwargs):
         if not self.client:
