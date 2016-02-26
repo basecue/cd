@@ -22,24 +22,23 @@ from codev.performer import CommandError, BasePerformer, Performer
 
 from logging import getLogger
 
-command_logger = getLogger('command')
-logger = getLogger(__name__)
-
 
 class LocalPerformer(BasePerformer):
     def __init__(self, *args, **kwargs):
         super(LocalPerformer, self).__init__(*args, **kwargs)
         self._output_lines = []
         self._error_lines = []
+        self.logger = getLogger(__name__)
 
-    def _reader_out(self, stream):
+    def _reader_out(self, stream, logger=None):
         while True:
             line = stream.readline()
             if not line:
                 break
             output_line = line.decode('utf-8').strip()
             self._output_lines.append(output_line)
-            command_logger.info(output_line)
+            if logger:
+                logger.info(output_line)
         stream.close()
 
     def _reader_err(self, stream):
@@ -51,17 +50,20 @@ class LocalPerformer(BasePerformer):
             self._error_lines.append(output_line)
         stream.close()
 
-    # def _terminator(self, process):
-    #     while process.poll() is None:
-    #         #check file
-    #         process.terminate()
+    def check_execute(self, command, background=False):
+        #TODO replace with simpler way
+        try:
+            self.execute(command, background=background)
+            return True
+        except CommandError as e:
+            return False
 
-    def execute(self, command):
-        logger.debug('Executing LOCAL command: %s' % command)
+    def execute(self, command, logger=None, background=False):
+        self.logger.debug('Executing LOCAL command: %s' % command)
         self._output_lines = []
         self._error_lines = []
         process = Popen(command.split(), stdout=PIPE, stderr=PIPE)
-        reader_out = Thread(target=self._reader_out, args=(process.stdout,))
+        reader_out = Thread(target=self._reader_out, args=(process.stdout,), kwargs=dict(logger=logger))
         reader_out.start()
         reader_err = Thread(target=self._reader_err, args=(process.stderr,))
         reader_err.start()

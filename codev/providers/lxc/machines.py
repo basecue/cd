@@ -211,6 +211,7 @@ class LXCMachinesProvider(BaseMachinesProvider):
             )
             machine.create()
             machine.start()
+            machine.execute('bash -c "DEBIAN_FRONTEND=noninteractive apt-get install openssh-server -y --force-yes"')
             machines.append(machine)
         return machines
 

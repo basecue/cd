@@ -26,7 +26,7 @@ LOGLEVELS = {
 actual_loglevel = 'info'
 
 
-def logging_config(loglevel=None, control_command=False, perform=False, control_perform=False):
+def logging_config(loglevel=None, control_command=False, perform=False, control_perform=False, perform_command_loglevel=None):
     """
     :param loglevel:
     :param control_command:
@@ -43,10 +43,15 @@ def logging_config(loglevel=None, control_command=False, perform=False, control_
         actual_loglevel = loglevel
 
     loglevel = LOGLEVELS[loglevel]
+    if perform_command_loglevel in LOGLEVELS:
+        perform_command_loglevel = LOGLEVELS[perform_command_loglevel]
+
+    else:
+        perform_command_loglevel = logging.ERROR
 
     perform_formatter = logging.Formatter('[%(levelname)s] %(message)s')
     perform_debug_formatter = logging.Formatter('[%(levelname)s]' + colorama.Fore.CYAN + ' [DEBUG] %(message)s')
-    perform_command_formatter = logging.Formatter('[%(levelname)s] %(message)s')
+    perform_command_formatter = logging.Formatter(colorama.Fore.GREEN + '[COMMAND]' + colorama.Fore.RESET + ' [%(levelname)s] %(message)s')
 
     control_formatter = logging.Formatter(colorama.Fore.BLUE + '[CONTROL]' + colorama.Fore.RESET + ' [%(levelname)s] %(message)s')
     control_debug_formatter = logging.Formatter(colorama.Fore.BLUE + '[CONTROL]' + colorama.Fore.RESET + ' [%(levelname)s]' + colorama.Fore.CYAN + ' [DEBUG] %(message)s' + colorama.Fore.RESET)
@@ -69,7 +74,7 @@ def logging_config(loglevel=None, control_command=False, perform=False, control_
     perform_handler.formatter = perform_formatter
 
     perform_command_handler = logging.StreamHandler(stream=sys.stdout)
-    perform_command_handler.setLevel(logging.ERROR)
+    perform_command_handler.setLevel(perform_command_loglevel)
     perform_command_handler.formatter = perform_command_formatter
 
     perform_debug_handler = logging.StreamHandler(stream=sys.stdout)
@@ -104,7 +109,7 @@ def logging_config(loglevel=None, control_command=False, perform=False, control_
         debug_logger.addHandler(perform_debug_handler)
 
         command_logger = logging.getLogger('command')
-        command_logger.setLevel(logging.ERROR)
+        command_logger.setLevel(perform_command_loglevel)
         for handler in command_logger.handlers:
             command_logger.removeHandler(handler)
         command_logger.addHandler(perform_command_handler)

@@ -69,7 +69,10 @@ def perform_option(func):
     def perform_wrapper(configuration, *args, **kwargs):
         perform = kwargs.get('perform')
         if perform:
-            logging_config(perform=True)
+            logging_config(
+                perform=True,
+                perform_command_loglevel=DebugConfiguration.configuration.perform_command_loglevel
+            )
             if not DebugConfiguration.configuration.disable_version_check:
                 assert configuration.version == VERSION
         return func(configuration, *args, **kwargs)

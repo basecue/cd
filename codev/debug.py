@@ -50,5 +50,9 @@ class DebugConfiguration(BaseConfiguration):
     def disable_version_check(self):
         return literal_eval(self.data.get('disable_version_check', 'False'))
 
+    @property
+    def perform_command_loglevel(self):
+        return self.data.get('perform_command_loglevel', '').lower()
+
 DebugConfiguration.configuration = DebugConfiguration()
 DebugConfiguration.perform_configuration = DebugConfiguration()

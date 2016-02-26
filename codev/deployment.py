@@ -102,6 +102,7 @@ class Deployment(object):
                 perform_debug=perform_debug
             ), logger=command_logger, background=True)
         except CommandError as e:
+            logger.debug(e)
             logger.error("Installation failed.")
             return False
         else:
