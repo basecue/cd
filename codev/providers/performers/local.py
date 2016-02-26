@@ -62,7 +62,7 @@ class LocalPerformer(BasePerformer):
         self.logger.debug('Executing LOCAL command: %s' % command)
         self._output_lines = []
         self._error_lines = []
-        process = Popen(command.split(), stdout=PIPE, stderr=PIPE)
+        process = Popen(command, stdout=PIPE, stderr=PIPE, shell=True)
         reader_out = Thread(target=self._reader_out, args=(process.stdout,), kwargs=dict(logger=logger))
         reader_out.start()
         reader_err = Thread(target=self._reader_err, args=(process.stderr,))
