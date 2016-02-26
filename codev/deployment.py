@@ -121,7 +121,7 @@ class Deployment(object):
 
     def join(self):
         logging_config(control_perform=True)
-        if self._performer.join():
+        if self._performer.join(logger=command_logger):
             logger.info('Command finished.')
             return True
         else:
