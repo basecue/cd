@@ -151,7 +151,7 @@ class Deployment(object):
 
         logging_config(control_perform=True)
         try:
-            BackgroundRunner(isolation, self.isolation_ident).execute(command, logger=command_logger)
+            isolation.execute(command, logger=command_logger, background=True)
         except CommandError as e:
             logger.error(e)
             return False

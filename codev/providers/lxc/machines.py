@@ -177,7 +177,7 @@ class LXCMachinesConfiguration(BaseConfiguration):
 
     @property
     def number(self):
-        return int(self.data.get('number'))
+        return int(self.data.get('number', 1))
 
 
 class LXCMachinesProvider(BaseMachinesProvider):
