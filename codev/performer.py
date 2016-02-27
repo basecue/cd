@@ -44,6 +44,10 @@ class CommandError(PerformerError):
 
 
 class BasePerformer(BaseExecutor, ConfigurableProvider):
+    def __init__(self, *args, **kwargs):
+        self.output_logger = getLogger('command_output')
+        super(BasePerformer, self).__init__(*args, **kwargs)
+        
     def send_file(self, source, target):
         raise NotImplementedError()
 
@@ -143,7 +147,7 @@ class BackgroundRunner(BaseRunner):
         if omit_last:
             output_lines.pop()
         for line in output_lines:
-            logger.info(line)
+            (logger or self.output_logger).debug(line)
         return len(output_lines)
 
     def _bg_stop(self, pid):
@@ -160,12 +164,10 @@ class BackgroundRunner(BaseRunner):
     def _bg_wait(self, pid, logger=None):
         skip_lines = 1
         while self._bg_check(pid):
-            if logger:
-                skip_lines += self._bg_log(logger, skip_lines, True)
+            skip_lines += self._bg_log(logger, skip_lines, True)
             sleep(0.5)
 
-        if logger:
-            self._bg_log(logger, skip_lines, False)
+        self._bg_log(logger, skip_lines, False)
 
     def _cat_file(self, catfile):
         return self.performer.execute('cat %s' % catfile)

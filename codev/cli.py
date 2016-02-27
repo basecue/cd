@@ -70,8 +70,7 @@ def perform_option(func):
         perform = kwargs.get('perform')
         if perform:
             logging_config(
-                perform=True,
-                perform_command_loglevel=DebugConfiguration.configuration.perform_command_loglevel
+                perform=True
             )
             if not DebugConfiguration.configuration.disable_version_check:
                 assert configuration.version == VERSION
