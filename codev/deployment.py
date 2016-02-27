@@ -12,7 +12,7 @@
 #
 #     You should have received a copy of the GNU General Public License along
 #     with this program; if not, write to the Free Software Foundation, Inc.,
-#     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#     51 Franklin Street, Fifth Floor, Boston, MA 0<110-1301 USA.
 
 from .environment import Environment
 from .installation import Installation
@@ -73,6 +73,7 @@ class Deployment(object):
 
         # install proper version of codev
         if not DebugConfiguration.configuration.distfile:
+            logger.debug("Install codev version '{version}' to isolation.".format(version=version))
             isolation.execute('pip3 install --upgrade codev=={version}'.format(version=version))
         else:
             distfile = DebugConfiguration.configuration.distfile.format(version=version)

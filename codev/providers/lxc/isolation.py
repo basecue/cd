@@ -41,7 +41,7 @@ class LXCIsolation(LXCMachine):
         return path
 
     def send_file(self, source, target):
-        tempfile = '/tmp/codev.tempfile.send'
+        tempfile = '/tmp/codev.{isolation_ident}.tempfile'.format(isolation_ident=self.isolation_ident)
         self.performer.send_file(source, tempfile)
         target = self._sanitize_path(target)
 
@@ -54,7 +54,7 @@ class LXCIsolation(LXCMachine):
 
     @contextmanager
     def get_fo(self, remote_path):
-        tempfile = '/tmp/codev.tempfile.get'
+        tempfile = '/tmp/codev.{isolation_ident}.tempfile'.format(isolation_ident=self.isolation_ident)
 
         remote_path = self._sanitize_path(remote_path)
 

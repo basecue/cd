@@ -20,4 +20,4 @@ DESCRIPTION = "Continuous delivery tool"
 AUTHOR = "Jan Češpivo (http://www.baseclue.com/)"
 AUTHOR_EMAIL = "jan.cespivo@gmail.com"
 URL = "http://www.baseclue.com/codev/"
-VERSION = '0.1.1a2'
+VERSION = '0.1.2a1'

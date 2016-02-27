@@ -81,10 +81,8 @@ class SSHperformer(BasePerformer):
                 break
             output_line = line.strip()
             self._output_lines.append(output_line)
-            if logger:
-                logger.info(output_line)
-            else:
-                self.logger.debug(output_line)
+            (logger or self.output_logger).debug(output_line)
+
         stream.close()
 
     def execute(self, command, logger=None, writein=None):

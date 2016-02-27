@@ -37,10 +37,7 @@ class LocalPerformer(BasePerformer):
                 break
             output_line = line.decode('utf-8').strip()
             self._output_lines.append(output_line)
-            if logger:
-                logger.info(output_line)
-            else:
-                self.logger.debug(output_line)
+            (logger or self.output_logger).debug(output_line)
         stream.close()
 
     # def _reader_err(self, stream):
@@ -51,14 +48,6 @@ class LocalPerformer(BasePerformer):
     #         output_line = line.decode('utf-8').strip()
     #         self._error_lines.append(output_line)
     #     stream.close()
-
-    def check_execute(self, command):
-        #TODO replace with simpler way
-        try:
-            self.execute(command)
-            return True
-        except CommandError as e:
-            return False
 
     def execute(self, command, logger=None, writein=None):
         self.logger.debug('Executing LOCAL command: %s' % command)
@@ -73,8 +62,10 @@ class LocalPerformer(BasePerformer):
         # terminator.start()
         exit_code = process.wait()
         reader_out.join()
+        # reader_err.join()
 
         if exit_code:
+            # err = '\n'.join(self._error_lines)
             err = process.stderr.read().decode('utf-8').strip()
             raise CommandError(command, exit_code, err)
         return '\n'.join(self._output_lines)
