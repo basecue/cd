@@ -39,39 +39,44 @@ class LocalPerformer(BasePerformer):
             self._output_lines.append(output_line)
             if logger:
                 logger.info(output_line)
+            else:
+                self.logger.debug(output_line)
         stream.close()
 
-    def _reader_err(self, stream):
-        while True:
-            line = stream.readline()
-            if not line:
-                break
-            output_line = line.decode('utf-8').strip()
-            self._error_lines.append(output_line)
-        stream.close()
+    # def _reader_err(self, stream):
+    #     while True:
+    #         line = stream.readline()
+    #         if not line:
+    #             break
+    #         output_line = line.decode('utf-8').strip()
+    #         self._error_lines.append(output_line)
+    #     stream.close()
 
-    def check_execute(self, command, background=False):
+    def check_execute(self, command):
         #TODO replace with simpler way
         try:
-            self.execute(command, background=background)
+            self.execute(command)
             return True
         except CommandError as e:
             return False
 
-    def execute(self, command, logger=None, background=False):
+    def execute(self, command, logger=None, writein=None):
         self.logger.debug('Executing LOCAL command: %s' % command)
         self._output_lines = []
         self._error_lines = []
         process = Popen(command, stdout=PIPE, stderr=PIPE, shell=True)
         reader_out = Thread(target=self._reader_out, args=(process.stdout,), kwargs=dict(logger=logger))
         reader_out.start()
-        reader_err = Thread(target=self._reader_err, args=(process.stderr,))
-        reader_err.start()
+        # reader_err = Thread(target=self._reader_err, args=(process.stderr,))
+        # reader_err.start()
         # terminator = Thread(target=self._terminator, args=(process,))
         # terminator.start()
         exit_code = process.wait()
+        reader_out.join()
+
         if exit_code:
-            raise CommandError(command, exit_code, '\n'.join(self._error_lines))
+            err = process.stderr.read().decode('utf-8').strip()
+            raise CommandError(command, exit_code, err)
         return '\n'.join(self._output_lines)
 
     def send_file(self, source, target):

@@ -23,7 +23,7 @@ class ActualInstallation(BaseInstallation):
     def install(self, performer):
         # gunzip is in default ubuntu
         # performer.execute('apt-get install gunzip -y --force-yes')
-        directory = 'repository'
+        directory = '{home_dir}/repository'.format(home_dir=performer.home_dir)
         archive = shutil.make_archive(directory, 'gztar')
         performer.send_file(archive, archive)
         performer.execute('mkdir -p {directory}'.format(directory=directory))

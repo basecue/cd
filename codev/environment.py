@@ -26,8 +26,7 @@ class Environment(object):
     def __init__(self, configuration, infrastructure_name, isolation_ident):
         self.performer = Performer(
             configuration.performer.provider,
-            configuration_data=configuration.performer.specific,
-            isolation_ident=isolation_ident
+            configuration_data=configuration.performer.specific
         )
 
         self._isolation_provider = IsolationProvider(

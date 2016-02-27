@@ -20,6 +20,7 @@ from .debug import DebugConfiguration
 from .logging import logging_config
 from .performer import CommandError
 from .configuration import YAMLConfigurationReader
+from .performer import BackgroundRunner
 
 from logging import getLogger
 
@@ -39,14 +40,14 @@ class Deployment(object):
             configuration_data=installation_configuration
         )
 
-        isolation_ident = '%s_%s_%s_%s_%s' % (
+        self.isolation_ident = '%s_%s_%s_%s_%s' % (
             configuration.project,
             environment_name,
             infrastructure_name,
             installation_name,
             self._installation.ident
         )
-        self._environment = Environment(environment_configuration, infrastructure_name, isolation_ident)
+        self._environment = Environment(environment_configuration, infrastructure_name, self.isolation_ident)
 
         self.project_name = configuration.project
         self.environment_name, self.infrastructure_name, self.installation_name, self.installation_options = \
@@ -76,8 +77,8 @@ class Deployment(object):
         else:
             distfile = DebugConfiguration.configuration.distfile.format(version=version)
             debug_logger.info('Install codev {distfile}'.format(distfile=distfile))
-            isolation.send_file(distfile, 'codev.tar.gz')
-            isolation.execute('pip3 install --upgrade codev.tar.gz')
+            isolation.send_file(distfile, '/tmp/codev.tar.gz')
+            isolation.execute('pip3 install --upgrade /tmp/codev.tar.gz')
 
         logger.info("Run 'codev {version}' in isolation.".format(version=version))
 
@@ -122,7 +123,7 @@ class Deployment(object):
 
     def join(self):
         logging_config(control_perform=True)
-        if self._performer.join(logger=command_logger):
+        if BackgroundRunner(self._performer, self.isolation_ident).join(logger=command_logger):
             logger.info('Command finished.')
             return True
         else:
@@ -130,7 +131,7 @@ class Deployment(object):
             return False
 
     def stop(self):
-        if self._performer.stop():
+        if BackgroundRunner(self._performer, self.isolation_ident).stop():
             logger.info('Stop signal has been sent.')
             return True
         else:
@@ -138,7 +139,7 @@ class Deployment(object):
             return False
 
     def kill(self):
-        if self._performer.kill():
+        if BackgroundRunner(self._performer, self.isolation_ident).kill():
             logger.info('Command killed.')
             return True
         else:
@@ -150,7 +151,7 @@ class Deployment(object):
 
         logging_config(control_perform=True)
         try:
-            isolation.execute(command, logger=command_logger, background=True)
+            BackgroundRunner(isolation, self.isolation_ident).execute(command, logger=command_logger)
         except CommandError as e:
             logger.error(e)
             return False

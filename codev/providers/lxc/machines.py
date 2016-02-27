@@ -19,24 +19,24 @@ import re
 from time import sleep
 from codev.configuration import BaseConfiguration
 from codev.machines import MachinesProvider, BaseMachinesProvider
+from codev.performer import BaseRunner
 
 
-class LXCMachine(object):
-    def __init__(self, perfomer, ident, distribution, release, architecture):
-        self.performer = perfomer
-        self.ident = ident
+class LXCMachine(BaseRunner):
+    def __init__(self, distribution, release, *args, **kwargs):
+        super(LXCMachine, self).__init__(*args, **kwargs)
         self.distribution = distribution
         self.release = release
-        self.architecture = architecture
-        self._container_directory = None
+        self.__container_directory = None
+        self.__share_directory = None
 
     def exists(self):
         output = self.performer.execute('lxc-ls')
-        return self.ident in output.split()
+        return self.isolation_ident in output.split()
 
     def is_started(self):
         output = self.performer.execute('lxc-info -n {name} -s'.format(
-            name=self.ident,
+            name=self.isolation_ident,
         ))
 
         r = re.match('^State:\s+(.*)$', output.strip())
@@ -54,56 +54,84 @@ class LXCMachine(object):
 
     def create(self):
         if not self.exists():
+            architecture = self._get_architecture()
             self.performer.execute('lxc-create -t download -n {name} -- --dist {distribution} --release {release} --arch {architecture}'.format(
-                name=self.ident,
+                name=self.isolation_ident,
                 distribution=self.distribution,
                 release=self.release,
-                architecture=self.architecture
+                architecture=architecture
             ))
             self._configure()
             return True
         else:
             return False
 
+    def _get_architecture(self):
+        architecture = self.performer.execute('uname -m')
+        if architecture == 'x86_64':
+            architecture = 'amd64'
+        return architecture
+
     def _configure(self):
-        lxc_config = '{container_directory}config'.format(
-            container_directory=self.container_directory
-        )
 
-        self.performer.execute('echo "lxc.mount.auto = cgroup" >> %s' % lxc_config)
-        self.performer.execute('echo "lxc.aa_profile = lxc-container-default-with-nesting" >> %s' % lxc_config)
-
-        self.performer.execute('mkdir -p {isolation_ident}/share && chmod 7777 {isolation_ident}/share'.format(
-            isolation_ident=self.ident
+        self.performer.execute('echo "lxc.mount.auto = cgroup" >> {container_config}'.format(
+            container_config=self.container_config
         ))
-        home_dir = self.performer.execute('pwd')
-        #TODO CHECK LAST 0.0 mount option
+
+        self.performer.execute('echo "lxc.aa_profile = lxc-container-default-with-nesting" >> {container_config}'.format(
+            container_config=self.container_config
+        ))
+
+
+        self.performer.execute('mkdir -p {share_directory} && chmod 7777 {share_directory}'.format(
+            share_directory=self.share_directory
+        ))
+
         self.performer.execute(
-            'echo "lxc.mount.entry = {home_dir}/{isolation_ident}/share share none bind 0.0" >> {lxc_config}'.format(
-                home_dir=home_dir,
-                isolation_ident=self.ident,
-                lxc_config=lxc_config
+            'echo "lxc.mount.entry = {share_directory} share none bind,create=dir 0.0" >> {container_config}'.format(
+                share_directory=self.share_directory,
+                isolation_ident=self.isolation_ident,
+                container_config=self.container_config
             )
         )
-        #TODO REPLACEABLE WITH mount option "create=dir"
-        self.performer.execute('lxc-usernsexec -- mkdir -p {container_directory}/rootfs/share'.format(
-            container_directory=self.container_directory
-        ))
+        # #TODO REPLACEABLE WITH mount option "create=dir"
+        # self.performer.execute('lxc-usernsexec -- mkdir -p {home_dir}/{container_root}/share'.format(
+        #     home_dir=home_dir,
+        #     container_root=self.container_root
+        # ))
 
     @property
-    def container_directory(self):
-        if not self._container_directory:
-            lxc_path=self.performer.execute('lxc-config lxc.lxcpath')
-            self._container_directory = '{lxc_path}/{container_name}/'.format(
-                lxc_path=lxc_path,
-                container_name=self.ident
+    def share_directory(self):
+        if not self.__share_directory:
+            home_dir = self.performer.execute('bash -c "echo ~"')
+            return '{home_dir}/{isolation_ident}/share'.format(
+                home_dir=home_dir,
+                isolation_ident=self.isolation_ident
             )
-        return self._container_directory
+        return self.__share_directory
+
+    @property
+    def _container_directory(self):
+        if not self.__container_directory:
+            lxc_path = self.performer.execute('lxc-config lxc.lxcpath')
+            self.__container_directory = '{lxc_path}/{container_name}'.format(
+                lxc_path=lxc_path,
+                container_name=self.isolation_ident
+            )
+        return self.__container_directory
+
+    @property
+    def container_root(self):
+        return '{container_directory}/rootfs'.format(container_directory=self._container_directory)
+
+    @property
+    def container_config(self):
+        return '{container_directory}/config'.format(container_directory=self._container_directory)
 
     def start(self):
         if not self.is_started():
             self.performer.execute('lxc-start -n {name}'.format(
-                name=self.ident,
+                name=self.isolation_ident,
             ))
 
             while not self.ip:
@@ -116,7 +144,7 @@ class LXCMachine(object):
     @property
     def ip(self):
         output = self.performer.execute('lxc-info -n {name} -i'.format(
-            name=self.ident,
+            name=self.isolation_ident,
         ))
 
         for line in output.splitlines():
@@ -130,35 +158,12 @@ class LXCMachine(object):
     def host(self):
         return self.ip
 
-    def execute(self, command, logger=None, background=False):
+    def execute(self, command, logger=None, writein=None):
         output = self.performer.execute('lxc-attach -n {container_name} -- {command}'.format(
-            container_name=self.ident,
+            container_name=self.isolation_ident,
             command=command,
-        ), logger=logger, background=background)
+        ), logger=logger, writein=writein)
         return output
-
-    # def execute(self, command, logger=None, background=False):
-    #     ssh_auth_sock = self.performer.execute('echo $SSH_AUTH_SOCK')
-    #     if ssh_auth_sock and self.performer.check_execute('[ -S %s ]' % ssh_auth_sock):
-    #
-    #         self.performer.execute('rm -f {isolation_ident}/share/ssh-agent-sock && ln {ssh_auth_sock} {isolation_ident}/share/ssh-agent-sock && chmod 7777 {isolation_ident}/share/ssh-agent-sock'.format(
-    #             ssh_auth_sock=ssh_auth_sock,
-    #             isolation_ident=self.ident
-    #         ))
-    #
-    #         #possible solution via socat
-    #         #https://gist.github.com/mgwilliams/4d929e10024912670152 or https://gist.github.com/schnittchen/a47e40760e804a5cc8b9
-    #
-    #         env_vars = '-v SSH_AUTH_SOCK=/share/ssh-agent-sock'
-    #     else:
-    #         env_vars = ''
-    #
-    #     output = self.performer.execute('lxc-attach {env_vars} -n {container_name} -- {command}'.format(
-    #         container_name=self.ident,
-    #         command=command,
-    #         env_vars=env_vars
-    #     ), logger=logger, background=background)
-    #     return output
 
 
 class LXCMachinesConfiguration(BaseConfiguration):
@@ -169,10 +174,6 @@ class LXCMachinesConfiguration(BaseConfiguration):
     @property
     def release(self):
         return self.data.get('release')
-
-    @property
-    def architecture(self):
-        return self.data.get('architecture')
 
     @property
     def number(self):
@@ -187,11 +188,10 @@ class LXCMachinesProvider(BaseMachinesProvider):
         for i in range(1, self.configuration.number + 1):
             ident = '%s_%000d' % (self.machines_name, i)
             machine = LXCMachine(
-                self.performer,
-                ident,
                 self.configuration.distribution,
                 self.configuration.release,
-                self.configuration.architecture
+                self.performer,
+                ident
             )
             machine.create()
             machine.start()

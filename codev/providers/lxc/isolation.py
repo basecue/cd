@@ -16,92 +16,84 @@
 
 from codev.isolation import BaseIsolationProvider, IsolationProvider
 from contextlib import contextmanager
-from codev.performer import CommandError
 from logging import getLogger
 from .machines import LXCMachine
+from codev.performer import BackgroundRunner
 
 
 class LXCIsolation(LXCMachine):
-    def __init__(self, perfomer, ident):
-        self.performer = perfomer
-        self.ident = ident
+    def __init__(self, *args, **kwargs):
         self.logger = getLogger(__name__)
-        architecture = self._get_architecture()
+        super(LXCIsolation, self).__init__('ubuntu', 'wily', *args, **kwargs)
 
-        super(LXCIsolation, self).__init__(perfomer, ident, 'ubuntu', 'wily', architecture)
+    def _sanitize_path(self, path):
+        if path.startswith('~/'):
+            path = '{home_dir}/{path}'.format(
+                home_dir=self.home_dir,
+                path=path[2:]
+            )
 
-    def _get_architecture(self):
-        architecture = self.performer.execute('uname -m')
-        if architecture == 'x86_64':
-            architecture = 'amd64'
-        return architecture
+        if not path.startswith('/'):
+            path = '{home_dir}/{path}'.format(
+                home_dir=self.home_dir,
+                path=path
+            )
+        return path
 
     def send_file(self, source, target):
-        with self.performer.send_to_temp_file(source) as tempfile:
-            # self.performer.execute('cat {tempfile} | lxc-attach -n {name} -- tee {target} > /dev/null'.format(
-            #     name=self.ident,
-            #     tempfile=tempfile,
-            #     target=target
-            # ))
-            self.performer.execute('lxc-usernsexec -- cp {tempfile} {container_dir}rootfs/{target}'.format(
-                tempfile=tempfile,
-                target=target,
-                container_dir=self.container_directory
-            ))
+        tempfile = '/tmp/codev.tempfile.send'
+        self.performer.send_file(source, tempfile)
+        target = self._sanitize_path(target)
 
-    # def get_file(self, source, target):
-    #     with self.performer.get_temp_file(target) as tempfile:
-    #         #TODO direct access over share directory or with lxc-usernsexec
-    #         self.performer.execute('lxc-attach -n {name} -- cat {source} > {tempfile}'.format(
-    #             name=self.ident,
-    #             tempfile=tempfile,
-    #             source=source
-    #         ))
+        self.performer.execute('lxc-usernsexec -- cp {tempfile} {container_root}{target}'.format(
+            tempfile=tempfile,
+            target=target,
+            container_root=self.container_root
+        ))
+        self.performer.execute('rm {tempfile}'.format(tempfile=tempfile))
 
     @contextmanager
-    def get_fo(self, source):
-        with self.performer.get_temp_fo() as (tempfile, opener):
-            # self.performer.execute('lxc-attach -n {name} -- cat {source} > {tempfile}'.format(
-            #     name=self.ident,
-            #     tempfile=tempfile,
-            #     source=source
-            # ))
-            self.performer.execute('cp {container_dir}rootfs/{source} {tempfile}'.format(
-                tempfile=tempfile,
-                source=source,
-                container_dir=self.container_directory
-            ))
-            with opener() as fo:
-                yield fo
+    def get_fo(self, remote_path):
+        tempfile = '/tmp/codev.tempfile.get'
 
-    def check_execute(self, command):
-        try:
-            self.execute(command)
-            return True
-        except CommandError:
-            return False
+        remote_path = self._sanitize_path(remote_path)
 
-    def execute(self, command, logger=None, background=False):
+        self.performer.execute('lxc-usernsexec -- cp {container_root}{remote_path} {tempfile}'.format(
+            tempfile=tempfile,
+            remote_path=remote_path,
+            container_root=self.container_root
+        ))
+        with self.performer.get_fo(tempfile) as fo:
+            yield fo
+        self.performer.execute('lxc-usernsexec -- rm {tempfile}'.format(tempfile=tempfile))
+
+    @property
+    def home_dir(self):
+        return '/root'
+
+    def execute(self, command, logger=None, writein=None, background=False):
         ssh_auth_sock = self.performer.execute('echo $SSH_AUTH_SOCK')
+        env_vars = {'HOME': self.home_dir}
         if ssh_auth_sock and self.performer.check_execute('[ -S %s ]' % ssh_auth_sock):
-
-            self.performer.execute('rm -f {isolation_ident}/share/ssh-agent-sock && ln {ssh_auth_sock} {isolation_ident}/share/ssh-agent-sock && chmod 7777 {isolation_ident}/share/ssh-agent-sock'.format(
+            self.performer.execute('rm -f {share_directory}/ssh-agent-sock && ln {ssh_auth_sock} {share_directory}/ssh-agent-sock && chmod 7777 {share_directory}/ssh-agent-sock'.format(
+                share_directory=self.share_directory,
                 ssh_auth_sock=ssh_auth_sock,
-                isolation_ident=self.ident
+                isolation_ident=self.isolation_ident
             ))
 
             #possible solution via socat
             #https://gist.github.com/mgwilliams/4d929e10024912670152 or https://gist.github.com/schnittchen/a47e40760e804a5cc8b9
 
-            env_vars = '-v SSH_AUTH_SOCK=/share/ssh-agent-sock'
+            env_vars['SSH_AUTH_SOCK'] = '/share/ssh-agent-sock'
+        if background:
+            performer = BackgroundRunner(self.performer, self.isolation_ident)
         else:
-            env_vars = ''
-
-        output = self.performer.execute('lxc-attach {env_vars} -n {container_name} -- {command}'.format(
-            container_name=self.ident,
+            performer = self.performer
+        output = performer.execute('lxc-attach {env} -n {container_name} -- {command}'.format(
+            container_name=self.isolation_ident,
             command=command,
-            env_vars=env_vars
-        ), logger=logger, background=background)
+            env=' '.join('-v {var}={value}'.format(var=var, value=value) for var, value in env_vars.items())
+        ), logger=logger, writein=writein)
         return output
 
 
@@ -111,7 +103,6 @@ class LXCIsolationProvider(BaseIsolationProvider):
         self._isolation = None
 
     def create_isolation(self):
-        #TODO make it idempotent
         isolation = LXCIsolation(self.performer, self.ident)
         isolation.create()
         isolation.start()

@@ -43,6 +43,7 @@ def logging_config(loglevel=None, control_command=False, perform=False, control_
         actual_loglevel = loglevel
 
     loglevel = LOGLEVELS[loglevel]
+
     if perform_command_loglevel in LOGLEVELS:
         perform_command_loglevel = LOGLEVELS[perform_command_loglevel]
 
@@ -81,20 +82,6 @@ def logging_config(loglevel=None, control_command=False, perform=False, control_
     perform_debug_handler.setLevel(loglevel)
     perform_debug_handler.formatter = perform_debug_formatter
 
-    if control_command:
-        command_logger = logging.getLogger('command')
-        command_logger.setLevel(loglevel)
-        for handler in command_logger.handlers:
-            command_logger.removeHandler(handler)
-        command_logger.addHandler(control_handler)
-
-    if control_perform:
-        command_logger = logging.getLogger('command')
-        command_logger.setLevel(loglevel)
-        for handler in command_logger.handlers:
-            command_logger.removeHandler(handler)
-        command_logger.addHandler(control_command_perform_handler)
-
     if perform:
         codev_logger = logging.getLogger('codev')
         codev_logger.setLevel(loglevel)
@@ -126,5 +113,18 @@ def logging_config(loglevel=None, control_command=False, perform=False, control_
             debug_logger.removeHandler(handler)
         debug_logger.addHandler(control_debug_handler)
 
+        if control_command:
+            command_logger = logging.getLogger('command')
+            command_logger.setLevel(loglevel)
+            for handler in command_logger.handlers:
+                command_logger.removeHandler(handler)
+            command_logger.addHandler(control_handler)
+
+        if control_perform:
+            command_logger = logging.getLogger('command')
+            command_logger.setLevel(loglevel)
+            for handler in command_logger.handlers:
+                command_logger.removeHandler(handler)
+            command_logger.addHandler(control_command_perform_handler)
 
 logging_config()
