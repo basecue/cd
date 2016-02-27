@@ -73,6 +73,7 @@ class Deployment(object):
 
         # install proper version of codev
         if not DebugConfiguration.configuration.distfile:
+            logger.debug("Install codev version '{version}' to isolation.".format(version=version))
             isolation.execute('pip3 install --upgrade codev=={version}'.format(version=version))
         else:
             distfile = DebugConfiguration.configuration.distfile.format(version=version)

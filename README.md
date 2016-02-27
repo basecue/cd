@@ -5,7 +5,7 @@ Install
 -------
 
 ```bash
-$ pip install codev
+$ pip3 install codev
 ```
 
 Usage
