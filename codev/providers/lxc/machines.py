@@ -184,6 +184,7 @@ class LXCMachine(BaseRunner):
         return path
 
     def send_file(self, source, target):
+        #TODO test
         tempfile = '/tmp/codev.{isolation_ident}.tempfile'.format(isolation_ident=self.isolation_ident)
         self.performer.send_file(source, tempfile)
         target = self._sanitize_path(target)
@@ -226,10 +227,17 @@ class LXCMachinesProvider(BaseMachinesProvider):
             machine.create()
             machine.start()
             machine.execute('apt-get update')
+
+            #install ssh server
             machine.execute('bash -c "DEBIAN_FRONTEND=noninteractive apt-get install openssh-server -y --force-yes"')
-            pub_key = self.performer.execute('ssh-add -L')
+
+            #authorize user for ssh
+            pub_key = '%s\n' % self.performer.execute('ssh-add -L')
             machine.execute('mkdir -p {home_dir}/.ssh'.format(home_dir=machine.home_dir))
-            machine.execute('tee >> {home_dir}/.ssh/authorized_keys'.format(home_dir=machine.home_dir), writein=pub_key)
+            machine.execute('tee {home_dir}/.ssh/authorized_keys'.format(home_dir=machine.home_dir), writein=pub_key)
+
+            #add machine ssh signature to known_hosts
+            self.performer.execute('ssh-keyscan -H {host} >> ~/.ssh/known_hosts'.format(host=machine.host))
             machines.append(machine)
         return machines
 
