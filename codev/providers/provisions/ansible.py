@@ -53,6 +53,8 @@ class AnsibleProvision(BaseProvision):
         for name, machines in machines_groups.items():
             inventory.add_section(name)
             for machine in machines:
+                #ansible node additional requirements
+                machine.execute('bash -c "DEBIAN_FRONTEND=noninteractive apt-get install python -y --force-yes"')
                 inventory.set(name, machine.host, '')
 
         inventory_filepath = 'codev.ansible.inventory'
@@ -60,7 +62,7 @@ class AnsibleProvision(BaseProvision):
         with open(inventory_filepath, 'w+') as inventoryfile:
             inventory.write(inventoryfile)
 
-        self.performer.execute('ansible-playbook -i {inventory} {playbook}'.format(
+        self.performer.execute('ansible-playbook -vvvv -i {inventory} {playbook}'.format(
             inventory=inventory_filepath,
             playbook=playbook
         ))
