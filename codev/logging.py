@@ -26,6 +26,23 @@ LOGLEVELS = {
 actual_loglevel = 'info'
 
 
+class InfoFilter(logging.Filter):
+    def filter(self, record):
+        if record.levelno >= logging.INFO:
+            return True
+
+info_filter = InfoFilter()
+
+
+class DebugFilter(logging.Filter):
+    def filter(self, record):
+        if record.levelno == logging.DEBUG:
+            return True
+
+
+debug_filter = DebugFilter()
+
+
 def logging_config(loglevel=None, perform=False, control_perform=False):
     """
     :param loglevel:
@@ -46,18 +63,59 @@ def logging_config(loglevel=None, perform=False, control_perform=False):
 
     loglevel = LOGLEVELS[loglevel]
 
-    perform_formatter = logging.Formatter(colorama.Fore.RESET + '[%(levelname)s] %(message)s')
-    perform_debug_formatter = logging.Formatter(colorama.Fore.RESET + '[%(levelname)s]' + colorama.Fore.MAGENTA + ' [DEBUG] %(message)s')
-    perform_command_output_formatter = logging.Formatter(colorama.Fore.GREEN + '[OUTPUT] %(message)s' + colorama.Fore.RESET)
+    perform_info_formatter = logging.Formatter(
+        colorama.Fore.RESET + '[%(levelname)s] %(message)s'
+    )
 
-    control_formatter = logging.Formatter(colorama.Fore.BLUE + '[CONTROL]' + colorama.Fore.RESET + ' [%(levelname)s] %(message)s')
-    control_debug_formatter = logging.Formatter(colorama.Fore.BLUE + '[CONTROL]' + colorama.Fore.RESET + ' [%(levelname)s]' + colorama.Fore.MAGENTA + ' [DEBUG] %(message)s' + colorama.Fore.RESET)
-    control_command_perform_formatter = logging.Formatter(colorama.Fore.YELLOW + '[PERFORM]' + colorama.Fore.RESET + ' %(message)s')
-    control_command_output_formatter = logging.Formatter(colorama.Fore.BLUE + '[CONTROL]' + colorama.Fore.CYAN + ' [OUTPUT] %(message)s' + colorama.Fore.RESET)
+    perform_formatter = logging.Formatter(
+        colorama.Fore.RESET + '[%(levelname)s] <%(name)s:%(lineno)s> %(message)s'
+    )
+
+    perform_debug_formatter = logging.Formatter(
+        colorama.Fore.RESET + '[%(levelname)s]' + colorama.Fore.MAGENTA + ' [DEBUG] %(message)s'
+    )
+    perform_command_output_formatter = logging.Formatter(
+        colorama.Fore.RESET + '[%(levelname)s]' + colorama.Fore.GREEN + ' [OUTPUT] %(message)s' + colorama.Fore.RESET
+    )
+
+    control_info_formatter = logging.Formatter(
+        colorama.Fore.BLUE + '[CONTROL]' + colorama.Fore.RESET + ' [%(levelname)s] %(message)s'
+    )
+
+    control_formatter = logging.Formatter(
+        colorama.Fore.BLUE + '[CONTROL]' + colorama.Fore.RESET + ' [%(levelname)s] <%(name)s:%(lineno)s> %(message)s'
+    )
+
+    control_debug_formatter = logging.Formatter(
+        colorama.Fore.BLUE +
+        '[CONTROL]' + colorama.Fore.RESET +
+        ' [%(levelname)s]' +
+        colorama.Fore.MAGENTA +
+        ' [DEBUG] %(message)s' +
+        colorama.Fore.RESET
+    )
+    control_command_perform_formatter = logging.Formatter(
+        colorama.Fore.YELLOW + '[PERFORM]' + colorama.Fore.RESET + ' %(message)s'
+    )
+    control_command_output_formatter = logging.Formatter(
+        colorama.Fore.BLUE +
+        '[CONTROL]' +
+        colorama.Fore.RESET +
+        ' [%(levelname)s]' +
+        colorama.Fore.CYAN +
+        ' [OUTPUT] %(message)s' +
+        colorama.Fore.RESET
+    )
+
+    control_info_handler = logging.StreamHandler(stream=sys.stdout)
+    control_info_handler.setLevel(loglevel)
+    control_info_handler.formatter = control_info_formatter
+    control_info_handler.addFilter(info_filter)
 
     control_handler = logging.StreamHandler(stream=sys.stdout)
     control_handler.setLevel(loglevel)
     control_handler.formatter = control_formatter
+    control_handler.addFilter(debug_filter)
 
     control_debug_handler = logging.StreamHandler(stream=sys.stdout)
     control_debug_handler.setLevel(loglevel)
@@ -71,9 +129,15 @@ def logging_config(loglevel=None, perform=False, control_perform=False):
     control_command_output_handler.setLevel(loglevel)
     control_command_output_handler.formatter = control_command_output_formatter
 
+    perform_info_handler = logging.StreamHandler(stream=sys.stdout)
+    perform_info_handler.setLevel(loglevel)
+    perform_info_handler.formatter = perform_info_formatter
+    perform_info_handler.addFilter(info_filter)
+
     perform_handler = logging.StreamHandler(stream=sys.stdout)
     perform_handler.setLevel(loglevel)
     perform_handler.formatter = perform_formatter
+    perform_handler.addFilter(debug_filter)
 
     perform_command_output_handler = logging.StreamHandler(stream=sys.stdout)
     perform_command_output_handler.setLevel(loglevel)
@@ -86,50 +150,52 @@ def logging_config(loglevel=None, perform=False, control_perform=False):
     if perform:
         codev_logger = logging.getLogger('codev')
         codev_logger.setLevel(loglevel)
-        for handler in codev_logger.handlers:
+        for handler in list(codev_logger.handlers):
             codev_logger.removeHandler(handler)
         codev_logger.addHandler(perform_handler)
+        codev_logger.addHandler(perform_info_handler)
 
         debug_logger = logging.getLogger('debug')
         debug_logger.setLevel(loglevel)
-        for handler in debug_logger.handlers:
+        for handler in list(debug_logger.handlers):
             debug_logger.removeHandler(handler)
         debug_logger.addHandler(perform_debug_handler)
 
         command_output_logger = logging.getLogger('command_output')
         command_output_logger.setLevel(loglevel)
-        for handler in command_output_logger.handlers:
+        for handler in list(command_output_logger.handlers):
             command_output_logger.removeHandler(handler)
         command_output_logger.addHandler(perform_command_output_handler)
     else:
         codev_logger = logging.getLogger('codev')
         codev_logger.setLevel(loglevel)
-        for handler in codev_logger.handlers:
+        for handler in list(codev_logger.handlers):
             codev_logger.removeHandler(handler)
         codev_logger.addHandler(control_handler)
+        codev_logger.addHandler(control_info_handler)
 
         debug_logger = logging.getLogger('debug')
         debug_logger.setLevel(loglevel)
-        for handler in debug_logger.handlers:
+        for handler in list(debug_logger.handlers):
             debug_logger.removeHandler(handler)
         debug_logger.addHandler(control_debug_handler)
 
         command_output_logger = logging.getLogger('command_output')
         command_output_logger.setLevel(loglevel)
-        for handler in command_output_logger.handlers:
+        for handler in list(command_output_logger.handlers):
             command_output_logger.removeHandler(handler)
         command_output_logger.addHandler(control_command_output_handler)
 
         if control_perform:
             command_logger = logging.getLogger('command')
             command_logger.setLevel(control_perform_loglevel)
-            for handler in command_logger.handlers:
+            for handler in list(command_logger.handlers):
                 command_logger.removeHandler(handler)
             command_logger.addHandler(control_command_perform_handler)
         else:
             command_logger = logging.getLogger('command')
             command_logger.setLevel(loglevel)
-            for handler in command_logger.handlers:
+            for handler in list(command_logger.handlers):
                 command_logger.removeHandler(handler)
             command_logger.addHandler(control_command_perform_handler)
 
