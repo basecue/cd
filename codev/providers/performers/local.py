@@ -58,7 +58,7 @@ class LocalPerformer(BasePerformer):
         reader_out.start()
 
         if writein:
-            process.stdin.write(writein)
+            process.stdin.write(writein.encode())
             process.stdin.close()
         # reader_err = Thread(target=self._reader_err, args=(process.stderr,))
         # reader_err.start()
