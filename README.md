@@ -10,7 +10,7 @@ $ pip3 install codev
 
 Usage
 -----
-At a high level there is "control" mode, which checks an current version of configuration, creates isolated environment and delegates requested action to codev in "perform" mode in the isolated environment.
+At a high level there is "control" mode, which checks a current version of configuration, creates isolated environment and delegates requested action to codev in "perform" mode in the isolated environment.
 
 
 
