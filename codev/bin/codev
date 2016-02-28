@@ -137,6 +137,18 @@ def kill(deployment):
         return False
 
 
+@command(help='Invoke a DEBUG shell in isolation')
+def shell(deployment):
+    """
+    DEBUG SHELL
+
+    :param deployment:
+    :type deployment: codev.deployment.Deployment
+    :return:
+    """
+    return deployment.shell()
+
+
 @command(
     help='Run the script in isolation',
     confirmation='Execute script "{script}" at project "{deployment.project_name}" on environment "{deployment.environment_name}" with infrastructure "{deployment.infrastructure_name}" at installation "{deployment.installation_name}"'
