@@ -53,9 +53,13 @@ class LocalPerformer(BasePerformer):
         self.logger.debug('Executing LOCAL command: %s' % command)
         self._output_lines = []
         self._error_lines = []
-        process = Popen(command, stdout=PIPE, stderr=PIPE, shell=True)
+        process = Popen(command, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=True)
         reader_out = Thread(target=self._reader_out, args=(process.stdout,), kwargs=dict(logger=logger))
         reader_out.start()
+
+        if writein:
+            process.stdin.write(writein)
+            process.stdin.close()
         # reader_err = Thread(target=self._reader_err, args=(process.stderr,))
         # reader_err.start()
         # terminator = Thread(target=self._terminator, args=(process,))
@@ -67,6 +71,7 @@ class LocalPerformer(BasePerformer):
         if exit_code:
             # err = '\n'.join(self._error_lines)
             err = process.stderr.read().decode('utf-8').strip()
+            self.logger.debug('command error: %s' % err)
             raise CommandError(command, exit_code, err)
         return '\n'.join(self._output_lines)
 

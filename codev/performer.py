@@ -202,7 +202,7 @@ class BackgroundRunner(BaseRunner):
             **isolation._asdict()
         )
 
-        pid = self.performer.execute(bg_command)
+        pid = self.performer.execute(bg_command, writein=writein)
 
         if not pid.isdigit():
             raise ValueError('not a pid %s' % pid)

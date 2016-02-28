@@ -103,6 +103,7 @@ class SSHperformer(BasePerformer):
         if exit_code:
             if exit_code:
                 err = stderr.read().decode('utf-8').strip()
+                self.logger.debug('command error: %s' % err)
                 raise CommandError(command, exit_code, err)
 
         return '\n'.join(self._output_lines)

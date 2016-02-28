@@ -26,32 +26,6 @@ class LXCIsolation(LXCMachine):
         self.logger = getLogger(__name__)
         super(LXCIsolation, self).__init__('ubuntu', 'wily', *args, **kwargs)
 
-    def _sanitize_path(self, path):
-        if path.startswith('~/'):
-            path = '{home_dir}/{path}'.format(
-                home_dir=self.home_dir,
-                path=path[2:]
-            )
-
-        if not path.startswith('/'):
-            path = '{home_dir}/{path}'.format(
-                home_dir=self.home_dir,
-                path=path
-            )
-        return path
-
-    def send_file(self, source, target):
-        tempfile = '/tmp/codev.{isolation_ident}.tempfile'.format(isolation_ident=self.isolation_ident)
-        self.performer.send_file(source, tempfile)
-        target = self._sanitize_path(target)
-
-        self.performer.execute('lxc-usernsexec -- cp {tempfile} {container_root}{target}'.format(
-            tempfile=tempfile,
-            target=target,
-            container_root=self.container_root
-        ))
-        self.performer.execute('rm {tempfile}'.format(tempfile=tempfile))
-
     @contextmanager
     def get_fo(self, remote_path):
         tempfile = '/tmp/codev.{isolation_ident}.tempfile'.format(isolation_ident=self.isolation_ident)
@@ -66,10 +40,6 @@ class LXCIsolation(LXCMachine):
         with self.performer.get_fo(tempfile) as fo:
             yield fo
         self.performer.execute('lxc-usernsexec -- rm {tempfile}'.format(tempfile=tempfile))
-
-    @property
-    def home_dir(self):
-        return '/root'
 
     def execute(self, command, logger=None, writein=None, background=False):
         ssh_auth_sock = self.performer.execute('echo $SSH_AUTH_SOCK')
@@ -95,6 +65,18 @@ class LXCIsolation(LXCMachine):
             env=' '.join('-v {var}={value}'.format(var=var, value=value) for var, value in env_vars.items())
         ), logger=logger, writein=writein)
         return output
+
+    def send_file(self, source, target):
+        tempfile = '/tmp/codev.{isolation_ident}.tempfile'.format(isolation_ident=self.isolation_ident)
+        self.performer.send_file(source, tempfile)
+        target = self._sanitize_path(target)
+
+        self.performer.execute('lxc-usernsexec -- cp {tempfile} {container_root}{target}'.format(
+            tempfile=tempfile,
+            target=target,
+            container_root=self.container_root
+        ))
+        self.performer.execute('rm {tempfile}'.format(tempfile=tempfile))
 
 
 class LXCIsolationProvider(BaseIsolationProvider):

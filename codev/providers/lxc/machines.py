@@ -165,6 +165,36 @@ class LXCMachine(BaseRunner):
         ), logger=logger, writein=writein)
         return output
 
+    @property
+    def home_dir(self):
+        return '/root'
+
+    def _sanitize_path(self, path):
+        if path.startswith('~/'):
+            path = '{home_dir}/{path}'.format(
+                home_dir=self.home_dir,
+                path=path[2:]
+            )
+
+        if not path.startswith('/'):
+            path = '{home_dir}/{path}'.format(
+                home_dir=self.home_dir,
+                path=path
+            )
+        return path
+
+    def send_file(self, source, target):
+        tempfile = '/tmp/codev.{isolation_ident}.tempfile'.format(isolation_ident=self.isolation_ident)
+        self.performer.send_file(source, tempfile)
+        target = self._sanitize_path(target)
+
+        self.performer.execute('lxc-usernsexec -- cp {tempfile} {container_root}{target}'.format(
+            tempfile=tempfile,
+            target=target,
+            container_root=self.container_root
+        ))
+        self.performer.execute('rm {tempfile}'.format(tempfile=tempfile))
+
 
 class LXCMachinesConfiguration(BaseConfiguration):
     @property
@@ -195,7 +225,11 @@ class LXCMachinesProvider(BaseMachinesProvider):
             )
             machine.create()
             machine.start()
+            machine.execute('apt-get update')
             machine.execute('bash -c "DEBIAN_FRONTEND=noninteractive apt-get install openssh-server -y --force-yes"')
+            pub_key = self.performer.execute('ssh-add -L')
+            machine.execute('mkdir -p {home_dir}/.ssh'.format(home_dir=machine.home_dir))
+            machine.execute('tee >> {home_dir}/.ssh/authorized_keys'.format(home_dir=machine.home_dir), writein=pub_key)
             machines.append(machine)
         return machines
 
