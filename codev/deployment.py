@@ -30,6 +30,9 @@ debug_logger = getLogger('debug')
 
 
 class Deployment(object):
+    """
+    Represents deployment of project. It's basic starting point for all commands.
+    """
     def __init__(self, configuration, environment_name, infrastructure_name, installation_name, installation_options):
         environment_configuration = configuration.environments[environment_name]
         installation_configuration = environment_configuration.installations[installation_name]
@@ -60,6 +63,12 @@ class Deployment(object):
         return self._environment.isolation
 
     def install(self):
+        """
+        Install project in isolation
+
+        :return: True if installation is sucessfully realized
+        :rtype: bool
+        """
         logger.info("Starting installation...")
         isolation = self._isolation(create=True)
 
@@ -113,6 +122,12 @@ class Deployment(object):
             return True
 
     def provision(self):
+        """
+        Run provisions
+
+        :return: True if provision succesfully proceeds
+        :rtype: bool
+        """
         try:
             return self._environment.provision()
         except CommandError as e:
@@ -123,35 +138,15 @@ class Deployment(object):
     def _performer(self):
         return self._environment.performer
 
-    def join(self):
-        logging_config(control_perform=True)
-        isolation = self._isolation()
-        if isolation.background_join(logger=command_logger):
-            logger.info('Command finished.')
-            return True
-        else:
-            logger.error('No running command.')
-            return False
-
-    def stop(self):
-        isolation = self._isolation()
-        if isolation.background_stop():
-            logger.info('Stop signal has been sent.')
-            return True
-        else:
-            logger.error('No running command.')
-            return False
-
-    def kill(self):
-        isolation = self._isolation()
-        if isolation.background_kill():
-            logger.info('Command killed.')
-            return True
-        else:
-            logger.error('No running command.')
-            return False
-
     def execute(self, command):
+        """
+        Execute command in isolation
+
+        :param command: Command to execute
+        :type command: str
+        :return: True if executed command returns 0
+        :rtype: bool
+        """
         isolation = self._isolation(create=True)
 
         logging_config(control_perform=True)
@@ -164,10 +159,58 @@ class Deployment(object):
             logger.info('Command finished.')
             return True
 
+    def join(self):
+        """
+        Stop the running command in isolation
+
+        :return: True if command was running
+        :rtype: bool
+        """
+        logging_config(control_perform=True)
+        isolation = self._isolation()
+        if isolation.background_join(logger=command_logger):
+            logger.info('Command finished.')
+            return True
+        else:
+            logger.error('No running command.')
+            return False
+
+    def stop(self):
+        """
+        Stop the running command in isolation
+
+        :return: True if command was running
+        :rtype: bool
+        """
+        isolation = self._isolation()
+        if isolation.background_stop():
+            logger.info('Stop signal has been sent.')
+            return True
+        else:
+            logger.error('No running command.')
+            return False
+
+    def kill(self):
+        """
+        Kill the running command in isolation
+
+        :return: True if command was running
+        :rtype: bool
+        """
+        isolation = self._isolation()
+        if isolation.background_kill():
+            logger.info('Command has been killed.')
+            return True
+        else:
+            logger.error('No running command.')
+            return False
+
     def shell(self):
         """
-        DEBUG SHELL
+        Invoke isolation shell
+
         :return:
+        :rtype: bool
         """
         isolation = self._isolation(create=True)
         logger.info('Entering isolation shell.')
@@ -183,7 +226,7 @@ class Deployment(object):
                     project_name=self.project_name,
                     environment_name=self.environment_name,
                     infrastructure_name=self.infrastructure_name,
-                    installation=self.installation_name,
+                    installation_name=self.installation_name,
                     installation_options=self.installation_options
                 )
             )
