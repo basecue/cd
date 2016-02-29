@@ -14,7 +14,7 @@
 #     with this program; if not, write to the Free Software Foundation, Inc.,
 #     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-from .isolation import IsolationProvider
+from .isolation import Isolation
 from .performer import Performer
 from .infrastructure import Infrastructure
 
@@ -29,7 +29,7 @@ class Environment(object):
             configuration_data=configuration.performer.specific
         )
 
-        self._isolation_provider = IsolationProvider(
+        self.isolation = Isolation(
             configuration.isolation_provider,
             self.performer,
             isolation_ident
@@ -37,9 +37,6 @@ class Environment(object):
 
         infrastructure_configuration = configuration.infrastructures[infrastructure_name]
         self._infrastructure = Infrastructure(infrastructure_name, infrastructure_configuration)
-
-    def create_isolation(self):
-        return self._isolation_provider.create_isolation()
 
     def provision(self):
         return self._infrastructure.provision()

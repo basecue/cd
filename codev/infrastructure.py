@@ -52,4 +52,4 @@ class Infrastructure(object):
         logger.info('Creating machines...')
         machines_groups = self._machines_groups()
         logger.info('Starting provisioning...')
-        self._provision_provider.run(machines_groups)
+        return self._provision_provider.run(machines_groups)

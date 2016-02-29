@@ -40,27 +40,28 @@ class Deployment(object):
             configuration_data=installation_configuration
         )
 
-        self.isolation_ident = '%s_%s_%s_%s_%s' % (
+        self.ident = '%s_%s_%s_%s_%s' % (
             configuration.project,
             environment_name,
             infrastructure_name,
             installation_name,
             self._installation.ident
         )
-        self._environment = Environment(environment_configuration, infrastructure_name, self.isolation_ident)
+        self._environment = Environment(environment_configuration, infrastructure_name, self.ident)
 
         self.project_name = configuration.project
         self.environment_name, self.infrastructure_name, self.installation_name, self.installation_options = \
             environment_name, infrastructure_name, installation_name, installation_options
 
-    def _isolation(self):
-        logger.info("Creating isolation...")
-        isolation = self._environment.create_isolation()
-        return isolation
+    def _isolation(self, create=False):
+        if create:
+            logger.info("Creating isolation...")
+            self._environment.isolation.create()
+        return self._environment.isolation
 
     def install(self):
         logger.info("Starting installation...")
-        isolation = self._isolation()
+        isolation = self._isolation(create=True)
 
         logger.info("Install project to isolation.")
         directory = self._installation.install(isolation)
@@ -95,14 +96,14 @@ class Deployment(object):
 
         logging_config(control_perform=True)
         try:
-            isolation.execute('codev install -d {environment_name} {infrastructure_name} {installation_name}:{installation_options} --path {directory} --perform --force {perform_debug}'.format(
+            isolation.background_execute('codev install -d {environment_name} {infrastructure_name} {installation_name}:{installation_options} --path {directory} --perform --force {perform_debug}'.format(
                 environment_name=self.environment_name,
                 infrastructure_name=self.infrastructure_name,
                 installation_name=self.installation_name,
                 installation_options=self.installation_options,
                 directory=directory,
                 perform_debug=perform_debug
-            ), logger=command_logger, background=True)
+            ), logger=command_logger)
         except CommandError as e:
             logger.debug(e)
             logger.error("Installation failed.")
@@ -124,8 +125,8 @@ class Deployment(object):
 
     def join(self):
         logging_config(control_perform=True)
-        #TODO refactorize to isolation method
-        if BackgroundRunner(self._performer, self.isolation_ident).join(logger=command_logger):
+        isolation = self._isolation()
+        if isolation.background_join(logger=command_logger):
             logger.info('Command finished.')
             return True
         else:
@@ -133,8 +134,8 @@ class Deployment(object):
             return False
 
     def stop(self):
-        #TODO refactorize to isolation method
-        if BackgroundRunner(self._performer, self.isolation_ident).stop():
+        isolation = self._isolation()
+        if isolation.background_stop():
             logger.info('Stop signal has been sent.')
             return True
         else:
@@ -142,8 +143,8 @@ class Deployment(object):
             return False
 
     def kill(self):
-        #TODO refactorize to isolation method
-        if BackgroundRunner(self._performer, self.isolation_ident).kill():
+        isolation = self._isolation()
+        if isolation.background_kill():
             logger.info('Command killed.')
             return True
         else:
@@ -151,11 +152,11 @@ class Deployment(object):
             return False
 
     def execute(self, command):
-        isolation = self._isolation()
+        isolation = self._isolation(create=True)
 
         logging_config(control_perform=True)
         try:
-            isolation.execute(command, logger=command_logger, background=True)
+            isolation.background_execute(command, logger=command_logger)
         except CommandError as e:
             logger.error(e)
             return False
@@ -169,7 +170,7 @@ class Deployment(object):
         :return:
         """
         #TODO need decision: pseudoconsole or normal bash?
-        isolation = self._isolation()
+        isolation = self._isolation(create=True)
         while True:
 
             command = input(
@@ -180,7 +181,7 @@ class Deployment(object):
             if command == 'exit':
                 return True
             try:
-                print(isolation.execute(command, logger=command_logger, background=True))
+                print(isolation.background_execute(command, logger=command_logger))
             except CommandError as e:
                 logger.error(e)
 

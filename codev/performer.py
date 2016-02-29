@@ -56,7 +56,6 @@ class BasePerformer(BaseExecutor, ConfigurableProvider):
         yield NotImplementedError()
 
 
-
 class Performer(BaseProvider):
     provider_class = BasePerformer
 
@@ -81,9 +80,9 @@ TEMP_FILE = 'codev.temp'
 
 
 class BaseRunner(BaseExecutor):
-    def __init__(self, performer, isolation_ident=None):
+    def __init__(self, performer, ident=None):
         self.performer = performer
-        self.isolation_ident = isolation_ident
+        self.ident = ident
 
 
 class BackgroundRunner(BaseRunner):
@@ -96,16 +95,16 @@ class BackgroundRunner(BaseRunner):
     @property
     def _isolation_directory(self):
         if not self.__isolation_directory:
-            if not self.isolation_ident:
+            if not self.ident:
                 ssh_info = self.performer.execute('echo $SSH_CLIENT')
                 ip, remote_port, local_port = ssh_info.split()
-                self.isolation_ident = 'control_{ip}_{remote_port}_{local_port}'.format(
+                self.ident = 'control_{ip}_{remote_port}_{local_port}'.format(
                     ip=ip, remote_port=remote_port, local_port=local_port
                 )
             home_dir = self.performer.execute('bash -c "echo ~"')
-            self.__isolation_directory = '{home_dir}/{isolation_ident}'.format(
+            self.__isolation_directory = '{home_dir}/{ident}'.format(
                 home_dir=home_dir,
-                isolation_ident=self.isolation_ident
+                ident=self.ident
             )
 
         return self.__isolation_directory

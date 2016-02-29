@@ -32,11 +32,11 @@ class LXCMachine(BaseRunner):
 
     def exists(self):
         output = self.performer.execute('lxc-ls')
-        return self.isolation_ident in output.split()
+        return self.ident in output.split()
 
     def is_started(self):
-        output = self.performer.execute('lxc-info -n {name} -s'.format(
-            name=self.isolation_ident,
+        output = self.performer.execute('lxc-info -n {container_name} -s'.format(
+            container_name=self.ident,
         ))
 
         r = re.match('^State:\s+(.*)$', output.strip())
@@ -55,8 +55,8 @@ class LXCMachine(BaseRunner):
     def create(self):
         if not self.exists():
             architecture = self._get_architecture()
-            self.performer.execute('lxc-create -t download -n {name} -- --dist {distribution} --release {release} --arch {architecture}'.format(
-                name=self.isolation_ident,
+            self.performer.execute('lxc-create -t download -n {container_name} -- --dist {distribution} --release {release} --arch {architecture}'.format(
+                container_name=self.ident,
                 distribution=self.distribution,
                 release=self.release,
                 architecture=architecture
@@ -90,23 +90,17 @@ class LXCMachine(BaseRunner):
         self.performer.execute(
             'echo "lxc.mount.entry = {share_directory} share none bind,create=dir 0.0" >> {container_config}'.format(
                 share_directory=self.share_directory,
-                isolation_ident=self.isolation_ident,
                 container_config=self.container_config
             )
         )
-        # #TODO REPLACEABLE WITH mount option "create=dir"
-        # self.performer.execute('lxc-usernsexec -- mkdir -p {home_dir}/{container_root}/share'.format(
-        #     home_dir=home_dir,
-        #     container_root=self.container_root
-        # ))
 
     @property
     def share_directory(self):
         if not self.__share_directory:
             home_dir = self.performer.execute('bash -c "echo ~"')
-            return '{home_dir}/{isolation_ident}/share'.format(
+            return '{home_dir}/{container_name}/share'.format(
                 home_dir=home_dir,
-                isolation_ident=self.isolation_ident
+                container_name=self.ident
             )
         return self.__share_directory
 
@@ -116,7 +110,7 @@ class LXCMachine(BaseRunner):
             lxc_path = self.performer.execute('lxc-config lxc.lxcpath')
             self.__container_directory = '{lxc_path}/{container_name}'.format(
                 lxc_path=lxc_path,
-                container_name=self.isolation_ident
+                container_name=self.ident
             )
         return self.__container_directory
 
@@ -130,8 +124,8 @@ class LXCMachine(BaseRunner):
 
     def start(self):
         if not self.is_started():
-            self.performer.execute('lxc-start -n {name}'.format(
-                name=self.isolation_ident,
+            self.performer.execute('lxc-start -n {container_name}'.format(
+                container_name=self.ident,
             ))
 
             while not self.ip:
@@ -143,8 +137,8 @@ class LXCMachine(BaseRunner):
 
     @property
     def ip(self):
-        output = self.performer.execute('lxc-info -n {name} -i'.format(
-            name=self.isolation_ident,
+        output = self.performer.execute('lxc-info -n {container_name} -i'.format(
+            container_name=self.ident,
         ))
 
         for line in output.splitlines():
@@ -160,7 +154,7 @@ class LXCMachine(BaseRunner):
 
     def execute(self, command, logger=None, writein=None):
         output = self.performer.execute('lxc-attach -n {container_name} -- {command}'.format(
-            container_name=self.isolation_ident,
+            container_name=self.ident,
             command=command,
         ), logger=logger, writein=writein)
         return output
@@ -168,33 +162,6 @@ class LXCMachine(BaseRunner):
     @property
     def home_dir(self):
         return '/root'
-
-    def _sanitize_path(self, path):
-        if path.startswith('~/'):
-            path = '{home_dir}/{path}'.format(
-                home_dir=self.home_dir,
-                path=path[2:]
-            )
-
-        if not path.startswith('/'):
-            path = '{home_dir}/{path}'.format(
-                home_dir=self.home_dir,
-                path=path
-            )
-        return path
-
-    def send_file(self, source, target):
-        #TODO test
-        tempfile = '/tmp/codev.{isolation_ident}.tempfile'.format(isolation_ident=self.isolation_ident)
-        self.performer.send_file(source, tempfile)
-        target = self._sanitize_path(target)
-
-        self.performer.execute('lxc-usernsexec -- cp {tempfile} {container_root}{target}'.format(
-            tempfile=tempfile,
-            target=target,
-            container_root=self.container_root
-        ))
-        self.performer.execute('rm {tempfile}'.format(tempfile=tempfile))
 
 
 class LXCMachinesConfiguration(BaseConfiguration):
@@ -226,6 +193,7 @@ class LXCMachinesProvider(BaseMachinesProvider):
             )
             machine.create()
             machine.start()
+            #TODO move to machine method
             machine.execute('apt-get update')
 
             #install ssh server

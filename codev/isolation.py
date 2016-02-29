@@ -15,16 +15,34 @@
 #     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 from .provider import BaseProvider
+from codev.performer import BasePerformer, BackgroundRunner
 
 
-class BaseIsolationProvider(object):
-    def __init__(self, performer, ident):
+class BaseIsolation(BasePerformer):
+    def __init__(self, performer, ident, *args, **kwargs):
         self.performer = performer
+        self.background_runner = BackgroundRunner(self.performer, ident)
         self.ident = ident
+        super(BaseIsolation, self).__init__(*args, **kwargs)
 
-    def create_isolation(self):
+    def create(self):
         raise NotImplementedError()
 
+    def execute(self, command, logger=None, writein=None):
+        raise NotImplementedError()
 
-class IsolationProvider(BaseProvider):
-    provider_class = BaseIsolationProvider
+    def background_execute(self, command, logger=None, writein=None):
+        raise NotImplementedError()
+
+    def background_join(self):
+        self.background_runner.join()
+
+    def background_stop(self):
+        self.background_runner.stop()
+
+    def background_kill(self):
+        self.background_runner.kill()
+
+
+class Isolation(BaseProvider):
+    provider_class = BaseIsolation
