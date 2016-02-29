@@ -18,7 +18,7 @@ from subprocess import Popen, PIPE, call
 
 from threading import Thread
 
-from codev.performer import CommandError, BasePerformer, Performer
+from codev.performer import CommandError, BasePerformer, Performer, OutputReader
 
 from logging import getLogger
 
@@ -46,18 +46,20 @@ class LocalPerformer(BasePerformer):
         self._error_lines = []
         process = Popen(command, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=True)
 
-        # read stdout asynchronously -in 'realtime'
-        reader_out = Thread(target=self._reader_out, args=(process.stdout,), kwargs=dict(logger=logger))
-        reader_out.start()
+        # read stdout asynchronously - in 'realtime'
+        output_reader = OutputReader(process.stdout, logger=logger or self.output_logger)
 
         if writein:
             # write writein to stdin
             process.stdin.write(writein.encode())
             process.stdin.close()
 
-        # wait for exit code and end of output
+        # wait for end of output
+        output_reader.output()
+
+        # wait for exit code
         exit_code = process.wait()
-        reader_out.join()
+
 
         if exit_code:
             # read stderr for error output

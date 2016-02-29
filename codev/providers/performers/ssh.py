@@ -20,10 +20,9 @@ from paramiko.agent import AgentRequestHandler
 
 from logging import getLogger
 
-from codev.performer import Performer, BasePerformer, PerformerError, CommandError
+from codev.performer import Performer, BasePerformer, PerformerError, CommandError, OutputReader
 from codev.configuration import BaseConfiguration
 from os.path import expanduser
-from threading import Thread
 
 
 class SSHPerformerConfiguration(BaseConfiguration):
@@ -50,7 +49,6 @@ class SSHperformer(BasePerformer):
     def __init__(self, *args, **kwargs):
         super(SSHperformer, self).__init__(*args, **kwargs)
         self.client = None
-        self._output_lines = []
         self.logger = getLogger(__name__)
 
     def _connect(self):
@@ -74,39 +72,47 @@ class SSHperformer(BasePerformer):
             s = self.client.get_transport().open_session()
             AgentRequestHandler(s)
 
-    def _reader_out(self, stream, logger=None):
-        while True:
-            line = stream.readline()
-            if not line:
-                break
-            output_line = line.strip()
-            self._output_lines.append(output_line)
-            (logger or self.output_logger).debug(output_line)
+    def _paramiko_exec_command(self, command, bufsize=-1, timeout=None):
+        # replacement paramiko.client.exec_command(command) for binary output
+        # https://github.com/paramiko/paramiko/issues/291
+        # inspired by workaround https://gist.github.com/smurn/4d45a51b3a571fa0d35d
 
-        stream.close()
+        chan = self.client._transport.open_session(timeout=timeout)
+        chan.settimeout(timeout)
+        chan.exec_command(command)
+        stdin = chan.makefile('wb', bufsize)
+        stdout = chan.makefile('rb', bufsize)
+        stderr = chan.makefile_stderr('rb', bufsize)
+        return stdin, stdout, stderr
 
     def execute(self, command, logger=None, writein=None):
         self.logger.debug('command: %s' % command)
         if not self.client:
             self._connect()
-        self._output_lines = []
-        stdin, stdout, stderr = self.client.exec_command(command)
-        reader_out = Thread(target=self._reader_out, args=(stdout,), kwargs=dict(logger=logger))
-        reader_out.start()
+
+        stdin, stdout, stderr = self._paramiko_exec_command(command)
+
+        # read stdout asynchronously - in 'realtime'
+        output_reader = OutputReader(stdout, logger=logger or self.output_logger)
+
         if writein:
+            # write writein to stdin
             stdin.write(writein)
             stdin.flush()
             stdin.channel.shutdown_write()
+
+        # wait for end of output
+        output = output_reader.output()
+
+        # wait for exit code
         exit_code = stdout.channel.recv_exit_status()
-        reader_out.join()
 
         if exit_code:
-            if exit_code:
-                err = stderr.read().decode('utf-8').strip()
-                self.logger.debug('command error: %s' % err)
-                raise CommandError(command, exit_code, err)
+            err = stderr.read().decode('utf-8').strip()
+            self.logger.debug('command error: %s' % err)
+            raise CommandError(command, exit_code, err)
 
-        return '\n'.join(self._output_lines)
+        return output
 
     def send_file(self, source, target):
         self.logger.debug('Send file: %s %s' % (source, target))

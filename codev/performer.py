@@ -43,10 +43,45 @@ class CommandError(PerformerError):
         )
 
 
+"""
+Output reader
+"""
+from threading import Thread
+
+
+class OutputReader(object):
+    def __init__(self, output, logger=None):
+        self._output_lines = []
+        self._output_reader = Thread(target=self._reader, args=(output,), kwargs=dict(logger=logger))
+        self._output_reader.start()
+
+    def _reader(self, output, logger=None):
+        while True:
+            line = output.readline()
+            if not line:
+                break
+            output_line = line.decode('utf-8').strip()
+            self._output_lines.append(output_line)
+            if logger:
+                logger.debug(output_line)
+        output.close()
+
+    def output(self):
+        self._output_reader.join()
+        return '\n'.join(self._output_lines)
+
+
 class BasePerformer(BaseExecutor, ConfigurableProvider):
     def __init__(self, *args, **kwargs):
         self.output_logger = getLogger('command_output')
         super(BasePerformer, self).__init__(*args, **kwargs)
+
+
+
+    def _read_output(self, out, logger=None):
+
+        reader_out.start()
+        return reader_out
 
     def send_file(self, source, target):
         raise NotImplementedError()

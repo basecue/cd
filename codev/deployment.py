@@ -60,11 +60,12 @@ class Deployment(object):
         if create:
             logger.info("Creating isolation...")
             self._environment.isolation.create()
+        logger.info("Entering isolation...")
         return self._environment.isolation
 
     def install(self):
         """
-        Install project in isolation
+        Create isolation if it does not exist and start installation in isolation.
 
         :return: True if installation is sucessfully realized
         :rtype: bool
@@ -134,13 +135,10 @@ class Deployment(object):
             logger.error(e)
             return False
 
-    @property
-    def _performer(self):
-        return self._environment.performer
-
     def execute(self, command):
         """
-        Execute command in isolation
+        Create isolation if it does not exist and execute command in isolation.
+
 
         :param command: Command to execute
         :type command: str
@@ -207,7 +205,7 @@ class Deployment(object):
 
     def shell(self):
         """
-        Invoke isolation shell
+        Create isolation if it does not exist and invoke 'shell' in isolation.
 
         :return:
         :rtype: bool
@@ -238,8 +236,23 @@ class Deployment(object):
                 logger.error(e)
 
     def run(self, script):
+        """
+        Create isolation if it does not exist and run script in isolation.
+
+        :param script: Name of the script
+        :type param: str
+        :return:
+        :rtype: bool
+        """
+        # TODO
         pass
 
     def destroy(self):
+        """
+        Destroy the isolation.
+
+        :return: True if isolation
+        :rtype: bool
+        """
         isolation = self._isolation()
         return isolation.destroy()
