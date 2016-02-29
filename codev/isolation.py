@@ -34,14 +34,14 @@ class BaseIsolation(BasePerformer):
     def background_execute(self, command, logger=None, writein=None):
         raise NotImplementedError()
 
-    def background_join(self):
-        self.background_runner.join()
+    def background_join(self, logger=None):
+        return self.background_runner.join(logger=logger)
 
     def background_stop(self):
-        self.background_runner.stop()
+        return self.background_runner.stop()
 
     def background_kill(self):
-        self.background_runner.kill()
+        return self.background_runner.kill()
 
 
 class Isolation(BaseProvider):
