@@ -15,7 +15,7 @@
 #     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import logging
-import colorama
+from colorama import Fore as color
 import sys
 
 LOGLEVELS = {
@@ -64,47 +64,47 @@ def logging_config(loglevel=None, perform=False, control_perform=False):
     loglevel = LOGLEVELS[loglevel]
 
     perform_info_formatter = logging.Formatter(
-        colorama.Fore.RESET + '[%(levelname)s] %(message)s'
+        color.RESET + '[%(levelname)s] %(message)s'
     )
 
     perform_formatter = logging.Formatter(
-        colorama.Fore.RESET + '[%(levelname)s] <%(name)s:%(lineno)s> %(message)s'
+        color.RESET + '[%(levelname)s] <%(name)s:%(lineno)s> %(message)s'
     )
 
     perform_debug_formatter = logging.Formatter(
-        colorama.Fore.RESET + '[%(levelname)s]' + colorama.Fore.MAGENTA + ' [DEBUG] %(message)s'
+        color.RESET + '[%(levelname)s]' + color.MAGENTA + ' [DEBUG] %(message)s'
     )
     perform_command_output_formatter = logging.Formatter(
-        colorama.Fore.RESET + '[%(levelname)s]' + colorama.Fore.GREEN + ' [OUTPUT] %(message)s' + colorama.Fore.RESET
+        color.RESET + '[%(levelname)s]' + color.GREEN + ' [OUTPUT] %(message)s' + color.RESET
     )
 
     control_info_formatter = logging.Formatter(
-        colorama.Fore.BLUE + '[CONTROL]' + colorama.Fore.RESET + ' [%(levelname)s] %(message)s'
+        color.BLUE + '[CONTROL]' + color.RESET + ' [%(levelname)s] %(message)s'
     )
 
     control_formatter = logging.Formatter(
-        colorama.Fore.BLUE + '[CONTROL]' + colorama.Fore.RESET + ' [%(levelname)s] <%(name)s:%(lineno)s> %(message)s'
+        color.BLUE + '[CONTROL]' + color.RESET + ' [%(levelname)s] <%(name)s:%(lineno)s> %(message)s'
     )
 
     control_debug_formatter = logging.Formatter(
-        colorama.Fore.BLUE +
-        '[CONTROL]' + colorama.Fore.RESET +
+        color.BLUE +
+        '[CONTROL]' + color.RESET +
         ' [%(levelname)s]' +
-        colorama.Fore.MAGENTA +
+        color.MAGENTA +
         ' [DEBUG] %(message)s' +
-        colorama.Fore.RESET
+        color.RESET
     )
     control_command_perform_formatter = logging.Formatter(
-        colorama.Fore.YELLOW + '[PERFORM]' + colorama.Fore.RESET + ' %(message)s'
+        color.YELLOW + '[PERFORM]' + color.RESET + ' %(message)s'
     )
     control_command_output_formatter = logging.Formatter(
-        colorama.Fore.BLUE +
+        color.BLUE +
         '[CONTROL]' +
-        colorama.Fore.RESET +
+        color.RESET +
         ' [%(levelname)s]' +
-        colorama.Fore.CYAN +
+        color.CYAN +
         ' [OUTPUT] %(message)s' +
-        colorama.Fore.RESET
+        color.RESET
     )
 
     control_info_handler = logging.StreamHandler(stream=sys.stdout)

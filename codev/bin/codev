@@ -137,14 +137,13 @@ def kill(deployment):
         return False
 
 
-@command(help='Invoke a DEBUG shell in isolation')
+@command(help='Invoke an isolation shell.')
 def shell(deployment):
     """
-    DEBUG SHELL
-
     :param deployment:
     :type deployment: codev.deployment.Deployment
     :return:
+    :rtype: bool
     """
     return deployment.shell()
 

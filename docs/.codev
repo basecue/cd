@@ -37,10 +37,18 @@ environments:
         username: codev
         password: codev
     isolation: lxc
+#      provider: lxc
+#      scripts:
+#        - vpn
 #    instalace?
 #    spustitelny script? - napr pro konfiguraci vpn
     infrastructures:
       full:
+        scripts:
+
+        connectivity:
+          webservers:
+            - 80: 80
         machines:
           webservers:
             provider: lxc

@@ -47,7 +47,7 @@ class BasePerformer(BaseExecutor, ConfigurableProvider):
     def __init__(self, *args, **kwargs):
         self.output_logger = getLogger('command_output')
         super(BasePerformer, self).__init__(*args, **kwargs)
-        
+
     def send_file(self, source, target):
         raise NotImplementedError()
 
@@ -146,6 +146,7 @@ class BackgroundRunner(BaseRunner):
         if omit_last:
             output_lines.pop()
         for line in output_lines:
+            #TODO remove output logger - refactorize output logging
             (logger or self.output_logger).debug(line)
         return len(output_lines)
 

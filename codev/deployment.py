@@ -20,7 +20,7 @@ from .debug import DebugConfiguration
 from .logging import logging_config
 from .performer import CommandError
 from .configuration import YAMLConfigurationReader
-from .performer import BackgroundRunner
+from colorama import Fore as color
 
 from logging import getLogger
 
@@ -169,13 +169,16 @@ class Deployment(object):
         DEBUG SHELL
         :return:
         """
-        #TODO need decision: pseudoconsole or normal bash?
         isolation = self._isolation(create=True)
-        while True:
+        logger.info('Enter isolation shell.')
+        import readline
 
+        while True:
             command = input(
-                '{isolation.isolation_ident}>'.format(
-                    isolation=isolation,
+                ('({self.project_name})' +
+                 color.GREEN + ' {self.environment_name} {self.infrastructure_name} {self.installation_name}:{self.installation_options}' +
+                 color.RESET + ':' + color.BLUE + '~' + color.RESET + '$ ').format(
+                    self=self
                 )
             )
             if command == 'exit':
