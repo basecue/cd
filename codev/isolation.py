@@ -28,6 +28,9 @@ class BaseIsolation(BasePerformer):
     def create(self):
         raise NotImplementedError()
 
+    def destroy(self):
+        raise NotImplementedError()
+
     def execute(self, command, logger=None, writein=None):
         raise NotImplementedError()
 

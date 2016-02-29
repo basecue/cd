@@ -53,6 +53,7 @@ def init(path):
     :param path:
     :type path: str
     :return:
+    :rtype: bool
     """
     if os.path.isdir(path):
         path = os.path.join(path, '.codev')
@@ -63,6 +64,7 @@ def init(path):
 
     try:
         YAMLConfigurationWriter().save_to_file(path)
+        return True
     except Exception as e:
         raise click.ClickException(e)
 
@@ -81,6 +83,7 @@ def install(deployment, perform):
     :param perform:
     :type perform: bool
     :return:
+    :rtype: bool
     """
     if perform:
         return deployment.provision()
@@ -88,12 +91,13 @@ def install(deployment, perform):
         return deployment.install()
 
 
-@command(help='Join the actual running command in isolation')
+@command(help='Join the running command in isolation')
 def join(deployment):
     """
     :param deployment:
     :type deployment: codev.deployment.Deployment
     :return:
+    :rtype: bool
     """
     return deployment.join()
 
@@ -107,16 +111,18 @@ def execute(deployment, command):
     :param command:
     :type command: str
     :return:
+    :rtype: bool
     """
     return deployment.execute(' '.join(command))
 
 
-@command(help='Stop the actual running command in isolation')
+@command(help='Stop the running command in isolation')
 def stop(deployment):
     """
     :param deployment:
     :type deployment: codev.deployment.Deployment
     :return:
+    :rtype: bool
     """
     if deployment.stop():
         return deployment.join()
@@ -124,12 +130,13 @@ def stop(deployment):
         return False
 
 
-@command(help='Kill the actual running command in isolation')
+@command(help='Kill the running command in isolation')
 def kill(deployment):
     """
     :param deployment:
     :type deployment: codev.deployment.Deployment
     :return:
+    :rtype: bool
     """
     if deployment.kill():
         return deployment.join()
@@ -159,12 +166,20 @@ def run(deployment, script):
     :type deployment: codev.deployment.Deployment
     :param script:
     :return:
+    :rtype: bool
     """
     deployment.run(script)
 
 
 @command(help='Destroy isolation.')
 def destroy(deployment):
+    """
+    :param deployment:
+    :type deployment: codev.deployment.Deployment
+    :param script:
+    :return:
+    :rtype: bool
+    """
     deployment.destroy()
 
 

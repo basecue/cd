@@ -170,15 +170,21 @@ class Deployment(object):
         :return:
         """
         isolation = self._isolation(create=True)
-        logger.info('Enter isolation shell.')
+        logger.info('Entering isolation shell.')
+
+        #support for history
         import readline
 
         while True:
             command = input(
-                ('({self.project_name})' +
-                 color.GREEN + ' {self.environment_name} {self.infrastructure_name} {self.installation_name}:{self.installation_options}' +
+                (color.GREEN +
+                 '{project_name} {environment_name} {infrastructure_name} {installation_name}:{installation_options}' +
                  color.RESET + ':' + color.BLUE + '~' + color.RESET + '$ ').format(
-                    self=self
+                    project_name=self.project_name,
+                    environment_name=self.environment_name,
+                    infrastructure_name=self.infrastructure_name,
+                    installation=self.installation_name,
+                    installation_options=self.installation_options
                 )
             )
             if command == 'exit':
@@ -190,3 +196,7 @@ class Deployment(object):
 
     def run(self, script):
         pass
+
+    def destroy(self):
+        isolation = self._isolation()
+        return isolation.destroy()

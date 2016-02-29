@@ -23,10 +23,8 @@ from codev.performer import BaseRunner
 
 
 class LXCMachine(BaseRunner):
-    def __init__(self, distribution, release, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super(LXCMachine, self).__init__(*args, **kwargs)
-        self.distribution = distribution
-        self.release = release
         self.__container_directory = None
         self.__share_directory = None
 
@@ -52,16 +50,26 @@ class LXCMachine(BaseRunner):
         else:
             raise ValueError('s:%s:s' % state)
 
-    def create(self):
+    def create(self, distribution, release):
         if not self.exists():
             architecture = self._get_architecture()
             self.performer.execute('lxc-create -t download -n {container_name} -- --dist {distribution} --release {release} --arch {architecture}'.format(
                 container_name=self.ident,
-                distribution=self.distribution,
-                release=self.release,
+                distribution=distribution,
+                release=release,
                 architecture=architecture
             ))
             self._configure()
+            return True
+        else:
+            return False
+
+    def destroy(self):
+        if self.exists():
+            self.stop()
+            self.performer.execute('lxc-destroy -n {container_name}'.format(
+                container_name=self.ident,
+            ))
             return True
         else:
             return False
@@ -81,7 +89,6 @@ class LXCMachine(BaseRunner):
         self.performer.execute('echo "lxc.aa_profile = lxc-container-default-with-nesting" >> {container_config}'.format(
             container_config=self.container_config
         ))
-
 
         self.performer.execute('mkdir -p {share_directory} && chmod 7777 {share_directory}'.format(
             share_directory=self.share_directory
@@ -130,6 +137,16 @@ class LXCMachine(BaseRunner):
 
             while not self.ip:
                 sleep(0.5)
+
+            return True
+        else:
+            return False
+
+    def stop(self):
+        if self.is_started():
+            self.performer.execute('lxc-stop -n {container_name}'.format(
+                container_name=self.ident,
+            ))
 
             return True
         else:
@@ -185,13 +202,8 @@ class LXCMachinesProvider(BaseMachinesProvider):
         machines = []
         for i in range(1, self.configuration.number + 1):
             ident = '%s_%000d' % (self.machines_name, i)
-            machine = LXCMachine(
-                self.configuration.distribution,
-                self.configuration.release,
-                self.performer,
-                ident
-            )
-            machine.create()
+            machine = LXCMachine(self.performer, ident)
+            machine.create(self.configuration.distribution, self.configuration.release)
             machine.start()
             #TODO move to machine method
             machine.execute('apt-get update')

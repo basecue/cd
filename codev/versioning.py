@@ -14,6 +14,10 @@
 #     with this program; if not, write to the Free Software Foundation, Inc.,
 #     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+"""
+remove?
+"""
+
 class Version(object):
     def _split_from_string(self, version_string):
         return version_string.split('.')
