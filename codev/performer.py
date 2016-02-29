@@ -36,6 +36,9 @@ class PerformerError(Exception):
 
 class CommandError(PerformerError):
     def __init__(self, command, exit_code, error):
+        self.command = command
+        self.exit_code = exit_code
+        self.error = error
         super(CommandError, self).__init__(
             "Command '{command}' failed with exit code '{exit_code}' with error '{error}'".format(
                 command=command, exit_code=exit_code, error=error
@@ -60,7 +63,7 @@ class OutputReader(object):
             line = output.readline()
             if not line:
                 break
-            output_line = line.decode('utf-8').strip()
+            output_line = line.decode('utf-8').rstrip('\n')
             self._output_lines.append(output_line)
             if logger:
                 logger.debug(output_line)
@@ -75,13 +78,6 @@ class BasePerformer(BaseExecutor, ConfigurableProvider):
     def __init__(self, *args, **kwargs):
         self.output_logger = getLogger('command_output')
         super(BasePerformer, self).__init__(*args, **kwargs)
-
-
-
-    def _read_output(self, out, logger=None):
-
-        reader_out.start()
-        return reader_out
 
     def send_file(self, source, target):
         raise NotImplementedError()

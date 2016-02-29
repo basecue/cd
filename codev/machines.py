@@ -15,6 +15,16 @@
 #     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 from .provider import BaseProvider, ConfigurableProvider
+from .performer import BaseRunner, CommandError
+
+
+class BaseMachine(BaseRunner):
+    def is_package_installed(self, package):
+        # http://www.cyberciti.biz/faq/find-out-if-package-is-installed-in-linux/
+        try:
+            return 'Status: install ok installed' in self.execute('dpkg -s {package}'.format(package=package))
+        except CommandError:
+            return False
 
 
 class BaseMachinesProvider(ConfigurableProvider):

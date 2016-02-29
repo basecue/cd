@@ -63,6 +63,10 @@ def logging_config(loglevel=None, perform=False, control_perform=False):
 
     loglevel = LOGLEVELS[loglevel]
 
+    shell_formatter = logging.Formatter(
+        color.RESET + '%(message)s'
+    )
+
     perform_info_formatter = logging.Formatter(
         color.RESET + '[%(levelname)s] %(message)s'
     )
@@ -72,7 +76,7 @@ def logging_config(loglevel=None, perform=False, control_perform=False):
     )
 
     perform_debug_formatter = logging.Formatter(
-        color.RESET + '[%(levelname)s]' + color.MAGENTA + ' [DEBUG] %(message)s'
+        color.RESET + '[%(levelname)s]' + color.MAGENTA + ' [DEBUG] %(message)s' + color.RESET
     )
     perform_command_output_formatter = logging.Formatter(
         color.RESET + '[%(levelname)s]' + color.GREEN + ' [OUTPUT] %(message)s' + color.RESET
@@ -106,6 +110,10 @@ def logging_config(loglevel=None, perform=False, control_perform=False):
         ' [OUTPUT] %(message)s' +
         color.RESET
     )
+
+    shell_handler = logging.StreamHandler(stream=sys.stdout)
+    shell_handler.setLevel(logging.DEBUG)
+    shell_handler.formatter = shell_formatter
 
     control_info_handler = logging.StreamHandler(stream=sys.stdout)
     control_info_handler.setLevel(loglevel)
@@ -167,6 +175,12 @@ def logging_config(loglevel=None, perform=False, control_perform=False):
             command_output_logger.removeHandler(handler)
         command_output_logger.addHandler(perform_command_output_handler)
     else:
+        shell_logger = logging.getLogger('shell')
+        shell_logger.setLevel(logging.DEBUG)
+        for handler in list(shell_logger.handlers):
+            shell_logger.removeHandler(handler)
+        shell_logger.addHandler(shell_handler)
+
         codev_logger = logging.getLogger('codev')
         codev_logger.setLevel(loglevel)
         for handler in list(codev_logger.handlers):

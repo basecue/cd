@@ -102,8 +102,11 @@ class LXCIsolation(BaseIsolation):
         self.machine = LXCMachine(self.performer, self.ident)
         self.machine.create('ubuntu', 'wily')
         self.machine.start()
-        self.execute('apt-get update')
-        self.execute('bash -c "DEBIAN_FRONTEND=noninteractive apt-get install lxc -y --force-yes"')
+
+        # http://www.cyberciti.biz/faq/find-out-if-package-is-installed-in-linux/
+        if not self.machine.is_package_installed('lxc'):
+            self.execute('apt-get update')
+            self.execute('bash -c "DEBIAN_FRONTEND=noninteractive apt-get install lxc -y --force-yes"')
 
     def destroy(self):
         self.machine = LXCMachine(self.performer, self.ident)

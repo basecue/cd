@@ -215,6 +215,8 @@ class Deployment(object):
 
         #support for history
         import readline
+        shell_logger = getLogger('shell')
+        SEND_FILE_SHELL_COMMAND = 'send'
 
         while True:
             command = input(
@@ -228,12 +230,22 @@ class Deployment(object):
                     installation_options=self.installation_options
                 )
             )
-            if command == 'exit':
+            if command in ('exit', 'quit', 'logout'):
                 return True
+            if command.startswith(SEND_FILE_SHELL_COMMAND):
+                try:
+                    source, target = command[len(SEND_FILE_SHELL_COMMAND):].split()
+                except ValueError:
+                    shell_logger.error('Command {command} needs exactly two arguments: <source> and <target>.'.format(
+                        command=SEND_FILE_SHELL_COMMAND
+                    ))
+                else:
+                    isolation.send_file(source, target)
+                continue
             try:
-                print(isolation.background_execute(command, logger=command_logger))
+                isolation.background_execute(command, logger=shell_logger)
             except CommandError as e:
-                logger.error(e)
+                shell_logger.error(e.error)
 
     def run(self, script):
         """

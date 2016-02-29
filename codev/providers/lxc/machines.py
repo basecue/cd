@@ -18,11 +18,10 @@ import re
 
 from time import sleep
 from codev.configuration import BaseConfiguration
-from codev.machines import MachinesProvider, BaseMachinesProvider
-from codev.performer import BaseRunner
+from codev.machines import MachinesProvider, BaseMachinesProvider, BaseMachine
 
 
-class LXCMachine(BaseRunner):
+class LXCMachine(BaseMachine):
     def __init__(self, *args, **kwargs):
         super(LXCMachine, self).__init__(*args, **kwargs)
         self.__container_directory = None
@@ -198,6 +197,20 @@ class LXCMachinesConfiguration(BaseConfiguration):
 class LXCMachinesProvider(BaseMachinesProvider):
     configuration_class = LXCMachinesConfiguration
 
+    def _configure(self, machine):
+        if not machine.is_package_installed('openssh-server'):
+            machine.execute('apt-get update')
+            #install ssh server
+            machine.execute('bash -c "DEBIAN_FRONTEND=noninteractive apt-get install openssh-server -y --force-yes"')
+
+        #authorize user for ssh
+        pub_key = '%s\n' % self.performer.execute('ssh-add -L')
+        machine.execute('mkdir -p {home_dir}/.ssh'.format(home_dir=machine.home_dir))
+        machine.execute('tee {home_dir}/.ssh/authorized_keys'.format(home_dir=machine.home_dir), writein=pub_key)
+
+        #add machine ssh signature to known_hosts
+        machine.performer.execute('ssh-keyscan -H {host} >> ~/.ssh/known_hosts'.format(host=machine.host))
+
     def create_machines(self):
         machines = []
         for i in range(1, self.configuration.number + 1):
@@ -205,19 +218,8 @@ class LXCMachinesProvider(BaseMachinesProvider):
             machine = LXCMachine(self.performer, ident)
             machine.create(self.configuration.distribution, self.configuration.release)
             machine.start()
-            #TODO move to machine method
-            machine.execute('apt-get update')
+            self._configure(machine)
 
-            #install ssh server
-            machine.execute('bash -c "DEBIAN_FRONTEND=noninteractive apt-get install openssh-server -y --force-yes"')
-
-            #authorize user for ssh
-            pub_key = '%s\n' % self.performer.execute('ssh-add -L')
-            machine.execute('mkdir -p {home_dir}/.ssh'.format(home_dir=machine.home_dir))
-            machine.execute('tee {home_dir}/.ssh/authorized_keys'.format(home_dir=machine.home_dir), writein=pub_key)
-
-            #add machine ssh signature to known_hosts
-            self.performer.execute('ssh-keyscan -H {host} >> ~/.ssh/known_hosts'.format(host=machine.host))
             machines.append(machine)
         return machines
 

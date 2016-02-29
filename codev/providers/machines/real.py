@@ -15,10 +15,10 @@
 #     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 from codev.configuration import BaseConfiguration
-from codev.machines import MachinesProvider, BaseMachinesProvider
+from codev.machines import MachinesProvider, BaseMachinesProvider, BaseMachine
 
 
-class RealMachine(object):
+class RealMachine(BaseMachine):
     def __init__(self, host):
         self.host = host
 
