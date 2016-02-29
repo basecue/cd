@@ -40,38 +40,28 @@ class LocalPerformer(BasePerformer):
             (logger or self.output_logger).debug(output_line)
         stream.close()
 
-    # def _reader_err(self, stream):
-    #     while True:
-    #         line = stream.readline()
-    #         if not line:
-    #             break
-    #         output_line = line.decode('utf-8').strip()
-    #         self._error_lines.append(output_line)
-    #     stream.close()
-
     def execute(self, command, logger=None, writein=None):
         self.logger.debug('Executing LOCAL command: %s' % command)
         self._output_lines = []
         self._error_lines = []
         process = Popen(command, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=True)
+
+        # read stdout asynchronously -in 'realtime'
         reader_out = Thread(target=self._reader_out, args=(process.stdout,), kwargs=dict(logger=logger))
         reader_out.start()
 
         if writein:
+            # write writein to stdin
             process.stdin.write(writein.encode())
             process.stdin.close()
-        # reader_err = Thread(target=self._reader_err, args=(process.stderr,))
-        # reader_err.start()
-        # terminator = Thread(target=self._terminator, args=(process,))
-        # terminator.start()
+
+        # wait for exit code and end of output
         exit_code = process.wait()
         reader_out.join()
-        # reader_err.join()
 
         if exit_code:
-            # err = '\n'.join(self._error_lines)
+            # read stderr for error output
             err = process.stderr.read().decode('utf-8').strip()
-            self.logger.debug('command error: %s' % err)
             raise CommandError(command, exit_code, err)
         return '\n'.join(self._output_lines)
 

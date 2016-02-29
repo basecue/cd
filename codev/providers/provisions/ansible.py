@@ -62,10 +62,11 @@ class AnsibleProvision(BaseProvision):
         with open(inventory_filepath, 'w+') as inventoryfile:
             inventory.write(inventoryfile)
 
-        self.performer.execute('ansible-playbook -vvvv -i {inventory} {playbook}'.format(
+        self.performer.execute('ansible-playbook -i {inventory} {playbook}'.format(
             inventory=inventory_filepath,
             playbook=playbook
         ))
+        return True
 
 
 Provision.register('ansible', AnsibleProvision)

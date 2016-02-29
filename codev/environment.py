@@ -42,7 +42,7 @@ class Environment(object):
         return self._isolation_provider.create_isolation()
 
     def provision(self):
-        self._infrastructure.provision()
+        return self._infrastructure.provision()
 
 
 

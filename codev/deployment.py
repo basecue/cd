@@ -113,7 +113,7 @@ class Deployment(object):
 
     def provision(self):
         try:
-            self._environment.provision()
+            return self._environment.provision()
         except CommandError as e:
             logger.error(e)
             return False
