@@ -240,7 +240,10 @@ class Deployment(object):
                         command=SEND_FILE_SHELL_COMMAND
                     ))
                 else:
-                    isolation.send_file(source, target)
+                    try:
+                        isolation.send_file(source, target)
+                    except CommandError as e:
+                        shell_logger.error(e.error)
                 continue
             try:
                 isolation.background_execute(command, logger=shell_logger)

@@ -100,13 +100,26 @@ class LXCIsolation(BaseIsolation):
 
     def create(self):
         self.machine = LXCMachine(self.performer, self.ident)
-        self.machine.create('ubuntu', 'wily')
+        created = self.machine.create('ubuntu', 'wily')
+        if created:
+            # self.performer.execute('echo "lxc.hook.autodev=~/autodev" >> {container_config}'.format(
+            #     container_config=self.machine.container_config
+            # ))
+            self.performer.execute('echo "lxc.cgroup.devices.allow = c 10:200 rwm" >> {container_config}'.format(
+                container_config=self.machine.container_config
+            ))
+            self.performer.execute('echo "lxc.mount.entry = /dev/net dev/net none bind,create=dir" >> {container_config}'.format(
+                container_config=self.machine.container_config
+            ))
+
         self.machine.start()
 
         # http://www.cyberciti.biz/faq/find-out-if-package-is-installed-in-linux/
         if not self.machine.is_package_installed('lxc'):
             self.execute('apt-get update')
             self.execute('bash -c "DEBIAN_FRONTEND=noninteractive apt-get install lxc -y --force-yes"')
+
+
 
     def destroy(self):
         self.machine = LXCMachine(self.performer, self.ident)
