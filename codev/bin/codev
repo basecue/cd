@@ -59,7 +59,7 @@ def init(path):
         path = os.path.join(path, '.codev')
 
     if os.path.exists(path):
-        if not click.confirm('A file "%(filepath)s" already exists. Overwrite?' % {'filepath': path}):
+        if not click.confirm("A file '%(filepath)s' already exists. Overwrite?" % {'filepath': path}):
             raise click.Abort()
 
     try:
@@ -157,7 +157,7 @@ def shell(deployment):
 
 @command(
     help='Run the script in isolation',
-    confirmation='Execute script "{script}" at project "{deployment.project_name}" on environment "{deployment.environment_name}" with infrastructure "{deployment.infrastructure_name}" at installation "{deployment.installation_name}"?'
+    confirmation="Execute script '{script}' at project '{deployment.project_name}' on environment '{deployment.environment_name}' with infrastructure '{deployment.infrastructure_name}' at installation '{deployment.installation_name}'?"
 )
 @click.argument('script')
 def run(deployment, script):
@@ -173,13 +173,12 @@ def run(deployment, script):
 
 @command(
     help='Destroy isolation.',
-    confirmation='Destroy isolation at project "{deployment.project_name}" on environment "{deployment.environment_name}" with infrastructure "{deployment.infrastructure_name}" at installation "{deployment.installation_name}"?'
+    confirmation="Destroy isolation at project '{deployment.project_name}' on environment '{deployment.environment_name}' with infrastructure '{deployment.infrastructure_name}' at installation '{deployment.installation_name}'?"
 )
 def destroy(deployment):
     """
     :param deployment:
     :type deployment: codev.deployment.Deployment
-    :param script:
     :return:
     :rtype: bool
     """
