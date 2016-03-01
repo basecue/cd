@@ -102,9 +102,7 @@ class LXCIsolation(BaseIsolation):
         self.machine = LXCMachine(self.performer, self.ident)
         created = self.machine.create('ubuntu', 'wily')
         if created:
-            # self.performer.execute('echo "lxc.hook.autodev=~/autodev" >> {container_config}'.format(
-            #     container_config=self.machine.container_config
-            # ))
+            #support for net services (ie vpn
             self.performer.execute('echo "lxc.cgroup.devices.allow = c 10:200 rwm" >> {container_config}'.format(
                 container_config=self.machine.container_config
             ))
