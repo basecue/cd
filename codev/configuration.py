@@ -87,18 +87,34 @@ class ListDictConfiguration(OrderedDict):
             raise ValueError('Object {data} must be list or dictionary like object.'.format(data=data))
 
 
+class ProvisionScriptsConfiguration(BaseConfiguration):
+    @property
+    def onstart(self):
+        return ListDictConfiguration(self.data.get('onstart', []))
+
+    @property
+    def onsuccess(self):
+        return ListDictConfiguration(self.data.get('onsuccess', []))
+
+    @property
+    def onerror(self):
+        return ListDictConfiguration(self.data.get('onerror', []))
+
+
+class ProvisionConfiguration(ProviderConfiguration):
+    @property
+    def scripts(self):
+        return ProvisionScriptsConfiguration(self.data.get('scripts', {}))
+
+
 class InfrastructureConfiguration(BaseConfiguration):
     @property
     def machines(self):
         return DictConfiguration(ProviderConfiguration, self.data.get('machines', {}))
 
     @property
-    def scripts(self):
-        return ListDictConfiguration(self.data.get('scripts', []))
-
-    @property
     def provision(self):
-        return ProviderConfiguration(self.data.get('provision', {}))
+        return ProvisionConfiguration(self.data.get('provision', {}))
 
 
 class IsolationScriptsConfiguration(BaseConfiguration):

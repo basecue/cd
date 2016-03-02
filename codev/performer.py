@@ -13,6 +13,11 @@ class BaseExecutor(object):
     def execute(self, command, logger=None, writein=None):
         raise NotImplementedError()
 
+    def run_scripts(self, scripts, common_arguments={}):
+        for script, arguments in scripts:
+            arguments.update(common_arguments)
+            self.execute(script.format(arguments))
+
 
 class PerformerError(Exception):
     pass

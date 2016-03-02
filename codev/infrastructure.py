@@ -1,6 +1,6 @@
 from .machines import MachinesProvider
 from .provision import Provision
-from .performer import Performer
+from .performer import Performer, CommandError
 from logging import getLogger
 
 logger = getLogger(__name__)
@@ -12,6 +12,7 @@ class Infrastructure(object):
         self.configuration = configuration
 
         self.performer = Performer('local')
+        self.scripts = configuration.provision.scripts
 
         self._provision_provider = Provision(
             configuration.provision.provider,
@@ -31,9 +32,27 @@ class Infrastructure(object):
         return machines_groups
 
     def provision(self):
-        logger.info('Installing provisioner...')
-        self._provision_provider.install()
-        logger.info('Creating machines...')
-        machines_groups = self._machines_groups()
-        logger.info('Starting provisioning...')
-        return self._provision_provider.run(machines_groups)
+        self.performer.run_scripts(self.scripts.onstart)
+        try:
+            logger.info('Installing provisioner...')
+            self._provision_provider.install()
+
+            logger.info('Creating machines...')
+            machines_groups = self._machines_groups()
+
+            logger.info('Starting provisioning...')
+            self._provision_provider.run(machines_groups)
+        except CommandError as e:
+            logger.error(e)
+            self.performer.run_scripts(
+                self.scripts.onerror,
+                dict(
+                    command=e.command,
+                    exit_code=e.exit_code,
+                    error=e.error
+                )
+            )
+            return False
+        else:
+            self.performer.run_scripts(self.scripts.onsuccess)
+            return True

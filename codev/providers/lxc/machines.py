@@ -183,12 +183,11 @@ class LXCMachinesProvider(BaseMachinesProvider):
 
     def _create_machine(self, ident):
         machine = LXCMachine(self.performer, ident)
-        created = machine.create(self.configuration.distribution, self.configuration.release)
+        machine.create(self.configuration.distribution, self.configuration.release)
         machine.start()
-        if created:
-            machine.execute('apt-get update')
-            #install ssh server
-            machine.execute('bash -c "DEBIAN_FRONTEND=noninteractive apt-get install openssh-server -y --force-yes"')
+
+        #install ssh server
+        machine.install_package('openssh-server')
 
         #authorize user for ssh
         pub_key = '%s\n' % self.performer.execute('ssh-add -L')

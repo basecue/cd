@@ -42,8 +42,6 @@ environments:
         password: codev
     isolation:
       provider: lxc
-      scripts:
-        on
     infrastructures:
       full:
         scripts:

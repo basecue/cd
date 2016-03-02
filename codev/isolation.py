@@ -1,5 +1,8 @@
 from .provider import BaseProvider
-from codev.performer import BasePerformer, BackgroundRunner
+from .performer import Performer, BasePerformer, BackgroundRunner
+from logging import getLogger
+
+logger = getLogger(__name__)
 
 
 class BaseIsolation(BasePerformer):
@@ -33,3 +36,33 @@ class BaseIsolation(BasePerformer):
 
 class Isolation(BaseProvider):
     provider_class = BaseIsolation
+
+
+class IsolationProvider(object):
+    def __init__(self, performer_configuration, isolation_configuration, ident):
+        performer = Performer(
+            performer_configuration.provider,
+            configuration_data=performer_configuration.specific
+        )
+
+        self._isolation = Isolation(
+            isolation_configuration.provider,
+            performer,
+            ident
+        )
+        self.scripts = isolation_configuration.scripts
+
+    def enter(self, create=False):
+        if create:
+            logger.info("Creating isolation...")
+            if self._isolation.create():
+                # run oncreate scripts
+                self._isolation.run_scripts(self.scripts.oncreate)
+
+        logger.info("Entering isolation...")
+        # run onenter scripts
+        self._isolation.run_scripts(self.scripts.onenter)
+        return self._isolation
+
+    def destroy(self):
+        return self._isolation.destroy()

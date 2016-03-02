@@ -3,8 +3,8 @@ from .infrastructure import Infrastructure
 from .installation import Installation
 from .debug import DebugConfiguration
 from .logging import logging_config
-from .performer import Performer, CommandError
-from .isolation import Isolation
+from .performer import CommandError
+from .isolation import IsolationProvider
 from .configuration import YAMLConfigurationReader
 from colorama import Fore as color
 
@@ -40,28 +40,11 @@ class Deployment(object):
         infrastructure_configuration = environment_configuration.infrastructures[infrastructure_name]
         self._infrastructure = Infrastructure(infrastructure_name, infrastructure_configuration)
 
-        performer = Performer(
-            environment_configuration.performer.provider,
-            configuration_data=environment_configuration.performer.specific
-        )
-
-        self._isolation = Isolation(
-            environment_configuration.isolation.provider,
-            performer,
-            ident
-        )
+        self.isolation_provider = IsolationProvider(environment_configuration.performer, environment_configuration.isolation, ident)
 
         self.project_name = configuration.project
         self.environment_name, self.infrastructure_name, self.installation_name, self.installation_options = \
             environment_name, infrastructure_name, installation_name, installation_options
-
-    def isolation(self, create=False):
-        if create:
-            logger.info("Creating isolation...")
-            self._isolation.create()
-
-        logger.info("Entering isolation...")
-        return self._isolation
 
     def install(self):
         """
@@ -71,7 +54,7 @@ class Deployment(object):
         :rtype: bool
         """
         logger.info("Starting installation...")
-        isolation = self.isolation(create=True)
+        isolation = self.isolation_provider.enter(create=True)
 
         logger.info("Install project to isolation.")
         directory = self._installation.install(isolation)
@@ -129,12 +112,7 @@ class Deployment(object):
         :return: True if provision successfully proceeds
         :rtype: bool
         """
-        try:
-            self._infrastructure.provision()
-            return True
-        except CommandError as e:
-            logger.error(e)
-            return False
+        return self._infrastructure.provision()
 
     def execute(self, command):
         """
@@ -146,7 +124,7 @@ class Deployment(object):
         :return: True if executed command returns 0
         :rtype: bool
         """
-        isolation = self.isolation(create=True)
+        isolation = self.isolation_provider.enter(create=True)
 
         logging_config(control_perform=True)
         try:
@@ -166,7 +144,7 @@ class Deployment(object):
         :rtype: bool
         """
         logging_config(control_perform=True)
-        isolation = self.isolation()
+        isolation = self.isolation_provider.enter()
         if isolation.background_join(logger=command_logger):
             logger.info('Command finished.')
             return True
@@ -181,7 +159,7 @@ class Deployment(object):
         :return: True if command was running
         :rtype: bool
         """
-        isolation = self.isolation()
+        isolation = self.isolation_provider.enter()
         if isolation.background_stop():
             logger.info('Stop signal has been sent.')
             return True
@@ -196,7 +174,7 @@ class Deployment(object):
         :return: True if command was running
         :rtype: bool
         """
-        isolation = self.isolation()
+        isolation = self.isolation_provider.enter()
         if isolation.background_kill():
             logger.info('Command has been killed.')
             return True
@@ -211,7 +189,7 @@ class Deployment(object):
         :return:
         :rtype: bool
         """
-        isolation = self.isolation(create=True)
+        isolation = self.isolation_provider.enter(create=True)
         logger.info('Entering isolation shell.')
 
         #support for history
@@ -267,8 +245,7 @@ class Deployment(object):
         """
         Destroy the isolation.
 
-        :return: True if isolation
+        :return: True if isolation is destroyed
         :rtype: bool
         """
-        isolation = self.isolation()
-        return isolation.destroy()
+        return self.isolation_provider.destroy()
