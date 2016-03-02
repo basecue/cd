@@ -47,6 +47,10 @@ def logging_config(loglevel=None, perform=False, control_perform=False):
         color.RESET + '%(message)s'
     )
 
+    perform_error_formatter = logging.Formatter(
+        color.RED + '[%(levelname)s] %(message)s' + color.RESET
+    )
+
     perform_info_formatter = logging.Formatter(
         color.RESET + '[%(levelname)s] %(message)s'
     )
@@ -99,7 +103,7 @@ def logging_config(loglevel=None, perform=False, control_perform=False):
     shell_handler.setLevel(logging.DEBUG)
     shell_handler.formatter = shell_formatter
 
-    control_error_handler = logging.StreamHandler(stream=sys.stdout)
+    control_error_handler = logging.StreamHandler(stream=sys.stderr)
     control_error_handler.setLevel(logging.ERROR)
     control_error_handler.formatter = control_error_formatter
     control_error_handler.addFilter(error_filter)
@@ -126,9 +130,9 @@ def logging_config(loglevel=None, perform=False, control_perform=False):
     control_command_output_handler.setLevel(loglevel)
     control_command_output_handler.formatter = control_command_output_formatter
 
-    perform_error_handler = logging.StreamHandler(stream=sys.stdout)
+    perform_error_handler = logging.StreamHandler(stream=sys.stderr)
     perform_error_handler.setLevel(logging.ERROR)
-    perform_error_handler.formatter = perform_info_formatter
+    perform_error_handler.formatter = perform_error_formatter
     perform_error_handler.addFilter(error_filter)
 
     perform_info_handler = logging.StreamHandler(stream=sys.stdout)

@@ -98,7 +98,7 @@ class Deployment(object):
                 perform_debug=perform_debug
             ), logger=command_logger)
         except CommandError as e:
-            logger.debug(e)
+            command_logger.error(e.error)
             logger.error("Installation failed.")
             return False
         else:
@@ -190,7 +190,7 @@ class Deployment(object):
         :rtype: bool
         """
         isolation = self.isolation_provider.enter(create=True)
-        logger.info('Entering isolation shell.')
+        logger.info('Entering isolation shell...')
 
         #support for history
         import readline
