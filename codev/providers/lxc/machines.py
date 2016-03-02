@@ -1,19 +1,3 @@
-# Copyright (C) 2016  Jan Češpivo <jan.cespivo@gmail.com>
-#
-#     This program is free software; you can redistribute it and/or modify
-#     it under the terms of the GNU General Public License as published by
-#     the Free Software Foundation; either version 2 of the License, or
-#     (at your option) any later version.
-#
-#     This program is distributed in the hope that it will be useful,
-#     but WITHOUT ANY WARRANTY; without even the implied warranty of
-#     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#     GNU General Public License for more details.
-#
-#     You should have received a copy of the GNU General Public License along
-#     with this program; if not, write to the Free Software Foundation, Inc.,
-#     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-
 import re
 
 from time import sleep
@@ -197,8 +181,11 @@ class LXCMachinesConfiguration(BaseConfiguration):
 class LXCMachinesProvider(BaseMachinesProvider):
     configuration_class = LXCMachinesConfiguration
 
-    def _configure(self, machine):
-        if not machine.is_package_installed('openssh-server'):
+    def _create_machine(self, ident):
+        machine = LXCMachine(self.performer, ident)
+        created = machine.create(self.configuration.distribution, self.configuration.release)
+        machine.start()
+        if created:
             machine.execute('apt-get update')
             #install ssh server
             machine.execute('bash -c "DEBIAN_FRONTEND=noninteractive apt-get install openssh-server -y --force-yes"')
@@ -210,16 +197,13 @@ class LXCMachinesProvider(BaseMachinesProvider):
 
         #add machine ssh signature to known_hosts
         machine.performer.execute('ssh-keyscan -H {host} >> ~/.ssh/known_hosts'.format(host=machine.host))
+        return machine
 
     def create_machines(self):
         machines = []
         for i in range(1, self.configuration.number + 1):
             ident = '%s_%000d' % (self.machines_name, i)
-            machine = LXCMachine(self.performer, ident)
-            machine.create(self.configuration.distribution, self.configuration.release)
-            machine.start()
-            self._configure(machine)
-
+            machine = self._create_machine(ident)
             machines.append(machine)
         return machines
 

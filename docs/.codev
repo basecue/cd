@@ -96,15 +96,35 @@ environments:
 #      - *-staging
   production:
     perfomer: ssh://codev:codev@192.168.1.13
-    isolation: lxc
+    isolation:
+      provider: lxc
+      scripts:
+        onenter:
+        oncreate:
+
     protected: true
     infrastructures:
       full:
+        connectivity:
+          provider: simple
+          specific:
+            webservers:
+              80: 8080
         machines:
           webservers:
             provision: real
             host: 10.0.1.5
         scripts:
+          beforecreate:
+          afrtercreate:
+          beforeinstallation:
+          afterinstallation:
+          beforeprovision:
+          afterprovision:
+          on success
+          on error
+
+
           before:
             try:
               - first scripts
