@@ -248,4 +248,9 @@ class Deployment(object):
         :return: True if isolation is destroyed
         :rtype: bool
         """
-        return self.isolation_provider.destroy()
+        if self.isolation_provider.destroy():
+            logger.info('Isolation has been destroyed.')
+            return True
+        else:
+            logger.info('There is no such isolation.')
+            return False

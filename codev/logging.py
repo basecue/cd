@@ -10,21 +10,18 @@ LOGLEVELS = {
 actual_loglevel = 'info'
 
 
-class InfoFilter(logging.Filter):
+class LoglevelFilter(logging.Filter):
+    def __init__(self, loglevel):
+        self.loglevel = loglevel
+        super(LoglevelFilter, self).__init__()
+
     def filter(self, record):
-        if record.levelno >= logging.INFO:
+        if record.levelno == self.loglevel:
             return True
 
-info_filter = InfoFilter()
-
-
-class DebugFilter(logging.Filter):
-    def filter(self, record):
-        if record.levelno == logging.DEBUG:
-            return True
-
-
-debug_filter = DebugFilter()
+error_filter = LoglevelFilter(logging.ERROR)
+info_filter = LoglevelFilter(logging.INFO)
+debug_filter = LoglevelFilter(logging.DEBUG)
 
 
 def logging_config(loglevel=None, perform=False, control_perform=False):
@@ -35,7 +32,6 @@ def logging_config(loglevel=None, perform=False, control_perform=False):
     :param control_perform:
     :return:
     """
-    # TODO RED ERRORS
     global actual_loglevel
 
     if loglevel is None:
@@ -74,6 +70,10 @@ def logging_config(loglevel=None, perform=False, control_perform=False):
         color.BLUE + '[CONTROL]' + color.RESET + ' [%(levelname)s] <%(name)s:%(lineno)s> %(message)s'
     )
 
+    control_error_formatter = logging.Formatter(
+        color.BLUE + '[CONTROL]' + color.RED + ' [%(levelname)s] %(message)s' + color.RESET
+    )
+
     control_debug_formatter = logging.Formatter(
         color.BLUE +
         '[CONTROL]' + color.RESET +
@@ -99,13 +99,18 @@ def logging_config(loglevel=None, perform=False, control_perform=False):
     shell_handler.setLevel(logging.DEBUG)
     shell_handler.formatter = shell_formatter
 
+    control_error_handler = logging.StreamHandler(stream=sys.stdout)
+    control_error_handler.setLevel(logging.ERROR)
+    control_error_handler.formatter = control_error_formatter
+    control_error_handler.addFilter(error_filter)
+
     control_info_handler = logging.StreamHandler(stream=sys.stdout)
-    control_info_handler.setLevel(loglevel)
+    control_info_handler.setLevel(logging.INFO)
     control_info_handler.formatter = control_info_formatter
     control_info_handler.addFilter(info_filter)
 
     control_handler = logging.StreamHandler(stream=sys.stdout)
-    control_handler.setLevel(loglevel)
+    control_handler.setLevel(logging.DEBUG)
     control_handler.formatter = control_formatter
     control_handler.addFilter(debug_filter)
 
@@ -121,13 +126,18 @@ def logging_config(loglevel=None, perform=False, control_perform=False):
     control_command_output_handler.setLevel(loglevel)
     control_command_output_handler.formatter = control_command_output_formatter
 
+    perform_error_handler = logging.StreamHandler(stream=sys.stdout)
+    perform_error_handler.setLevel(logging.ERROR)
+    perform_error_handler.formatter = perform_info_formatter
+    perform_error_handler.addFilter(error_filter)
+
     perform_info_handler = logging.StreamHandler(stream=sys.stdout)
-    perform_info_handler.setLevel(loglevel)
+    perform_info_handler.setLevel(logging.INFO)
     perform_info_handler.formatter = perform_info_formatter
     perform_info_handler.addFilter(info_filter)
 
     perform_handler = logging.StreamHandler(stream=sys.stdout)
-    perform_handler.setLevel(loglevel)
+    perform_handler.setLevel(logging.DEBUG)
     perform_handler.formatter = perform_formatter
     perform_handler.addFilter(debug_filter)
 
@@ -146,6 +156,7 @@ def logging_config(loglevel=None, perform=False, control_perform=False):
             codev_logger.removeHandler(handler)
         codev_logger.addHandler(perform_handler)
         codev_logger.addHandler(perform_info_handler)
+        codev_logger.addHandler(perform_error_handler)
 
         debug_logger = logging.getLogger('debug')
         debug_logger.setLevel(loglevel)
@@ -171,6 +182,7 @@ def logging_config(loglevel=None, perform=False, control_perform=False):
             codev_logger.removeHandler(handler)
         codev_logger.addHandler(control_handler)
         codev_logger.addHandler(control_info_handler)
+        codev_logger.addHandler(control_error_handler)
 
         debug_logger = logging.getLogger('debug')
         debug_logger.setLevel(loglevel)
