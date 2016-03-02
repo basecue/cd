@@ -26,7 +26,11 @@ provision:
   standard:
     provider: ansible
     specific:
-      playbooks: provisioning/%(infrastructure)s.yml
+      playbooks: provisioning/{nfrastructure}.yml
+
+scripts:
+  connect to vpn: connect_vpn.sh {environment} {infrastructure} {installation} {installation_options}
+
 
 environments:
   development:
@@ -36,16 +40,15 @@ environments:
         hostname: 192.168.56.100
         username: codev
         password: codev
-    isolation: lxc
-#      provider: lxc
-#      scripts:
-#        - vpn
-#    instalace?
-#    spustitelny script? - napr pro konfiguraci vpn
+    isolation:
+      provider: lxc
+      scripts:
+        on
     infrastructures:
       full:
         scripts:
-
+          oncreate:
+          onenter:
         connectivity:
           webservers:
             - 80: 80
@@ -70,7 +73,10 @@ environments:
           specific:
             version: 2.0
             playbook: provisioning/{infrastructure}.yml
-
+          scripts:
+            onstart:
+            onsuccess:
+            onerror:
       simple:
         machines:
           webservers:
@@ -87,76 +93,3 @@ environments:
     installations:
       - repository
       - actual
-
-  staging:
-    infrastructures:
-      - simple
-#    branches:
-#      - staging/*
-#      - *-staging
-  production:
-    perfomer: ssh://codev:codev@192.168.1.13
-    isolation:
-      provider: lxc
-      scripts:
-        onenter:
-        oncreate:
-
-    protected: true
-    infrastructures:
-      full:
-        connectivity:
-          provider: simple
-          specific:
-            webservers:
-              80: 8080
-        machines:
-          webservers:
-            provision: real
-            host: 10.0.1.5
-        scripts:
-          beforecreate:
-          afrtercreate:
-          beforeinstallation:
-          afterinstallation:
-          beforeprovision:
-          afterprovision:
-          on success
-          on error
-
-
-          before:
-            try:
-              - first scripts
-              - sdasdsad
-            except:
-              - on error scripts
-              - sad sa
-            else:
-              - on success scripts
-            finally:
-              - cleanup scripts
-          after:
-
-        configuration: standard
-#    installations:
-#      - svc
-
-    branches:
-      - master
-
-    scripts:
-      begin:
-        - first scripts
-      except:
-        - error scripts
-      else:
-        - success scripts
-      finally:
-        - cleanup scripts
-
-#configuration:
-#  provider: ansible
-#    version: 1.2
-#    inventory: codev://ansible/inventory
-#    playbook: provisioning/%(infrastructure)s.yml

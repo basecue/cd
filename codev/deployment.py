@@ -1,8 +1,10 @@
-from .environment import Environment
+
+from .infrastructure import Infrastructure
 from .installation import Installation
 from .debug import DebugConfiguration
 from .logging import logging_config
-from .performer import CommandError
+from .performer import Performer, CommandError
+from .isolation import Isolation
 from .configuration import YAMLConfigurationReader
 from colorama import Fore as color
 
@@ -27,35 +29,49 @@ class Deployment(object):
             configuration_data=installation_configuration
         )
 
-        self.ident = '%s_%s_%s_%s_%s' % (
+        ident = '%s_%s_%s_%s_%s' % (
             configuration.project,
             environment_name,
             infrastructure_name,
             installation_name,
             self._installation.ident
         )
-        self._environment = Environment(environment_configuration, infrastructure_name, self.ident)
+
+        infrastructure_configuration = environment_configuration.infrastructures[infrastructure_name]
+        self._infrastructure = Infrastructure(infrastructure_name, infrastructure_configuration)
+
+        performer = Performer(
+            environment_configuration.performer.provider,
+            configuration_data=environment_configuration.performer.specific
+        )
+
+        self._isolation = Isolation(
+            environment_configuration.isolation.provider,
+            performer,
+            ident
+        )
 
         self.project_name = configuration.project
         self.environment_name, self.infrastructure_name, self.installation_name, self.installation_options = \
             environment_name, infrastructure_name, installation_name, installation_options
 
-    def _isolation(self, create=False):
+    def isolation(self, create=False):
         if create:
             logger.info("Creating isolation...")
-            self._environment.isolation.create()
+            self._isolation.create()
+
         logger.info("Entering isolation...")
-        return self._environment.isolation
+        return self._isolation
 
     def install(self):
         """
         Create isolation if it does not exist and start installation in isolation.
 
-        :return: True if installation is sucessfully realized
+        :return: True if installation is successfully realized
         :rtype: bool
         """
         logger.info("Starting installation...")
-        isolation = self._isolation(create=True)
+        isolation = self.isolation(create=True)
 
         logger.info("Install project to isolation.")
         directory = self._installation.install(isolation)
@@ -110,11 +126,12 @@ class Deployment(object):
         """
         Run provisions
 
-        :return: True if provision succesfully proceeds
+        :return: True if provision successfully proceeds
         :rtype: bool
         """
         try:
-            return self._environment.provision()
+            self._infrastructure.provision()
+            return True
         except CommandError as e:
             logger.error(e)
             return False
@@ -129,7 +146,7 @@ class Deployment(object):
         :return: True if executed command returns 0
         :rtype: bool
         """
-        isolation = self._isolation(create=True)
+        isolation = self.isolation(create=True)
 
         logging_config(control_perform=True)
         try:
@@ -149,7 +166,7 @@ class Deployment(object):
         :rtype: bool
         """
         logging_config(control_perform=True)
-        isolation = self._isolation()
+        isolation = self.isolation()
         if isolation.background_join(logger=command_logger):
             logger.info('Command finished.')
             return True
@@ -164,7 +181,7 @@ class Deployment(object):
         :return: True if command was running
         :rtype: bool
         """
-        isolation = self._isolation()
+        isolation = self.isolation()
         if isolation.background_stop():
             logger.info('Stop signal has been sent.')
             return True
@@ -179,7 +196,7 @@ class Deployment(object):
         :return: True if command was running
         :rtype: bool
         """
-        isolation = self._isolation()
+        isolation = self.isolation()
         if isolation.background_kill():
             logger.info('Command has been killed.')
             return True
@@ -194,7 +211,7 @@ class Deployment(object):
         :return:
         :rtype: bool
         """
-        isolation = self._isolation(create=True)
+        isolation = self.isolation(create=True)
         logger.info('Entering isolation shell.')
 
         #support for history
@@ -253,5 +270,5 @@ class Deployment(object):
         :return: True if isolation
         :rtype: bool
         """
-        isolation = self._isolation()
+        isolation = self.isolation()
         return isolation.destroy()

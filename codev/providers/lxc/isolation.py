@@ -101,8 +101,10 @@ class LXCIsolation(BaseIsolation):
             self.execute('apt-get update')
             self.execute('bash -c "DEBIAN_FRONTEND=noninteractive apt-get install lxc -y --force-yes"')
 
+        return created
+
     def destroy(self):
         self.machine = LXCMachine(self.performer, self.ident)
-        self.machine.destroy()
+        return self.machine.destroy()
 
 Isolation.register('lxc', LXCIsolation)

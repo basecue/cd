@@ -93,8 +93,32 @@ class InfrastructureConfiguration(BaseConfiguration):
         return DictConfiguration(ProviderConfiguration, self.data.get('machines', {}))
 
     @property
+    def scripts(self):
+        return ListDictConfiguration(self.data.get('scripts', []))
+
+    @property
     def provision(self):
         return ProviderConfiguration(self.data.get('provision', {}))
+
+
+class IsolationScriptsConfiguration(BaseConfiguration):
+    @property
+    def oncreate(self):
+        return ListDictConfiguration(self.data.get('oncreate', []))
+
+    @property
+    def onenter(self):
+        return ListDictConfiguration(self.data.get('onenter', []))
+
+
+class IsolationConfigurartion(BaseConfiguration):
+    @property
+    def provider(self):
+        return self.data.get('provider')
+
+    @property
+    def scripts(self):
+        return IsolationScriptsConfiguration(self.data.get('scripts', {}))
 
 
 class EnvironmentConfiguration(BaseConfiguration):
@@ -107,8 +131,8 @@ class EnvironmentConfiguration(BaseConfiguration):
         return ProviderConfiguration(self.data.get('performer', {}))
 
     @property
-    def isolation_provider(self):
-        return self.data.get('isolation')
+    def isolation(self):
+        return IsolationConfigurartion(self.data.get('isolation', {}))
 
     @property
     def infrastructures(self):
