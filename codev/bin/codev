@@ -19,12 +19,12 @@ codev run [script] [environment] [infrastructure] [version]
 """
 
 import click
-import os.path
 
-from codev.configuration import YAMLConfigurationWriter
 from codev.cli import command, main
 
-
+# import os.path
+#
+# from codev.configuration import YAMLConfigurationWriter
 # @main.command(
 #     help='Create .codev file with basic settings in current directory or in given file path.',
 #     short_help='Create .codev file with basic settings.'
@@ -50,6 +50,7 @@ from codev.cli import command, main
 #         return True
 #     except Exception as e:
 #         raise click.ClickException(e)
+
 
 @command(
     help='Install project.',

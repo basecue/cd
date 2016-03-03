@@ -174,9 +174,8 @@ def bool_exit_enable(func):
 def main(ctx, version):
     if version:
         click.echo(VERSION)
-    else:
+    elif not ctx.invoked_subcommand:
         click.echo(ctx.get_help())
-
 
 
 def command(confirmation=None, perform=False, bool_exit=True, **kwargs):
