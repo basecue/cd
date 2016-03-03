@@ -160,19 +160,16 @@ class BackgroundRunner(BaseRunner):
     def _bg_check(self, pid):
         return self.performer.check_execute('ps -p %s -o pid=' % pid)
 
-    def _bg_log(self, logger, skip_lines, last=False):
+    def _bg_log(self, logger, skip_lines):
         output = self.performer.execute('tail {output_file} -n+{skip_lines}'.format(
             output_file=self._isolation.output_file,
             skip_lines=skip_lines)
         )
         if not output:
             return 0
+
         output_lines = output.splitlines()
 
-        self.logger.debug(output_lines[-1])
-        self.logger.debug('%s' % output_lines[-1].endswith('\n'))
-        if not last and not output_lines[-1].endswith('\n'):
-            output_lines.pop()
         for line in output_lines:
             (logger or self.output_logger).debug(line)
         return len(output_lines)
@@ -197,9 +194,9 @@ class BackgroundRunner(BaseRunner):
         skip_lines = 1
         while self._bg_check(pid):
             skip_lines += self._bg_log(logger, skip_lines)
-            sleep(0.5)
+            sleep(0.25)
 
-        self._bg_log(logger, skip_lines, last=True)
+        self._bg_log(logger, skip_lines)
 
     def _cat_file(self, catfile):
         return self.performer.execute('cat %s' % catfile)
