@@ -25,8 +25,8 @@ class Deployment(object):
             infrastructure_name,
             installation_name,
             installation_options,
-            next_installation_name=None,
-            next_installation_options=None
+            next_installation_name='',
+            next_installation_options=''
     ):
         environment_configuration = configuration.environments[environment_name]
         installation_configuration = environment_configuration.installations[installation_name]
@@ -59,9 +59,15 @@ class Deployment(object):
             next_installation
         )
 
-        self.project_name = configuration.project
-        self.environment_name, self.infrastructure_name, self.installation_name, self.installation_options = \
-            environment_name, infrastructure_name, installation_name, installation_options
+        self.deployment_options = dict(
+            project=configuration.project,
+            environment=environment_name,
+            infrastructure=infrastructure_name,
+            installation=installation_name,
+            installation_options=installation_options,
+            next_installation=next_installation_name,
+            next_installation_options=next_installation_options,
+        )
 
     def install(self):
         """
@@ -103,11 +109,12 @@ class Deployment(object):
 
         logging_config(control_perform=True)
         try:
-            isolation.background_execute('codev install -d {environment_name} {infrastructure_name} {installation_name}:{installation_options} --perform --force {perform_debug}'.format(
-                environment_name=self.environment_name,
-                infrastructure_name=self.infrastructure_name,
-                installation_name=self.installation_name,
-                installation_options=self.installation_options,
+            deployment_options = '-e {environment} -i {infrastructure} -s {installation}:{installation_options} -n {next_installation}:{next_installation_options}'.format(
+                **self.deployment_options
+            )
+
+            isolation.background_execute('codev install {deployment_options} --perform --force {perform_debug}'.format(
+                deployment_options=deployment_options,
                 perform_debug=perform_debug
             ), logger=command_logger)
         except CommandError as e:
@@ -211,15 +218,12 @@ class Deployment(object):
         SEND_FILE_SHELL_COMMAND = 'send'
 
         while True:
+
             command = input(
                 (color.GREEN +
-                 '{project_name} {environment_name} {infrastructure_name} {installation_name}:{installation_options}' +
+                 '{project} {environment} {infrastructure} {installation}:{installation_options} {next_installation}:{next_installation_options}' +
                  color.RESET + ':' + color.BLUE + '~' + color.RESET + '$ ').format(
-                    project_name=self.project_name,
-                    environment_name=self.environment_name,
-                    infrastructure_name=self.infrastructure_name,
-                    installation_name=self.installation_name,
-                    installation_options=self.installation_options
+                    **self.deployment_options
                 )
             )
             if command in ('exit', 'quit', 'logout'):

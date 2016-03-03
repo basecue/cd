@@ -16,7 +16,7 @@ def confirmation_message(message):
         @wraps(f)
         def confirmation_wrapper(deployment, force, **kwargs):
             if not force:
-                if not click.confirm(message.format(deployment=deployment)):
+                if not click.confirm(message.format(**deployment.deployment_options)):
                     raise click.Abort()
             return f(deployment, **kwargs)
 
@@ -36,10 +36,7 @@ def deployment_options(func):
     @wraps(func)
     def deployment_wrapper(configuration, environment, infrastructure, installation, next_installation, **kwargs):
         installation_name, installation_options = parse_installation(installation)
-        if next_installation:
-            next_installation_name, next_installation_options = parse_installation(next_installation)
-        else:
-            next_installation_name = next_installation_options = None
+        next_installation_name, next_installation_options = parse_installation(next_installation)
 
         deployment = Deployment(
             configuration,
@@ -72,6 +69,7 @@ def deployment_options(func):
 
     return click.option(
         '-n', '--next-installation',
+        default='',
         metavar='<next installation>',
         help='Next installation')(f)
 

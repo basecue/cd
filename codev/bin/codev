@@ -54,7 +54,7 @@ def init(path):
 
 @command(
     help='Install project',
-    confirmation="Install project '{deployment.project_name}' to '{deployment.environment_name}' environment with infrastructure '{deployment.infrastructure_name}' at installation '{deployment.installation_name}'?",
+    confirmation="Install project '{project}' to '{environment}' environment with infrastructure '{infrastructure}' at installation '{installation}'?",
     perform=True
 )
 def install(deployment, perform):
@@ -134,7 +134,7 @@ def shell(deployment):
 
 @command(
     help='Run the script in isolation',
-    confirmation="Execute script '{script}' from project '{deployment.project_name}' in '{deployment.environment_name}' environment with infrastructure '{deployment.infrastructure_name}' at installation '{deployment.installation_name}'?"
+    confirmation="Execute script '{script}' from project '{project}' in '{environment}' environment with infrastructure '{infrastructure}' at installation '{installation}'?"
 )
 @click.argument('script')
 def run(deployment, script):
@@ -150,7 +150,7 @@ def run(deployment, script):
 
 @command(
     help='Destroy isolation.',
-    confirmation="Destroy isolation of project '{deployment.project_name}' in '{deployment.environment_name}' environment with infrastructure '{deployment.infrastructure_name}' at installation '{deployment.installation_name}'?"
+    confirmation="Destroy isolation of project '{project}' in '{environment}' environment with infrastructure '{infrastructure}' at installation '{installation}'?"
 )
 def destroy(deployment):
     """
