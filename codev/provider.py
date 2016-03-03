@@ -34,6 +34,7 @@ class BaseProvider(object, metaclass=BaseProviderMetaClass):
     def register(cls, provider_name, provider):
         if not issubclass(provider, cls.provider_class):
             raise ValueError("Class '{provider}' has to be subclass of '{provider_class}'.".format(provider=provider, provider_class=cls.provider_class))
+        provider.provider_name = provider_name
         cls.providers[provider_name] = provider
 
 

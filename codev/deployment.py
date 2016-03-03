@@ -1,5 +1,5 @@
-
 from .infrastructure import Infrastructure
+from .installation import Installation
 from .debug import DebugConfiguration
 from .logging import logging_config
 from .performer import CommandError
@@ -18,12 +18,36 @@ class Deployment(object):
     """
     Represents deployment of project. It's basic starting point for all commands.
     """
-    def __init__(self, configuration, environment_name, infrastructure_name, installation_name, installation_options):
+    def __init__(
+            self,
+            configuration,
+            environment_name,
+            infrastructure_name,
+            installation_name,
+            installation_options,
+            next_installation_name=None,
+            next_installation_options=None
+    ):
         environment_configuration = configuration.environments[environment_name]
         installation_configuration = environment_configuration.installations[installation_name]
 
         infrastructure_configuration = environment_configuration.infrastructures[infrastructure_name]
         self._infrastructure = Infrastructure(infrastructure_name, infrastructure_configuration)
+
+        installation = Installation(
+            installation_name,
+            installation_options,
+            configuration_data=installation_configuration
+        )
+
+        if next_installation_name:
+            next_installation = Installation(
+                next_installation_name,
+                next_installation_options,
+                configuration_data=installation_configuration
+            )
+        else:
+            next_installation = None
 
         self.isolation_provider = IsolationProvider(
             configuration.project,
@@ -31,9 +55,8 @@ class Deployment(object):
             infrastructure_name,
             environment_configuration.performer,
             environment_configuration.isolation,
-            installation_name,
-            installation_options,
-            installation_configuration
+            installation,
+            next_installation
         )
 
         self.project_name = configuration.project
@@ -48,7 +71,7 @@ class Deployment(object):
         :rtype: bool
         """
         logger.info("Starting installation...")
-        isolation = self.isolation_provider.enter(create=True, install=True)
+        isolation = self.isolation_provider.enter(create=True, next_install=True)
 
         with isolation.get_fo('.codev') as codev_file:
             version = YAMLConfigurationReader().from_yaml(codev_file).version

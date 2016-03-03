@@ -1,4 +1,3 @@
-from .installation import Installation
 from .provider import BaseProvider
 from .performer import Performer, BasePerformer, BackgroundRunner
 from logging import getLogger
@@ -45,24 +44,22 @@ class IsolationProvider(object):
                  infrastructure_name,
                  performer_configuration,
                  isolation_configuration,
-                 installation_name,
-                 installation_options,
-                 installation_configuration
+                 installation,
+                 next_installation=None
                  ):
 
-        self.installation = Installation(
-            installation_name,
-            installation_options,
-            configuration_data=installation_configuration
-        )
-
-        ident = '%s_%s_%s_%s_%s' % (
+        ident = '%s:%s:%s:%s' % (
             project_name,
             environment_name,
             infrastructure_name,
-            installation_name,
-            self.installation.ident
+            installation.ident,
         )
+
+        if next_installation:
+            ident = '%s:%s' % (ident, next_installation.ident)
+
+        self.installation = installation
+        self.next_installation = next_installation
 
         performer = Performer(
             performer_configuration.provider,
@@ -76,20 +73,21 @@ class IsolationProvider(object):
         )
         self.scripts = isolation_configuration.scripts
 
-    def enter(self, create=False, install=False):
+    def enter(self, create=False, next_install=False):
         directory = '{base_dir}/repository'.format(base_dir=self._isolation.base_dir)
         if create:
             logger.info("Creating isolation...")
             if self._isolation.create():
-                logger.info("Install project 1 to isolation.")
+                logger.info("Install project to isolation.")
                 self.installation.install(self._isolation, directory)
 
                 # run oncreate scripts
                 self._isolation.base_dir = directory
                 self._isolation.run_scripts(self.scripts.oncreate)
-            elif install:
-                logger.info("Install project 2 to isolation.")
-                self.installation.install(self._isolation, directory)
+            else:
+                if next_install and self.next_installation:
+                    logger.info("Transition installation in isolation.")
+                    self.next_installation.install(self._isolation, directory)
 
         self._isolation.base_dir = directory
 

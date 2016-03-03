@@ -45,7 +45,7 @@ class RepositoryInstallation(BaseInstallation):
         raise ValueError(options)
 
     @property
-    def ident(self):
+    def id(self):
         return self.branch or self.tag or self.commit
 
     def install(self, performer, directory):

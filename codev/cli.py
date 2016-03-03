@@ -25,27 +25,55 @@ def confirmation_message(message):
     return decorator
 
 
-def deployment_option(func):
-    @wraps(func)
-    def deployment_wrapper(configuration, deployment, **kwargs):
-        environment_name = deployment[0]
-        infrastructure_name = deployment[1]
-        installation = deployment[2]
+def parse_installation(inp):
+    parsed = inp.split(':', 1)
+    name = parsed[0]
+    options = parsed[1] if len(parsed) == 2 else ''
+    return name, options
 
-        parsed_installation = installation.split(':', 1)
-        installation_name = parsed_installation[0]
-        installation_options = parsed_installation[1] if len(parsed_installation) == 2 else ''
+
+def deployment_options(func):
+    @wraps(func)
+    def deployment_wrapper(configuration, environment, infrastructure, installation, next_installation, **kwargs):
+        installation_name, installation_options = parse_installation(installation)
+        if next_installation:
+            next_installation_name, next_installation_options = parse_installation(next_installation)
+        else:
+            next_installation_name = next_installation_options = None
 
         deployment = Deployment(
-            configuration, environment_name, infrastructure_name, installation_name, installation_options
+            configuration,
+            environment,
+            infrastructure,
+            installation_name,
+            installation_options,
+            next_installation_name,
+            next_installation_options
         )
         return func(deployment, **kwargs)
 
-    return click.option('-d', '--deployment',
-                        metavar='<deployment identification>',
-                        required=True,
-                        nargs=3,
-                        help='environment infrastructure installation')(deployment_wrapper)
+    f = click.option(
+        '-e', '--environment',
+        metavar='<environment>',
+        required=True,
+        help='environment')(deployment_wrapper)
+
+    f = click.option(
+        '-i', '--infrastructure',
+        metavar='<infrastructure>',
+        required=True,
+        help='infrastructure')(f)
+
+    f = click.option(
+        '-s', '--installation',
+        metavar='<source installation>',
+        required=True,
+        help='Source installation')(f)
+
+    return click.option(
+        '-n', '--next-installation',
+        metavar='<next installation>',
+        help='Next installation')(f)
 
 
 def perform_option(func):
@@ -151,7 +179,7 @@ def command(confirmation=None, perform=False, bool_exit=True, **kwargs):
     def decorator(func):
         if confirmation:
             func = confirmation_message(confirmation)(func)
-        func = deployment_option(func)
+        func = deployment_options(func)
         func = nice_exception(func)
         if perform:
             func = perform_option(func)

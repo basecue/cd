@@ -6,6 +6,13 @@ class BaseInstallation(ConfigurableProvider):
         self.process_options(options)
         super(BaseInstallation, self).__init__(*args, **kwargs)
 
+    @property
+    def ident(self):
+        return '{provider_name}_{ident}'.format(
+            provider_name=self.__class__.provider_name,
+            ident=self.id
+        )
+
     def install(self, performer, directory):
         raise NotImplementedError()
 
@@ -13,7 +20,7 @@ class BaseInstallation(ConfigurableProvider):
         raise NotImplementedError()
 
     @property
-    def ident(self):
+    def id(self):
         raise NotImplementedError()
 
 

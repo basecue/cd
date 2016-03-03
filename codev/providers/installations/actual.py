@@ -18,7 +18,7 @@ class ActualInstallation(BaseInstallation):
         self.name = options or str(time())
 
     @property
-    def ident(self):
+    def id(self):
         return self.name
 
 Installation.register('actual', ActualInstallation)
