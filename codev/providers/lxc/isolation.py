@@ -10,6 +10,7 @@ class LXCIsolation(BaseIsolation):
         self.logger = getLogger(__name__)
         self.machine = None
         self.base_dir = '/root'
+        self.machine = LXCMachine(self.performer, ident=self.ident)
 
     def _sanitize_path(self, path):
         if path.startswith('~/'):
@@ -81,7 +82,6 @@ class LXCIsolation(BaseIsolation):
         self.performer.execute('rm {tempfile}'.format(tempfile=tempfile))
 
     def create(self):
-        self.machine = LXCMachine(self.performer, ident=self.ident)
         created = self.machine.create('ubuntu', 'wily')
         if created:
             #support for net services (ie vpn)

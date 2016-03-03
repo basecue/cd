@@ -6,6 +6,7 @@ class BaseExecutor(object):
     def __init__(self, *args, ident=None, **kwargs):
         self.base_dir = '~'
         self.ident = ident
+        self.output_logger = getLogger('command_output')
         super(BaseExecutor, self).__init__(*args, **kwargs)
 
     def check_execute(self, command):
@@ -69,10 +70,6 @@ class OutputReader(object):
 
 
 class BasePerformer(BaseExecutor, ConfigurableProvider):
-    def __init__(self, *args, **kwargs):
-        self.output_logger = getLogger('command_output')
-        super(BasePerformer, self).__init__(*args, **kwargs)
-
     def send_file(self, source, target):
         raise NotImplementedError()
 
@@ -163,36 +160,46 @@ class BackgroundRunner(BaseRunner):
     def _bg_check(self, pid):
         return self.performer.check_execute('ps -p %s -o pid=' % pid)
 
-    def _bg_log(self, logger, skip_lines, omit_last):
-        output = self.performer.execute('tail {output_file} -n+{skip_lines}'.format(output_file=self._isolation.output_file, skip_lines=skip_lines))
+    def _bg_log(self, logger, skip_lines, last=False):
+        output = self.performer.execute('tail {output_file} -n+{skip_lines}'.format(
+            output_file=self._isolation.output_file,
+            skip_lines=skip_lines)
+        )
         if not output:
             return 0
         output_lines = output.splitlines()
-        if omit_last:
+
+        self.logger.debug(output_lines[-1])
+        self.logger.debug('%s' % output_lines[-1].endswith('\n'))
+        if not last and not output_lines[-1].endswith('\n'):
             output_lines.pop()
         for line in output_lines:
-            #TODO remove output logger - refactorize output logging
             (logger or self.output_logger).debug(line)
         return len(output_lines)
 
     def _bg_stop(self, pid):
-        return self.performer.execute('kill %s' % pid)
+        return self._bg_signal(pid)
 
     def _bg_kill(self, pid):
+        return self._bg_signal(pid, 9)
+
+    def _bg_signal(self, pid, signal=None):
+        pgid = self.performer.execute('ps -p %s -o pgid=' % pid)
         return self.performer.execute(
-            'kill -9 {pid};rm {exitcode_file}'.format(
-                pid=pid,
-                exitcode_file=self._isolation.exitcode_file
+            'kill {signal}-{pgid}'.format(
+                pgid=pgid,
+                exitcode_file=self._isolation.exitcode_file,
+                signal='-%s ' % signal if signal else ''
             )
         )
 
     def _bg_wait(self, pid, logger=None):
         skip_lines = 1
         while self._bg_check(pid):
-            skip_lines += self._bg_log(logger, skip_lines, True)
+            skip_lines += self._bg_log(logger, skip_lines)
             sleep(0.5)
 
-        self._bg_log(logger, skip_lines, False)
+        self._bg_log(logger, skip_lines, last=True)
 
     def _cat_file(self, catfile):
         return self.performer.execute('cat %s' % catfile)
@@ -246,7 +253,7 @@ class BackgroundRunner(BaseRunner):
         return output
 
     def _control(self, method, *args, **kwargs):
-        self.logger.debug('SSH Join command')
+        self.logger.debug('SSH control command')
         try:
             pid = self._get_bg_running_pid()
         except CommandError as e:

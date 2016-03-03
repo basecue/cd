@@ -108,10 +108,10 @@ class SSHperformer(BasePerformer):
     @contextmanager
     def get_fo(self, remote_path):
         from tempfile import SpooledTemporaryFile
-        self.logger.debug('SSH Get fo: %s' % (remote_path))
+        self.logger.debug('SSH Get fo: %s' % remote_path)
         sftp = self.client.open_sftp()
         with SpooledTemporaryFile(1024000) as fo:
-            size = sftp.getfo(remote_path, fo)
+            sftp.getfo(remote_path, fo)
             yield fo
         sftp.close()
 

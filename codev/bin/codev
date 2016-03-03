@@ -107,10 +107,7 @@ def stop(deployment):
     :return:
     :rtype: bool
     """
-    if deployment.stop():
-        return deployment.join()
-    else:
-        return False
+    return deployment.stop()
 
 
 @command(help='Kill the running command in isolation')
@@ -121,10 +118,7 @@ def kill(deployment):
     :return:
     :rtype: bool
     """
-    if deployment.kill():
-        return deployment.join()
-    else:
-        return False
+    return deployment.kill()
 
 
 @command(help='Invoke an isolation shell.')

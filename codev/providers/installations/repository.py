@@ -26,17 +26,17 @@ class RepositoryInstallation(BaseInstallation):
         remote = repo.remote()
         remote.fetch()
 
-        #branch
+        # branch
         if options in remote.refs:
             self.branch = options
             return
 
-        #tag
+        # tag
         if options in repo.tags:
             self.tag = options
             return
 
-        #commit
+        # commit
         for commit in repo.iter_commits():
             if options == commit:
                 self.commit = commit
@@ -50,13 +50,15 @@ class RepositoryInstallation(BaseInstallation):
 
     def install(self, performer, directory):
         """
-        TODO RENAME method
+        Install project to directory
+
         :param performer:
+        :param directory:
         :return:
         """
         performer.execute('apt-get install git -y --force-yes')
 
-        #TODO checking fingerprints instead of copying known_hosts
+        # TODO checking fingerprints instead of copying known_hosts
         # http://serverfault.com/questions/132970/can-i-automatically-add-a-new-host-to-known-hosts
         # http://serverfault.com/questions/447028/non-interactive-git-clone-ssh-fingerprint-prompt
         # http://unix.stackexchange.com/questions/94448/how-to-add-an-ip-range-to-known-hosts
@@ -78,7 +80,7 @@ class RepositoryInstallation(BaseInstallation):
                 object=self.branch or self.tag
             ))
         elif self.commit:
-            #TODO TEST - cd
+            # TODO TEST - cd
             performer.execute('git init {directory}'.format(directory=directory))
             performer.execute('cd {directory}'.format(directory=directory))
             performer.execute('git remote add origin {url}'.format(url=self.configuration.url))

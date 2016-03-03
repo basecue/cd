@@ -37,7 +37,7 @@ class AnsibleProvision(BaseProvision):
         for name, machines in machines_groups.items():
             inventory.add_section(name)
             for machine in machines:
-                #ansible node additional requirements
+                # ansible node additional requirements
                 machine.install_package('python')
                 inventory.set(name, machine.host, '')
 
