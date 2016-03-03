@@ -38,7 +38,7 @@ class AnsibleProvision(BaseProvision):
             inventory.add_section(name)
             for machine in machines:
                 #ansible node additional requirements
-                machine.execute('DEBIAN_FRONTEND=noninteractive apt-get install python -y --force-yes')
+                machine.install_package('python')
                 inventory.set(name, machine.host, '')
 
         inventory_filepath = 'codev.ansible.inventory'
