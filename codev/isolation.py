@@ -1,6 +1,7 @@
 from .provider import BaseProvider
 from .performer import Performer, BasePerformer, BackgroundRunner
 from logging import getLogger
+from hashlib import md5
 
 logger = getLogger(__name__)
 
@@ -69,7 +70,7 @@ class IsolationProvider(object):
         self._isolation = Isolation(
             isolation_configuration.provider,
             performer,
-            ident=ident
+            ident=md5(ident.encode()).hexdigest()
         )
         self.scripts = isolation_configuration.scripts
 
