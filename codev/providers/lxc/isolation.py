@@ -6,27 +6,24 @@ from .machines import LXCMachine
 
 class LXCIsolation(BaseIsolation):
     def __init__(self, *args, **kwargs):
+        super(LXCIsolation, self).__init__(*args, **kwargs)
         self.logger = getLogger(__name__)
         self.machine = None
-        super(LXCIsolation, self).__init__(*args, **kwargs)
+        self.base_dir = '/root'
 
     def _sanitize_path(self, path):
         if path.startswith('~/'):
-            path = '{home_dir}/{path}'.format(
-                home_dir=self.machine.home_dir,
+            path = '{base_dir}/{path}'.format(
+                base_dir=self.base_dir,
                 path=path[2:]
             )
 
         if not path.startswith('/'):
-            path = '{home_dir}/{path}'.format(
-                home_dir=self.machine.home_dir,
+            path = '{base_dir}/{path}'.format(
+                base_dir=self.base_dir,
                 path=path
             )
         return path
-
-    @property
-    def home_dir(self):
-        return self.machine.home_dir
 
     @contextmanager
     def get_fo(self, remote_path):
@@ -45,7 +42,7 @@ class LXCIsolation(BaseIsolation):
 
     def _execute(self, executor, command, logger=None, writein=None):
         ssh_auth_sock = self.performer.execute('echo $SSH_AUTH_SOCK')
-        env_vars = {'HOME': self.machine.home_dir}
+        env_vars = {'HOME': self.machine.base_dir}
         if ssh_auth_sock and self.performer.check_execute('[ -S %s ]' % ssh_auth_sock):
             self.performer.execute('rm -f {share_directory}/ssh-agent-sock && ln {ssh_auth_sock} {share_directory}/ssh-agent-sock && chmod 7777 {share_directory}/ssh-agent-sock'.format(
                 share_directory=self.machine.share_directory,
@@ -57,7 +54,8 @@ class LXCIsolation(BaseIsolation):
             #https://gist.github.com/mgwilliams/4d929e10024912670152 or https://gist.github.com/schnittchen/a47e40760e804a5cc8b9
 
             env_vars['SSH_AUTH_SOCK'] = '/share/ssh-agent-sock'
-        output = executor.execute('lxc-attach {env} -n {container_name} -- {command}'.format(
+        output = executor.execute('lxc-attach {env} -n {container_name} -- bash -c "cd {base_dir} && {command}"'.format(
+            base_dir=self.base_dir,
             container_name=self.ident,
             command=command,
             env=' '.join('-v {var}={value}'.format(var=var, value=value) for var, value in env_vars.items())
@@ -83,7 +81,7 @@ class LXCIsolation(BaseIsolation):
         self.performer.execute('rm {tempfile}'.format(tempfile=tempfile))
 
     def create(self):
-        self.machine = LXCMachine(self.performer, self.ident)
+        self.machine = LXCMachine(self.performer, ident=self.ident)
         created = self.machine.create('ubuntu', 'wily')
         if created:
             #support for net services (ie vpn)
@@ -100,7 +98,7 @@ class LXCIsolation(BaseIsolation):
         return created
 
     def destroy(self):
-        self.machine = LXCMachine(self.performer, self.ident)
+        self.machine = LXCMachine(self.performer, ident=self.ident)
         return self.machine.destroy()
 
 Isolation.register('lxc', LXCIsolation)

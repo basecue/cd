@@ -48,11 +48,9 @@ class Deployment(object):
         :rtype: bool
         """
         logger.info("Starting installation...")
-        isolation = self.isolation_provider.enter(create=True)
+        isolation = self.isolation_provider.enter(create=True, install=True)
 
-        directory = self.isolation_provider.directory
-
-        with isolation.get_fo('{directory}/.codev'.format(directory=directory)) as codev_file:
+        with isolation.get_fo('.codev') as codev_file:
             version = YAMLConfigurationReader().from_yaml(codev_file).version
 
         # install python3 pip
@@ -82,12 +80,11 @@ class Deployment(object):
 
         logging_config(control_perform=True)
         try:
-            isolation.background_execute('codev install -d {environment_name} {infrastructure_name} {installation_name}:{installation_options} --path {directory} --perform --force {perform_debug}'.format(
+            isolation.background_execute('codev install -d {environment_name} {infrastructure_name} {installation_name}:{installation_options} --perform --force {perform_debug}'.format(
                 environment_name=self.environment_name,
                 infrastructure_name=self.infrastructure_name,
                 installation_name=self.installation_name,
                 installation_options=self.installation_options,
-                directory=directory,
                 perform_debug=perform_debug
             ), logger=command_logger)
         except CommandError as e:

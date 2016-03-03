@@ -6,7 +6,7 @@ class BaseInstallation(ConfigurableProvider):
         self.process_options(options)
         super(BaseInstallation, self).__init__(*args, **kwargs)
 
-    def install(self, performer):
+    def install(self, performer, directory):
         raise NotImplementedError()
 
     def process_options(self, options):

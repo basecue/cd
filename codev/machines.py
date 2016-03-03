@@ -11,7 +11,7 @@ class BaseMachine(BaseRunner):
         if not self._is_package_installed(package):
             self._cache_packages()
             self.execute(
-                'bash -c "DEBIAN_FRONTEND=noninteractive apt-get install {package} -y --force-yes"'.format(
+                'DEBIAN_FRONTEND=noninteractive apt-get install {package} -y --force-yes'.format(
                     package=package
                 )
             )

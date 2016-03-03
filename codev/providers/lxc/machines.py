@@ -10,6 +10,7 @@ class LXCMachine(BaseMachine):
         super(LXCMachine, self).__init__(*args, **kwargs)
         self.__container_directory = None
         self.__share_directory = None
+        self.base_dir = '/root'
 
     def exists(self):
         output = self.performer.execute('lxc-ls')
@@ -87,9 +88,9 @@ class LXCMachine(BaseMachine):
     @property
     def share_directory(self):
         if not self.__share_directory:
-            home_dir = self.performer.execute('bash -c "echo ~"')
-            return '{home_dir}/{container_name}/share'.format(
-                home_dir=home_dir,
+            abs_base_dir = self.performer.execute('pwd')
+            return '{abs_base_dir}/{container_name}/share'.format(
+                abs_base_dir=abs_base_dir,
                 container_name=self.ident
             )
         return self.__share_directory
@@ -153,15 +154,14 @@ class LXCMachine(BaseMachine):
         return self.ip
 
     def execute(self, command, logger=None, writein=None):
-        output = self.performer.execute('lxc-attach -n {container_name} -- {command}'.format(
-            container_name=self.ident,
-            command=command,
-        ), logger=logger, writein=writein)
+        output = self.performer.execute(
+            'lxc-attach -n {container_name} -v HOME={base_dir} -- bash -c "cd {base_dir} && {command}"'.format(
+                base_dir=self.base_dir,
+                container_name=self.ident,
+                command=command,
+            ), logger=logger, writein=writein
+        )
         return output
-
-    @property
-    def home_dir(self):
-        return '/root'
 
 
 class LXCMachinesConfiguration(BaseConfiguration):
@@ -182,7 +182,7 @@ class LXCMachinesProvider(BaseMachinesProvider):
     configuration_class = LXCMachinesConfiguration
 
     def _create_machine(self, ident):
-        machine = LXCMachine(self.performer, ident)
+        machine = LXCMachine(self.performer, ident=ident)
         machine.create(self.configuration.distribution, self.configuration.release)
         machine.start()
 
@@ -191,8 +191,8 @@ class LXCMachinesProvider(BaseMachinesProvider):
 
         #authorize user for ssh
         pub_key = '%s\n' % self.performer.execute('ssh-add -L')
-        machine.execute('mkdir -p {home_dir}/.ssh'.format(home_dir=machine.home_dir))
-        machine.execute('tee {home_dir}/.ssh/authorized_keys'.format(home_dir=machine.home_dir), writein=pub_key)
+        machine.execute('mkdir -p ~/.ssh')
+        machine.execute('tee ~/.ssh/authorized_keys', writein=pub_key)
 
         #add machine ssh signature to known_hosts
         machine.performer.execute('ssh-keyscan -H {host} >> ~/.ssh/known_hosts'.format(host=machine.host))

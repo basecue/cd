@@ -3,8 +3,9 @@ from contextlib import contextmanager
 
 
 class BaseExecutor(object):
-    def __init__(self, *args, **kwargs):
-        self.base_dir = ''
+    def __init__(self, *args, ident=None, **kwargs):
+        self.base_dir = '~'
+        self.ident = ident
         super(BaseExecutor, self).__init__(*args, **kwargs)
 
     def check_execute(self, command):
@@ -104,9 +105,8 @@ TEMP_FILE = 'codev.temp'
 
 
 class BaseRunner(BaseExecutor):
-    def __init__(self, performer, *args, ident=None, **kwargs):
+    def __init__(self, performer, *args, **kwargs):
         self.performer = performer
-        self.ident = ident
         super(BaseRunner, self).__init__(*args, **kwargs)
 
 
@@ -126,9 +126,9 @@ class BackgroundRunner(BaseRunner):
                 self.ident = 'control_{ip}_{remote_port}_{local_port}'.format(
                     ip=ip, remote_port=remote_port, local_port=local_port
                 )
-            home_dir = self.performer.execute('bash -c "echo ~"')
-            self.__isolation_directory = '{home_dir}/{ident}'.format(
-                home_dir=home_dir,
+            base_dir = self.performer.base_dir #execute('bash -c "echo ~"')
+            self.__isolation_directory = '{base_dir}/{ident}'.format(
+                base_dir=base_dir,
                 ident=self.ident
             )
 
@@ -218,6 +218,7 @@ class BackgroundRunner(BaseRunner):
                 **isolation._asdict()
             ),
             writein='{command}; echo $? > {exitcode_file}\n'.format(
+                base_dir=self.performer.base_dir,
                 command=command,
                 exitcode_file=isolation.exitcode_file
             )

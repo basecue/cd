@@ -7,11 +7,10 @@ logger = getLogger(__name__)
 
 
 class BaseIsolation(BasePerformer):
-    def __init__(self, performer, ident, *args, **kwargs):
-        self.performer = performer
-        self.background_runner = BackgroundRunner(self.performer, ident)
-        self.ident = ident
+    def __init__(self, performer, *args, **kwargs):
         super(BaseIsolation, self).__init__(*args, **kwargs)
+        self.performer = performer
+        self.background_runner = BackgroundRunner(self.performer, ident=self.ident)
 
     def create(self):
         raise NotImplementedError()
@@ -73,23 +72,26 @@ class IsolationProvider(object):
         self._isolation = Isolation(
             isolation_configuration.provider,
             performer,
-            ident
+            ident=ident
         )
         self.scripts = isolation_configuration.scripts
-        self.directory = None
 
-    def enter(self, create=False):
+    def enter(self, create=False, install=False):
+        directory = '{base_dir}/repository'.format(base_dir=self._isolation.base_dir)
         if create:
             logger.info("Creating isolation...")
             if self._isolation.create():
                 logger.info("Install project 1 to isolation.")
-                self.directory = self.installation.install(self._isolation)
+                self.installation.install(self._isolation, directory)
 
                 # run oncreate scripts
+                self._isolation.base_dir = directory
                 self._isolation.run_scripts(self.scripts.oncreate)
-            else:
+            elif install:
                 logger.info("Install project 2 to isolation.")
-                self.directory = self.installation.install(self._isolation)
+                self.installation.install(self._isolation, directory)
+
+        self._isolation.base_dir = directory
 
         logger.info("Entering isolation...")
         # run onenter scripts
