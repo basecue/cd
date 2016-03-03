@@ -168,9 +168,15 @@ def bool_exit_enable(func):
     return bool_exit
 
 
-@click.group()
-def main():
-    pass
+@click.group(invoke_without_command=True)
+@click.option('--version', is_flag=True,  help="Show version number and exit.")
+@click.pass_context
+def main(ctx, version):
+    if version:
+        click.echo(VERSION)
+    else:
+        click.echo(ctx.get_help())
+
 
 
 def command(confirmation=None, perform=False, bool_exit=True, **kwargs):

@@ -67,6 +67,14 @@ class Deployment(object):
             installation_options=installation_options,
             next_installation=next_installation_name,
             next_installation_options=next_installation_options,
+            installation_transition='{installation}:{installation_options}{transition}'.format(
+                installation=installation_name,
+                installation_options=installation_options,
+                transition=' -> {next_installation}:{next_installation_options}'.format(
+                    next_installation=next_installation_name,
+                    next_installation_options=next_installation_options
+                ) if next_installation_name else ''
+            )
         )
 
     def install(self):
@@ -221,7 +229,7 @@ class Deployment(object):
 
             command = input(
                 (color.GREEN +
-                 '{project} {environment} {infrastructure} {installation}:{installation_options} {next_installation}:{next_installation_options}' +
+                 '{project} {environment} {infrastructure} {installation_transition}' +
                  color.RESET + ':' + color.BLUE + '~' + color.RESET + '$ ').format(
                     **self.deployment_options
                 )

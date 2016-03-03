@@ -25,36 +25,35 @@ from codev.configuration import YAMLConfigurationWriter
 from codev.cli import command, main
 
 
-@main.command(
-    help='Create .codev file with basic settings in current directory or in given file path.',
-    short_help='Create .codev file with basic settings.'
-              )
-# TODO ?Merge with configuration option?
-@click.option('-p', '--path', default='.codev', help='Path to configuration file.')
-def init(path):
-    """
-    :param path:
-    :type path: str
-    :return:
-    :rtype: bool
-    """
-    if os.path.isdir(path):
-        path = os.path.join(path, '.codev')
-
-    if os.path.exists(path):
-        if not click.confirm("A file '%(filepath)s' already exists. Overwrite?" % {'filepath': path}):
-            raise click.Abort()
-
-    try:
-        YAMLConfigurationWriter().save_to_file(path)
-        return True
-    except Exception as e:
-        raise click.ClickException(e)
-
+# @main.command(
+#     help='Create .codev file with basic settings in current directory or in given file path.',
+#     short_help='Create .codev file with basic settings.'
+#               )
+# # TODO ?Merge with configuration option?
+# @click.option('-p', '--path', default='.codev', help='Path to configuration file.')
+# def init(path):
+#     """
+#     :param path:
+#     :type path: str
+#     :return:
+#     :rtype: bool
+#     """
+#     if os.path.isdir(path):
+#         path = os.path.join(path, '.codev')
+#
+#     if os.path.exists(path):
+#         if not click.confirm("A file '%(filepath)s' already exists. Overwrite?" % {'filepath': path}):
+#             raise click.Abort()
+#
+#     try:
+#         YAMLConfigurationWriter().save_to_file(path)
+#         return True
+#     except Exception as e:
+#         raise click.ClickException(e)
 
 @command(
-    help='Install project',
-    confirmation="Install project '{project}' to '{environment}' environment with infrastructure '{infrastructure}' at installation '{installation}'?",
+    help='Install project.',
+    confirmation="Install project '{project}' to '{environment}' environment with infrastructure '{infrastructure}' at installation '{installation_transition}'?",
     perform=True
 )
 def install(deployment, perform):
@@ -74,7 +73,7 @@ def install(deployment, perform):
         return deployment.install()
 
 
-@command(help='Join the running command in isolation')
+@command(help='Join the running command in isolation.')
 def join(deployment):
     """
     :param deployment:
@@ -85,7 +84,7 @@ def join(deployment):
     return deployment.join()
 
 
-@command(help='Execute command in isolation')
+@command(help='Execute command in isolation.')
 @click.argument('command', nargs=-1)
 def execute(deployment, command):
     """
@@ -99,7 +98,7 @@ def execute(deployment, command):
     return deployment.execute(' '.join(command))
 
 
-@command(help='Stop the running command in isolation')
+@command(help='Stop the running command in isolation.')
 def stop(deployment):
     """
     :param deployment:
@@ -110,7 +109,7 @@ def stop(deployment):
     return deployment.stop()
 
 
-@command(help='Kill the running command in isolation')
+@command(help='Kill the running command in isolation.')
 def kill(deployment):
     """
     :param deployment:
@@ -133,8 +132,8 @@ def shell(deployment):
 
 
 @command(
-    help='Run the script in isolation',
-    confirmation="Execute script '{script}' from project '{project}' in '{environment}' environment with infrastructure '{infrastructure}' at installation '{installation}'?"
+    help='Run the script in isolation.',
+    confirmation="Execute script '{script}' from project '{project}' in '{environment}' environment with infrastructure '{infrastructure}' at installation '{installation_transition}'?"
 )
 @click.argument('script')
 def run(deployment, script):
@@ -150,7 +149,7 @@ def run(deployment, script):
 
 @command(
     help='Destroy isolation.',
-    confirmation="Destroy isolation of project '{project}' in '{environment}' environment with infrastructure '{infrastructure}' at installation '{installation}'?"
+    confirmation="Destroy isolation of project '{project}' in '{environment}' environment with infrastructure '{infrastructure}' at installation '{installation_transition}'?"
 )
 def destroy(deployment):
     """
