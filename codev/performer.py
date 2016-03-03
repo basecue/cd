@@ -3,6 +3,10 @@ from contextlib import contextmanager
 
 
 class BaseExecutor(object):
+    def __init__(self, *args, **kwargs):
+        self.base_dir = ''
+        super(BaseExecutor, self).__init__(*args, **kwargs)
+
     def check_execute(self, command):
         try:
             self.execute(command)
@@ -14,7 +18,7 @@ class BaseExecutor(object):
         raise NotImplementedError()
 
     def run_scripts(self, scripts, common_arguments={}):
-        for script, arguments in scripts:
+        for script, arguments in scripts.items():
             arguments.update(common_arguments)
             self.execute(script.format(arguments))
 
@@ -100,9 +104,10 @@ TEMP_FILE = 'codev.temp'
 
 
 class BaseRunner(BaseExecutor):
-    def __init__(self, performer, ident=None):
+    def __init__(self, performer, *args, ident=None, **kwargs):
         self.performer = performer
         self.ident = ident
+        super(BaseRunner, self).__init__(*args, **kwargs)
 
 
 class BackgroundRunner(BaseRunner):

@@ -201,6 +201,7 @@ class LXCMachinesProvider(BaseMachinesProvider):
     def create_machines(self):
         machines = []
         for i in range(1, self.configuration.number + 1):
+            # TODO try lxc-clone instead of this
             ident = '%s_%000d' % (self.machines_name, i)
             machine = self._create_machine(ident)
             machines.append(machine)

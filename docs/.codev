@@ -42,6 +42,11 @@ environments:
         password: codev
     isolation:
       provider: lxc
+      scripts:
+        oncreate:
+          - scripts/install_vpnc.sh
+        onenter:
+          - scripts/connect_vpn.sh
     infrastructures:
       full:
         scripts:

@@ -1,6 +1,5 @@
 
 from .infrastructure import Infrastructure
-from .installation import Installation
 from .debug import DebugConfiguration
 from .logging import logging_config
 from .performer import CommandError
@@ -23,24 +22,19 @@ class Deployment(object):
         environment_configuration = configuration.environments[environment_name]
         installation_configuration = environment_configuration.installations[installation_name]
 
-        self._installation = Installation(
-            installation_name,
-            installation_options,
-            configuration_data=installation_configuration
-        )
-
-        ident = '%s_%s_%s_%s_%s' % (
-            configuration.project,
-            environment_name,
-            infrastructure_name,
-            installation_name,
-            self._installation.ident
-        )
-
         infrastructure_configuration = environment_configuration.infrastructures[infrastructure_name]
         self._infrastructure = Infrastructure(infrastructure_name, infrastructure_configuration)
 
-        self.isolation_provider = IsolationProvider(environment_configuration.performer, environment_configuration.isolation, ident)
+        self.isolation_provider = IsolationProvider(
+            configuration.project,
+            environment_name,
+            infrastructure_name,
+            environment_configuration.performer,
+            environment_configuration.isolation,
+            installation_name,
+            installation_options,
+            installation_configuration
+        )
 
         self.project_name = configuration.project
         self.environment_name, self.infrastructure_name, self.installation_name, self.installation_options = \
@@ -56,8 +50,7 @@ class Deployment(object):
         logger.info("Starting installation...")
         isolation = self.isolation_provider.enter(create=True)
 
-        logger.info("Install project to isolation.")
-        directory = self._installation.install(isolation)
+        directory = self.isolation_provider.directory
 
         with isolation.get_fo('{directory}/.codev'.format(directory=directory)) as codev_file:
             version = YAMLConfigurationReader().from_yaml(codev_file).version

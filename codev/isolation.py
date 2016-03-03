@@ -1,3 +1,4 @@
+from .installation import Installation
 from .provider import BaseProvider
 from .performer import Performer, BasePerformer, BackgroundRunner
 from logging import getLogger
@@ -39,7 +40,31 @@ class Isolation(BaseProvider):
 
 
 class IsolationProvider(object):
-    def __init__(self, performer_configuration, isolation_configuration, ident):
+    def __init__(self,
+                 project_name,
+                 environment_name,
+                 infrastructure_name,
+                 performer_configuration,
+                 isolation_configuration,
+                 installation_name,
+                 installation_options,
+                 installation_configuration
+                 ):
+
+        self.installation = Installation(
+            installation_name,
+            installation_options,
+            configuration_data=installation_configuration
+        )
+
+        ident = '%s_%s_%s_%s_%s' % (
+            project_name,
+            environment_name,
+            infrastructure_name,
+            installation_name,
+            self.installation.ident
+        )
+
         performer = Performer(
             performer_configuration.provider,
             configuration_data=performer_configuration.specific
@@ -51,13 +76,20 @@ class IsolationProvider(object):
             ident
         )
         self.scripts = isolation_configuration.scripts
+        self.directory = None
 
     def enter(self, create=False):
         if create:
             logger.info("Creating isolation...")
             if self._isolation.create():
+                logger.info("Install project 1 to isolation.")
+                self.directory = self.installation.install(self._isolation)
+
                 # run oncreate scripts
                 self._isolation.run_scripts(self.scripts.oncreate)
+            else:
+                logger.info("Install project 2 to isolation.")
+                self.directory = self.installation.install(self._isolation)
 
         logger.info("Entering isolation...")
         # run onenter scripts

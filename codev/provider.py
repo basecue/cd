@@ -40,6 +40,7 @@ class BaseProvider(object, metaclass=BaseProviderMetaClass):
 class ConfigurableProvider(object):
     configuration_class = None
 
-    def __init__(self, configuration_data={}):
+    def __init__(self, *args, configuration_data={}, **kwargs):
         if self.__class__.configuration_class:
             self.configuration = self.__class__.configuration_class(configuration_data)
+        super(ConfigurableProvider, self).__init__(*args, **kwargs)

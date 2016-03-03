@@ -68,7 +68,7 @@ class ListDictConfiguration(OrderedDict):
         if isinstance(data, dict) or isinstance(data, OrderedDict):
             for key, value in data.items():
                 if not (isinstance(value, dict) or isinstance(value, OrderedDict)):
-                    raise ValueError('Object {value} must be dictionary like object.'.format(value=value))
+                    raise ValueError('Object {value} must be dictionary.'.format(value=value))
                 self[key] = self.__class__._intersect_default_value(intersect_default, key, value)
 
         elif isinstance(data, list):
@@ -84,7 +84,7 @@ class ListDictConfiguration(OrderedDict):
                     value = {}
                 self[key] = self.__class__._intersect_default_value(intersect_default, key, value)
         else:
-            raise ValueError('Object {data} must be list or dictionary like object.'.format(data=data))
+            raise ValueError('Object {data} must be list or dictionary.'.format(data=data))
 
 
 class ProvisionScriptsConfiguration(BaseConfiguration):
