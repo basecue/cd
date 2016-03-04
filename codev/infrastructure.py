@@ -7,11 +7,13 @@ from logging import getLogger
 logger = getLogger(__name__)
 import re
 
+
 #basic connectivity provider - not yet extensible
 class RedirectPort(object):
     def __init__(self, source, target):
         self.source = int(source)
         self.target = int(target)
+
 
 class MachineConectivityConfiguration(DictConfiguration):
     pass
@@ -42,8 +44,9 @@ class Infrastructure(object):
             machines_groups[machines_name] = machines_provider.machines(create=create)
         return machines_groups
 
-    def provision(self):
-        self.performer.run_scripts(self.scripts.onstart)
+    def provision(self, installation):
+        with self.performer.directory(installation.directory):
+            self.performer.run_scripts(self.scripts.onstart)
         try:
             logger.info('Installing provisioner...')
             self._provision_provider.install()
@@ -55,20 +58,27 @@ class Infrastructure(object):
             self._provision_provider.run(machines_groups)
         except CommandError as e:
             logger.error(e)
-            self.performer.run_scripts(
-                self.scripts.onerror,
-                dict(
-                    command=e.command,
-                    exit_code=e.exit_code,
-                    error=e.error
+            with self.performer.directory(installation.directory):
+                self.performer.run_scripts(
+                    self.scripts.onerror,
+                    dict(
+                        command=e.command,
+                        exit_code=e.exit_code,
+                        error=e.error
+                    )
                 )
-            )
             return False
         else:
-            self.performer.run_scripts(self.scripts.onsuccess)
+            with self.performer.directory(installation.directory):
+                self.performer.run_scripts(self.scripts.onsuccess)
             return True
 
     def connect(self, isolation):
+        """
+        TODO podivat se jestli je nutno mit performer a jestli je tedy nutno byt v teto class
+        :param isolation:
+        :return:
+        """
         print(self.configuration.connectivity)
         for machine_str, connectivity_conf in self.configuration.connectivity.items():
             print(machine_str, connectivity_conf)
@@ -88,6 +98,6 @@ class Infrastructure(object):
                         target_ip=isolation.ip
                     )
 
-                    self.performer('iptables -t nat -A PREROUTING --dst {target_ip} -p tcp --dport {target_port} -j DNAT --to-destination {source_ip}:{source_port}'.format(**redirection))
-                    self.performer('iptables -t nat -A POSTROUTING -p tcp --dst {source_ip} --dport {source_port} -j SNAT --to-source {target_ip}'.format(**redirection))
-                    self.performer('iptables -t nat -A OUTPUT --dst {target_ip} -p tcp --dport {target_port} -j DNAT --to-destination {source_ip}:{source_port}'.format(**redirection))
+                    isolation.execute('iptables -t nat -A PREROUTING --dst {target_ip} -p tcp --dport {target_port} -j DNAT --to-destination {source_ip}:{source_port}'.format(**redirection))
+                    isolation.execute('iptables -t nat -A POSTROUTING -p tcp --dst {source_ip} --dport {source_port} -j SNAT --to-source {target_ip}'.format(**redirection))
+                    isolation.execute('iptables -t nat -A OUTPUT --dst {target_ip} -p tcp --dport {target_port} -j DNAT --to-destination {source_ip}:{source_port}'.format(**redirection))

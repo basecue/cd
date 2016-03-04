@@ -1,5 +1,5 @@
 from .provider import BaseProvider
-from .performer import Performer, BasePerformer, BackgroundRunner
+from .performer import BasePerformer, BackgroundRunner
 from logging import getLogger
 from hashlib import md5
 
@@ -65,6 +65,7 @@ class IsolationProvider(object):
 
         self.installation = installation
         self.next_installation = next_installation
+        self.current_installation = None
 
         self._isolation = Isolation(
             isolation_configuration.provider,
@@ -74,27 +75,30 @@ class IsolationProvider(object):
         self.scripts = isolation_configuration.scripts
 
     def enter(self, create=False, next_install=False):
-        directory = '{base_dir}/repository'.format(base_dir=self._isolation.base_dir)
+        # TODO move to deployment
         if create:
             logger.info("Creating isolation...")
             if self._isolation.create():
                 logger.info("Install project to isolation.")
-                self.installation.install(self._isolation, directory)
+                self.current_installation = self.installation
+                self.current_installation.install(self._isolation)
 
                 # run oncreate scripts
-                self._isolation.base_dir = directory
-                self._isolation.run_scripts(self.scripts.oncreate)
+                with self._isolation.directory(self.current_installation.directory):
+                    self._isolation.run_scripts(self.scripts.oncreate)
             else:
                 if next_install and self.next_installation:
                     logger.info("Transition installation in isolation.")
-                    self.next_installation.install(self._isolation, directory)
-
-        self._isolation.base_dir = directory
+                    self.current_installation = self.next_installation
+                    self.current_installation.install(self._isolation)
 
         logger.info("Entering isolation...")
         # run onenter scripts
-        self._isolation.run_scripts(self.scripts.onenter)
-        return self._isolation
+        with self._isolation.directory(self.current_installation.directory):
+            self._isolation.run_scripts(self.scripts.onenter)
 
-    def destroy(self):
+        return self._isolation, self.current_installation
+
+    def destroy_isolation(self):
+        # TODO move to deployment
         return self._isolation.destroy()

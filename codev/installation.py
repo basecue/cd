@@ -4,6 +4,7 @@ from .provider import BaseProvider, ConfigurableProvider
 class BaseInstallation(ConfigurableProvider):
     def __init__(self, options, *args, **kwargs):
         self.process_options(options)
+        self.options = options
         super(BaseInstallation, self).__init__(*args, **kwargs)
 
     @property
@@ -13,7 +14,7 @@ class BaseInstallation(ConfigurableProvider):
             ident=self.id
         )
 
-    def install(self, performer, directory):
+    def install(self, performer):
         raise NotImplementedError()
 
     def process_options(self, options):
@@ -22,6 +23,10 @@ class BaseInstallation(ConfigurableProvider):
     @property
     def id(self):
         raise NotImplementedError()
+
+    @property
+    def directory(self):
+        return 'repository'
 
 
 class Installation(BaseProvider):

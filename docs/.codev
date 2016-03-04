@@ -50,9 +50,9 @@ environments:
     infrastructures:
       full:
         connectivity:
-            webservers[0]:
-              80: 80
-              22: 22
+          webservers[0]:
+            80: 80
+            22: 22
 
         machines:
           webservers:

@@ -27,29 +27,11 @@ class Deployment(object):
             installation_options,
             next_installation_name='',
             next_installation_options='',
-            perform=False
+            perform=None
     ):
         environment_configuration = configuration.environments[environment_name]
 
-        # performer
-        if not perform:
-            performer_configuration = environment_configuration.performer
-            performer_provider = performer_configuration.provider
-            performer_specific = performer_configuration.specific
-        else:
-            performer_provider = 'local'
-            performer_specific = {}
-
-        performer = Performer(
-            performer_provider,
-            configuration_data=performer_specific
-        )
-
-        # infrastructure
-        infrastructure_configuration = environment_configuration.infrastructures[infrastructure_name]
-        self._infrastructure = Infrastructure(performer, infrastructure_name, infrastructure_configuration)
-
-        # installation and isolation
+        #installation
         installation_configuration = environment_configuration.installations[installation_name]
         installation = Installation(
             installation_name,
@@ -66,6 +48,26 @@ class Deployment(object):
         else:
             next_installation = None
 
+        # performer
+        if not perform:
+            performer_configuration = environment_configuration.performer
+            performer_provider = performer_configuration.provider
+            performer_specific = performer_configuration.specific
+        else:
+            performer_provider = 'local'
+            performer_specific = {}
+            self.current_installation = installation
+
+        performer = Performer(
+            performer_provider,
+            configuration_data=performer_specific
+        )
+
+        # infrastructure
+        infrastructure_configuration = environment_configuration.infrastructures[infrastructure_name]
+        self._infrastructure = Infrastructure(performer, infrastructure_name, infrastructure_configuration)
+
+        # isolation
         self.isolation_provider = IsolationProvider(
             configuration.project,
             environment_name,
@@ -103,10 +105,11 @@ class Deployment(object):
         :rtype: bool
         """
         logger.info("Starting installation...")
-        isolation = self.isolation_provider.enter(create=True, next_install=True)
+        isolation, current_installation = self.isolation_provider.enter(create=True, next_install=True)
 
-        with isolation.get_fo('.codev') as codev_file:
-            version = YAMLConfigurationReader().from_yaml(codev_file).version
+        with isolation.directory(current_installation.directory):
+            with isolation.get_fo('.codev') as codev_file:
+                version = YAMLConfigurationReader().from_yaml(codev_file).version
 
         # install python3 pip
         isolation.execute('apt-get install python3-pip -y --force-yes')
@@ -135,14 +138,15 @@ class Deployment(object):
 
         logging_config(control_perform=True)
         try:
-            deployment_options = '-e {environment} -i {infrastructure} -s {installation}:{installation_options} -n {next_installation}:{next_installation_options}'.format(
+            deployment_options = '-e {environment} -i {infrastructure} -s {current_installation.provider_name}:{current_installation.options}'.format(
+                current_installation=current_installation,
                 **self.deployment_options
             )
-
-            isolation.background_execute('codev install {deployment_options} --perform --force {perform_debug}'.format(
-                deployment_options=deployment_options,
-                perform_debug=perform_debug
-            ), logger=command_logger)
+            with isolation.directory(current_installation.directory):
+                isolation.background_execute('codev install {deployment_options} --perform --force {perform_debug}'.format(
+                    deployment_options=deployment_options,
+                    perform_debug=perform_debug
+                ), logger=command_logger)
         except CommandError as e:
             command_logger.error(e.error)
             logger.error("Installation failed.")
@@ -160,7 +164,7 @@ class Deployment(object):
         :return: True if provision successfully proceeds
         :rtype: bool
         """
-        return self._infrastructure.provision()
+        return self._infrastructure.provision(self.current_installation)
 
     def execute(self, command):
         """
@@ -172,7 +176,7 @@ class Deployment(object):
         :return: True if executed command returns 0
         :rtype: bool
         """
-        isolation = self.isolation_provider.enter(create=True)
+        isolation, current_installation = self.isolation_provider.enter(create=True)
 
         logging_config(control_perform=True)
         try:
@@ -192,7 +196,7 @@ class Deployment(object):
         :rtype: bool
         """
         logging_config(control_perform=True)
-        isolation = self.isolation_provider.enter()
+        isolation, current_installation = self.isolation_provider.enter()
         if isolation.background_join(logger=command_logger):
             logger.info('Command finished.')
             return True
@@ -207,7 +211,7 @@ class Deployment(object):
         :return: True if command was running
         :rtype: bool
         """
-        isolation = self.isolation_provider.enter()
+        isolation, current_installation = self.isolation_provider.enter()
         if isolation.background_stop():
             logger.info('Stop signal has been sent.')
             return True
@@ -222,7 +226,7 @@ class Deployment(object):
         :return: True if command was running
         :rtype: bool
         """
-        isolation = self.isolation_provider.enter()
+        isolation, current_installation = self.isolation_provider.enter()
         if isolation.background_kill():
             logger.info('Command has been killed.')
             return True
@@ -237,7 +241,7 @@ class Deployment(object):
         :return:
         :rtype: bool
         """
-        isolation = self.isolation_provider.enter(create=True)
+        isolation, current_installation = self.isolation_provider.enter(create=True)
         self._infrastructure.connect(isolation)
         logger.info('Entering isolation shell...')
 
@@ -294,7 +298,7 @@ class Deployment(object):
         :return: True if isolation is destroyed
         :rtype: bool
         """
-        if self.isolation_provider.destroy():
+        if self.isolation_provider.destroy_isolation():
             logger.info('Isolation has been destroyed.')
             return True
         else:

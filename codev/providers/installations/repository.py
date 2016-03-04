@@ -44,11 +44,12 @@ class RepositoryInstallation(BaseInstallation):
 
         raise ValueError(options)
 
+
     @property
     def id(self):
         return self.branch or self.tag or self.commit
 
-    def install(self, performer, directory):
+    def install(self, performer):
         """
         Install project to directory
 
@@ -69,24 +70,22 @@ class RepositoryInstallation(BaseInstallation):
 
         performer.execute('mkdir -p ~/.ssh')
         performer.send_file('~/.ssh/known_hosts', '~/.ssh/known_hosts')
-
-        if performer.check_execute('[ -d {directory} ]'.format(directory=directory)):
-            performer.check_execute('rm -rf {directory}'.format(directory=directory))
+        if performer.check_execute('[ -d {directory} ]'.format(directory=self.directory)):
+            performer.check_execute('rm -rf {directory}'.format(directory=self.directory))
 
         if self.branch or self.tag:
             performer.execute('git clone {url} --branch {object} --single-branch {directory}'.format(
                 url=self.configuration.url,
-                directory=directory,
+                directory=self.directory,
                 object=self.branch or self.tag
             ))
         elif self.commit:
             # TODO TEST - cd
-            performer.execute('git init {directory}'.format(directory=directory))
-            performer.execute('cd {directory}'.format(directory=directory))
+            performer.execute('git init {directory}'.format(directory=self.directory))
+            performer.execute('cd {directory}'.format(directory=self.directory))
             performer.execute('git remote add origin {url}'.format(url=self.configuration.url))
             performer.execute('git fetch origin {commit}'.format(commit=self.commit))
             performer.execute('git reset --hard FETCH_HEAD')
 
-        return directory
 
 Installation.register('repository', RepositoryInstallation)

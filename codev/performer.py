@@ -1,5 +1,6 @@
 from .provider import BaseProvider, ConfigurableProvider
 from contextlib import contextmanager
+from os import path
 
 
 class BaseExecutor(object):
@@ -23,6 +24,13 @@ class BaseExecutor(object):
         for script, arguments in scripts.items():
             arguments.update(common_arguments)
             self.execute(script.format(arguments))
+
+    @contextmanager
+    def directory(self, directory):
+        old_base_dir = self.base_dir
+        self.base_dir = path.join(self.base_dir, directory)
+        yield
+        self.base_dir = old_base_dir
 
 
 class PerformerError(Exception):
