@@ -181,29 +181,32 @@ class LXCMachinesConfiguration(BaseConfiguration):
 class LXCMachinesProvider(BaseMachinesProvider):
     configuration_class = LXCMachinesConfiguration
 
-    def _create_machine(self, ident):
+    def _machine(self, ident, create=False):
         machine = LXCMachine(self.performer, ident=ident)
-        machine.create(self.configuration.distribution, self.configuration.release)
+        if create:
+            machine.create(self.configuration.distribution, self.configuration.release)
+
         machine.start()
 
-        #install ssh server
-        machine.install_package('openssh-server')
+        if create:
+            #install ssh server
+            machine.install_package('openssh-server')
 
-        #authorize user for ssh
-        pub_key = '%s\n' % self.performer.execute('ssh-add -L')
-        machine.execute('mkdir -p ~/.ssh')
-        machine.execute('tee ~/.ssh/authorized_keys', writein=pub_key)
+            #authorize user for ssh
+            pub_key = '%s\n' % self.performer.execute('ssh-add -L')
+            machine.execute('mkdir -p ~/.ssh')
+            machine.execute('tee ~/.ssh/authorized_keys', writein=pub_key)
 
-        #add machine ssh signature to known_hosts
-        machine.performer.execute('ssh-keyscan -H {host} >> ~/.ssh/known_hosts'.format(host=machine.host))
+            #add machine ssh signature to known_hosts
+            machine.performer.execute('ssh-keyscan -H {host} >> ~/.ssh/known_hosts'.format(host=machine.host))
         return machine
 
-    def create_machines(self):
+    def machines(self, create=False):
         machines = []
         for i in range(1, self.configuration.number + 1):
             # TODO try lxc-clone instead of this
             ident = '%s_%000d' % (self.machines_name, i)
-            machine = self._create_machine(ident)
+            machine = self._machine(ident, create=create)
             machines.append(machine)
         return machines
 

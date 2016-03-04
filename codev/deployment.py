@@ -2,7 +2,7 @@ from .infrastructure import Infrastructure
 from .installation import Installation
 from .debug import DebugConfiguration
 from .logging import logging_config
-from .performer import CommandError
+from .performer import CommandError, Performer
 from .isolation import IsolationProvider
 from .configuration import YAMLConfigurationReader
 from colorama import Fore as color
@@ -26,14 +26,31 @@ class Deployment(object):
             installation_name,
             installation_options,
             next_installation_name='',
-            next_installation_options=''
+            next_installation_options='',
+            perform=False
     ):
         environment_configuration = configuration.environments[environment_name]
-        installation_configuration = environment_configuration.installations[installation_name]
 
+        # performer
+        if not perform:
+            performer_configuration = environment_configuration.performer
+            performer_provider = performer_configuration.provider
+            performer_specific = performer_configuration.specific
+        else:
+            performer_provider = 'local'
+            performer_specific = {}
+
+        performer = Performer(
+            performer_provider,
+            configuration_data=performer_specific
+        )
+
+        # infrastructure
         infrastructure_configuration = environment_configuration.infrastructures[infrastructure_name]
-        self._infrastructure = Infrastructure(infrastructure_name, infrastructure_configuration)
+        self._infrastructure = Infrastructure(performer, infrastructure_name, infrastructure_configuration)
 
+        # installation and isolation
+        installation_configuration = environment_configuration.installations[installation_name]
         installation = Installation(
             installation_name,
             installation_options,
@@ -53,12 +70,13 @@ class Deployment(object):
             configuration.project,
             environment_name,
             infrastructure_name,
-            environment_configuration.performer,
+            performer,
             environment_configuration.isolation,
             installation,
             next_installation
         )
 
+        # helper - deployment options
         self.deployment_options = dict(
             project=configuration.project,
             environment=environment_name,
@@ -130,6 +148,8 @@ class Deployment(object):
             logger.error("Installation failed.")
             return False
         else:
+            logger.info("Setting up connectivity.")
+            self._infrastructure.connect(isolation)
             logger.info("Installation has been successfully completed.")
             return True
 
@@ -218,6 +238,7 @@ class Deployment(object):
         :rtype: bool
         """
         isolation = self.isolation_provider.enter(create=True)
+        self._infrastructure.connect(isolation)
         logger.info('Entering isolation shell...')
 
         #support for history

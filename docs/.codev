@@ -49,12 +49,11 @@ environments:
           - scripts/connect_vpn.sh
     infrastructures:
       full:
-        scripts:
-          oncreate:
-          onenter:
         connectivity:
-          webservers:
-            - 80: 80
+            webservers[0]:
+              80: 80
+              22: 22
+
         machines:
           webservers:
             provider: lxc

@@ -33,6 +33,10 @@ class BaseIsolation(BasePerformer):
     def background_kill(self):
         return self.background_runner.kill()
 
+    @property
+    def ip(self):
+        raise NotImplementedError()
+
 
 class Isolation(BaseProvider):
     provider_class = BaseIsolation
@@ -43,7 +47,7 @@ class IsolationProvider(object):
                  project_name,
                  environment_name,
                  infrastructure_name,
-                 performer_configuration,
+                 performer,
                  isolation_configuration,
                  installation,
                  next_installation=None
@@ -61,11 +65,6 @@ class IsolationProvider(object):
 
         self.installation = installation
         self.next_installation = next_installation
-
-        performer = Performer(
-            performer_configuration.provider,
-            configuration_data=performer_configuration.specific
-        )
 
         self._isolation = Isolation(
             isolation_configuration.provider,

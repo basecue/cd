@@ -116,6 +116,10 @@ class InfrastructureConfiguration(BaseConfiguration):
     def provision(self):
         return ProvisionConfiguration(self.data.get('provision', {}))
 
+    @property
+    def connectivity(self):
+        return ListDictConfiguration(self.data.get('connectivity', {}))
+
 
 class IsolationScriptsConfiguration(BaseConfiguration):
     @property

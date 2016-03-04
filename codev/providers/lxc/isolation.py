@@ -101,4 +101,8 @@ class LXCIsolation(BaseIsolation):
         self.machine = LXCMachine(self.performer, ident=self.ident)
         return self.machine.destroy()
 
+    @property
+    def ip(self):
+        return self.machine.ip
+
 Isolation.register('lxc', LXCIsolation)

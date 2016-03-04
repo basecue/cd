@@ -45,7 +45,8 @@ def deployment_options(func):
             installation_name,
             installation_options,
             next_installation_name,
-            next_installation_options
+            next_installation_options,
+            kwargs.get('perform', False)
         )
         return func(deployment, **kwargs)
 
@@ -84,6 +85,7 @@ def perform_option(func):
             )
             if not DebugConfiguration.configuration.disable_version_check:
                 assert configuration.version == VERSION
+
         return func(configuration, *args, **kwargs)
 
     return click.option('--perform',
