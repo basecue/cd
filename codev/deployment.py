@@ -6,7 +6,7 @@ from .performer import CommandError, Performer
 from .isolation import Isolation
 from hashlib import md5
 from .configuration import YAMLConfigurationReader
-from colorama import Fore as color
+from colorama import Fore as color, Style as style
 
 from logging import getLogger
 
@@ -31,6 +31,8 @@ class Deployment(object):
             perform=None
     ):
         environment_configuration = configuration.environments[environment_name]
+        self.environment = environment_name
+        self.configuration = configuration
 
         #installation
         installation_configuration = environment_configuration.installations[installation_name]
@@ -90,24 +92,45 @@ class Deployment(object):
         )
         self.isolation_scripts = isolation_configuration.scripts
 
+    def installation_transition(self):
+        deployment_info = self.deployment_info(transition=False)
 
-        # helper - deployment options
-        self.deployment_options = dict(
-            project=configuration.project,
-            environment=environment_name,
-            infrastructure=infrastructure_name,
-            installation=installation_name,
-            installation_options=installation_options,
-            next_installation=next_installation_name,
-            next_installation_options=next_installation_options,
-            installation_transition='{installation}:{installation_options}{transition}'.format(
-                installation=installation_name,
-                installation_options=installation_options,
-                transition=' -> {next_installation}:{next_installation_options}'.format(
-                    next_installation=next_installation_name,
-                    next_installation_options=next_installation_options
-                ) if next_installation_name else ''
+        if self.next_installation:
+            if self.current_installation == self.installation:
+                color_installation = color.GREEN + style.BRIGHT
+                color_next_installation = color.GREEN
+            else:
+                color_installation = color.GREEN
+                color_next_installation = color.GREEN + style.BRIGHT
+
+            color_options = dict(
+                color_installation=color_installation,
+                color_next_installation=color_next_installation,
+                color_reset=color.RESET + style.RESET_ALL
             )
+
+            deployment_info.update(color_options)
+            transition = ' -> {color_next_installation}{next_installation}:{next_installation_options}{color_reset}'.format(
+                **deployment_info
+            )
+        else:
+            transition = ''
+
+        return '{color_installation}{installation}:{installation_options}{color_reset}{transition}'.format(
+            transition=transition,
+            **deployment_info
+        )
+
+    def deployment_info(self, transition=True):
+        return dict(
+            project=self.configuration.project,
+            environment=self.environment,
+            infrastructure=self._infrastructure.name,
+            installation=self.installation.name,
+            installation_options=self.installation.options,
+            next_installation=self.next_installation.name if self.next_installation else '',
+            next_installation_options=self.next_installation.options if self.next_installation else '',
+            installation_transition=self.installation_transition() if transition else ''
         )
 
     def isolation(self, create=False, next_install=False):
@@ -177,7 +200,7 @@ class Deployment(object):
         try:
             deployment_options = '-e {environment} -i {infrastructure} -s {current_installation.provider_name}:{current_installation.options}'.format(
                 current_installation=self.current_installation,
-                **self.deployment_options
+                **self.deployment_info()
             )
             with isolation.directory(self.current_installation.directory):
                 isolation.background_execute('codev install {deployment_options} --perform --force {perform_debug}'.format(
@@ -293,7 +316,7 @@ class Deployment(object):
                 (color.GREEN +
                  '{project} {environment} {infrastructure} {installation_transition}' +
                  color.RESET + ':' + color.BLUE + '~' + color.RESET + '$ ').format(
-                    **self.deployment_options
+                    **self.deployment_info()
                 )
             )
             if command in ('exit', 'quit', 'logout'):
@@ -315,18 +338,6 @@ class Deployment(object):
                 isolation.background_execute(command, logger=shell_logger)
             except CommandError as e:
                 shell_logger.error(e.error)
-
-    def run(self, script):
-        """
-        Create isolation if it does not exist and run script in isolation.
-
-        :param script: Name of the script
-        :type param: str
-        :return:
-        :rtype: bool
-        """
-        # TODO
-        pass
 
     def destroy(self):
         """

@@ -133,22 +133,6 @@ def shell(deployment):
 
 
 @command(
-    help='Run the script in isolation.',
-    confirmation="Execute script '{script}' from project '{project}' in '{environment}' environment with infrastructure '{infrastructure}' at installation '{installation_transition}'?"
-)
-@click.argument('script')
-def run(deployment, script):
-    """
-    :param deployment:
-    :type deployment: codev.deployment.Deployment
-    :param script:
-    :return:
-    :rtype: bool
-    """
-    deployment.run(script)
-
-
-@command(
     help='Destroy isolation.',
     confirmation="Destroy isolation of project '{project}' in '{environment}' environment with infrastructure '{infrastructure}' at installation '{installation_transition}'?"
 )
@@ -160,6 +144,19 @@ def destroy(deployment):
     :rtype: bool
     """
     deployment.destroy()
+
+
+@command(help='Show info about the deployment.')
+def info(deployment):
+    """
+    :param deployment:
+    :type deployment: codev.deployment.Deployment
+    :return:
+    :rtype: bool
+    """
+    click.echo(
+        '{project} {environment} {infrastructure} {installation_transition}'.format(**deployment.deployment_info())
+    )
 
 
 if __name__ == "__main__":

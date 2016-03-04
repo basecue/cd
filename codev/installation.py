@@ -8,9 +8,13 @@ class BaseInstallation(ConfigurableProvider):
         super(BaseInstallation, self).__init__(*args, **kwargs)
 
     @property
+    def name(self):
+        return self.__class__.provider_name
+
+    @property
     def ident(self):
-        return '{provider_name}_{ident}'.format(
-            provider_name=self.__class__.provider_name,
+        return '{name}_{ident}'.format(
+            name=self.name,
             ident=self.id
         )
 

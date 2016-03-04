@@ -34,12 +34,12 @@ class Infrastructure(object):
             configuration_data=configuration.provision.specific
         )
 
-    def _machines_groups(self, create=False):
+    def _machines_groups(self, performer, create=False):
         machines_groups = {}
         for machines_name, machines_configuration in self.configuration.machines.items():
             machines_provider = MachinesProvider(
                 machines_configuration.provider,
-                machines_name, self.performer, configuration_data=machines_configuration.specific
+                machines_name, performer, configuration_data=machines_configuration.specific
             )
             machines_groups[machines_name] = machines_provider.machines(create=create)
         return machines_groups
@@ -52,7 +52,7 @@ class Infrastructure(object):
             self._provision_provider.install()
 
             logger.info('Creating machines...')
-            machines_groups = self._machines_groups(create=True)
+            machines_groups = self._machines_groups(self.performer, create=True)
 
             logger.info('Starting provisioning...')
             self._provision_provider.run(machines_groups)
@@ -84,9 +84,9 @@ class Infrastructure(object):
             print(machine_str, connectivity_conf)
             r = re.match('(?P<machine_group>[^\[]+)\[(?P<machine_index>\d+)\]', machine_str)
             if r:
-                machines_groups = self._machines_groups(create=False)
+                machines_groups = self._machines_groups(isolation, create=False)
                 machine_group = r.group('machine_group')
-                machine_index = int(r.group('machine_index')) + 1
+                machine_index = int(r.group('machine_index'))
                 machine = machines_groups[machine_group][machine_index]
                 machine_connectivity_configuration = MachineConectivityConfiguration(RedirectPort, connectivity_conf)
                 for redirect_port in machine_connectivity_configuration:
