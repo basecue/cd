@@ -8,17 +8,6 @@ logger = getLogger(__name__)
 import re
 
 
-#basic connectivity provider - not yet extensible
-class RedirectPort(object):
-    def __init__(self, source, target):
-        self.source = int(source)
-        self.target = int(target)
-
-
-class MachineConectivityConfiguration(DictConfiguration):
-    pass
-
-
 class Infrastructure(object):
     def __init__(self, performer, name, configuration):
         self.name = name
@@ -45,7 +34,7 @@ class Infrastructure(object):
         return machines_groups
 
     def provision(self, installation):
-        with self.performer.directory(installation.directory):
+        with self.performer.change_directory(installation.directory):
             self.performer.run_scripts(self.scripts.onstart)
         try:
             logger.info('Installing provisioner...')
@@ -58,7 +47,7 @@ class Infrastructure(object):
             self._provision_provider.run(machines_groups)
         except CommandError as e:
             logger.error(e)
-            with self.performer.directory(installation.directory):
+            with self.performer.change_directory(installation.directory):
                 self.performer.run_scripts(
                     self.scripts.onerror,
                     dict(
@@ -69,7 +58,7 @@ class Infrastructure(object):
                 )
             return False
         else:
-            with self.performer.directory(installation.directory):
+            with self.performer.change_directory(installation.directory):
                 self.performer.run_scripts(self.scripts.onsuccess)
             return True
 
@@ -88,12 +77,11 @@ class Infrastructure(object):
                 machine_group = r.group('machine_group')
                 machine_index = int(r.group('machine_index'))
                 machine = machines_groups[machine_group][machine_index]
-                machine_connectivity_configuration = MachineConectivityConfiguration(RedirectPort, connectivity_conf)
-                for redirect_port in machine_connectivity_configuration:
-                    print(machine, machine_connectivity_configuration)
+
+                for source_port, target_port in connectivity_conf.items():
                     redirection = dict(
-                        source_port=redirect_port.source,
-                        target_port=redirect_port.target,
+                        source_port=source_port,
+                        target_port=target_port,
                         source_ip=machine.ip,
                         target_ip=isolation.ip
                     )

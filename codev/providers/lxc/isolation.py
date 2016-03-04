@@ -105,4 +105,8 @@ class LXCIsolation(BaseIsolation):
     def ip(self):
         return self.machine.ip
 
+    def exists(self):
+        return self.machine.exists()
+
+
 Isolation.register('lxc', LXCIsolation)

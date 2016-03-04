@@ -11,6 +11,9 @@ class BaseIsolation(BasePerformer):
         self.performer = performer
         self.background_runner = BackgroundRunner(self.performer, ident=self.ident)
 
+    def exists(self):
+        raise NotImplementedError()
+
     def create(self):
         raise NotImplementedError()
 

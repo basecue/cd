@@ -26,7 +26,7 @@ class BaseExecutor(object):
             self.execute(script.format(arguments))
 
     @contextmanager
-    def directory(self, directory):
+    def change_directory(self, directory):
         old_base_dir = self.base_dir
         self.base_dir = path.join(self.base_dir, directory)
         yield

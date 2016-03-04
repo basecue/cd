@@ -28,29 +28,14 @@ class Deployment(object):
             installation_options,
             next_installation_name='',
             next_installation_options='',
-            perform=None
+            perform=False
     ):
         environment_configuration = configuration.environments[environment_name]
         self.environment = environment_name
         self.configuration = configuration
 
-        #installation
-        installation_configuration = environment_configuration.installations[installation_name]
-        self.installation = Installation(
-            installation_name,
-            installation_options,
-            configuration_data=installation_configuration
-        )
 
-        if next_installation_name:
-            self.next_installation = Installation(
-                next_installation_name,
-                next_installation_options,
-                configuration_data=installation_configuration
-            )
-        else:
-            self.next_installation = None
-
+        # performer and infrastructure
         # performer
         if not perform:
             performer_configuration = environment_configuration.performer
@@ -59,7 +44,6 @@ class Deployment(object):
         else:
             performer_provider = 'local'
             performer_specific = {}
-            self.current_installation = self.installation
 
         performer = Performer(
             performer_provider,
@@ -70,27 +54,55 @@ class Deployment(object):
         infrastructure_configuration = environment_configuration.infrastructures[infrastructure_name]
         self._infrastructure = Infrastructure(performer, infrastructure_name, infrastructure_configuration)
 
-        # isolation
-        isolation_configuration = environment_configuration.isolation
+        # installation and isolation
 
-        ident = '%s:%s:%s:%s' % (
-            configuration.project,
-            environment_name,
-            infrastructure_name,
-            self.installation.ident,
+        # installation
+        installation_configuration = environment_configuration.installations[installation_name]
+        self.installation = Installation(
+            installation_name,
+            installation_options,
+            configuration_data=installation_configuration
         )
 
-        if self.next_installation:
-            ident = '%s:%s' % (ident, self.next_installation.ident)
+        if not perform:
+            # next installation
+            if next_installation_name:
+                self.next_installation = Installation(
+                    next_installation_name,
+                    next_installation_options,
+                    configuration_data=installation_configuration
+                )
+            else:
+                self.next_installation = None
 
-        self.current_installation = None
+            # isolation
+            isolation_configuration = environment_configuration.isolation
 
-        self._isolation = Isolation(
-            isolation_configuration.provider,
-            performer,
-            ident=md5(ident.encode()).hexdigest()
-        )
-        self.isolation_scripts = isolation_configuration.scripts
+            ident = '%s:%s:%s:%s' % (
+                configuration.project,
+                environment_name,
+                infrastructure_name,
+                self.installation.ident,
+            )
+
+            if self.next_installation:
+                ident = '%s:%s' % (ident, self.next_installation.ident)
+
+            self._isolation = Isolation(
+                isolation_configuration.provider,
+                performer,
+                ident=md5(ident.encode()).hexdigest()
+            )
+
+            if self._isolation.exists():
+                self.current_installation = self.next_installation or self.installation
+            else:
+                self.current_installation = self.installation
+
+            self.isolation_scripts = isolation_configuration.scripts
+        else:
+            self.current_installation = self.installation
+            self.next_installation = None
 
     def installation_transition(self):
         deployment_info = self.deployment_info(transition=False)
@@ -142,7 +154,7 @@ class Deployment(object):
                 self.current_installation.install(self._isolation)
 
                 # run oncreate scripts
-                with self._isolation.directory(self.current_installation.directory):
+                with self._isolation.change_directory(self.current_installation.directory):
                     self._isolation.run_scripts(self.isolation_scripts.oncreate)
             else:
                 if next_install and self.next_installation:
@@ -152,7 +164,7 @@ class Deployment(object):
 
         logger.info("Entering isolation...")
         # run onenter scripts
-        with self._isolation.directory(self.current_installation.directory):
+        with self._isolation.change_directory(self.current_installation.directory):
             self._isolation.run_scripts(self.isolation_scripts.onenter)
 
         return self._isolation
@@ -167,7 +179,7 @@ class Deployment(object):
         logger.info("Starting installation...")
         isolation = self.isolation(create=True, next_install=True)
 
-        with isolation.directory(self.current_installation.directory):
+        with isolation.change_directory(self.current_installation.directory):
             with isolation.get_fo('.codev') as codev_file:
                 version = YAMLConfigurationReader().from_yaml(codev_file).version
 
@@ -202,7 +214,7 @@ class Deployment(object):
                 current_installation=self.current_installation,
                 **self.deployment_info()
             )
-            with isolation.directory(self.current_installation.directory):
+            with isolation.change_directory(self.current_installation.directory):
                 isolation.background_execute('codev install {deployment_options} --perform --force {perform_debug}'.format(
                     deployment_options=deployment_options,
                     perform_debug=perform_debug
@@ -236,7 +248,7 @@ class Deployment(object):
         :return: True if executed command returns 0
         :rtype: bool
         """
-        isolation, current_installation = self.isolation(create=True)
+        isolation = self.isolation(create=True)
 
         logging_config(control_perform=True)
         try:
@@ -256,7 +268,7 @@ class Deployment(object):
         :rtype: bool
         """
         logging_config(control_perform=True)
-        isolation, current_installation = self.isolation()
+        isolation = self.isolation()
         if isolation.background_join(logger=command_logger):
             logger.info('Command finished.')
             return True
@@ -271,7 +283,7 @@ class Deployment(object):
         :return: True if command was running
         :rtype: bool
         """
-        isolation, current_installation = self.isolation()
+        isolation = self.isolation()
         if isolation.background_stop():
             logger.info('Stop signal has been sent.')
             return True
@@ -286,7 +298,7 @@ class Deployment(object):
         :return: True if command was running
         :rtype: bool
         """
-        isolation, current_installation = self.isolation()
+        isolation = self.isolation()
         if isolation.background_kill():
             logger.info('Command has been killed.')
             return True
@@ -301,7 +313,7 @@ class Deployment(object):
         :return:
         :rtype: bool
         """
-        isolation, current_installation = self.isolation(create=True)
+        isolation = self.isolation(create=True)
         self._infrastructure.connect(isolation)
         logger.info('Entering isolation shell...')
 
