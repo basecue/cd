@@ -14,10 +14,12 @@ logger = getLogger(__name__)
 command_logger = getLogger('command')
 debug_logger = getLogger('debug')
 
+# TODO refactorize - split to separated contexts according to using of isolation
+
 
 class Deployment(object):
     """
-    Represents deployment of project. It's basic starting point for all commands.
+    Deployment of project.
     """
     def __init__(
             self,

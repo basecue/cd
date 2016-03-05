@@ -1,11 +1,13 @@
-from .machines import MachinesProvider
-from .provision import Provision
-from .performer import Performer, CommandError
-from .configuration import DictConfiguration
+import re
 from logging import getLogger
 
+from .machines import MachinesProvider
+from .provision import Provision
+from .performer import CommandError
+
 logger = getLogger(__name__)
-import re
+
+# TODO refactorize
 
 
 class Infrastructure(object):
@@ -64,13 +66,10 @@ class Infrastructure(object):
 
     def connect(self, isolation):
         """
-        TODO podivat se jestli je nutno mit performer a jestli je tedy nutno byt v teto class
         :param isolation:
         :return:
         """
-        print(self.configuration.connectivity)
         for machine_str, connectivity_conf in self.configuration.connectivity.items():
-            print(machine_str, connectivity_conf)
             r = re.match('(?P<machine_group>[^\[]+)\[(?P<machine_index>\d+)\]', machine_str)
             if r:
                 machines_groups = self._machines_groups(isolation, create=False)
