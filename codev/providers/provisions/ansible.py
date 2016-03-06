@@ -1,4 +1,4 @@
-from codev.provision import Provision, BaseProvision
+from codev.provision import Provisioner, BaseProvisioner
 from codev.configuration import BaseConfiguration
 
 import configparser
@@ -17,7 +17,7 @@ class AnsibleProvisionConfiguration(BaseConfiguration):
         return self.data.get('version', None)
 
 
-class AnsibleProvision(BaseProvision):
+class AnsibleProvision(BaseProvisioner):
     configuration_class = AnsibleProvisionConfiguration
 
     def install(self):
@@ -31,7 +31,7 @@ class AnsibleProvision(BaseProvision):
 
     def run(self, machines_groups):
         logger.debug('machines: %s' % machines_groups)
-        playbook = self.configuration.playbook.format(infrastructure=self.infrastructure_name)
+        playbook = self.configuration.playbook.format(infrastructure=self.infrastructure.name)
 
         inventory = configparser.ConfigParser(allow_no_value=True, delimiters=('',))
         for name, machines in machines_groups.items():
@@ -53,4 +53,4 @@ class AnsibleProvision(BaseProvision):
         return True
 
 
-Provision.register('ansible', AnsibleProvision)
+Provisioner.register('ansible', AnsibleProvision)

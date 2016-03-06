@@ -40,15 +40,15 @@ environments:
         hostname: 192.168.56.100
         username: codev
         password: codev
-    isolation:
-      provider: lxc
-      scripts:
-        oncreate:
-          - scripts/install_vpnc.sh
-        onenter:
-          - scripts/connect_vpn.sh
     infrastructures:
       full:
+      isolation:
+        provider: lxc
+        scripts:
+          oncreate:
+            - scripts/install_vpnc.sh
+          onenter:
+            - scripts/connect_vpn.sh
         connectivity:
           webservers[0]:
             80: 80

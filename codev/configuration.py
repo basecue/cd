@@ -107,20 +107,6 @@ class ProvisionConfiguration(ProviderConfiguration):
         return ProvisionScriptsConfiguration(self.data.get('scripts', {}))
 
 
-class InfrastructureConfiguration(BaseConfiguration):
-    @property
-    def machines(self):
-        return DictConfiguration(ProviderConfiguration, self.data.get('machines', {}))
-
-    @property
-    def provision(self):
-        return ProvisionConfiguration(self.data.get('provision', {}))
-
-    @property
-    def connectivity(self):
-        return ListDictConfiguration(self.data.get('connectivity', {}))
-
-
 class IsolationScriptsConfiguration(BaseConfiguration):
     @property
     def oncreate(self):
@@ -137,8 +123,26 @@ class IsolationConfigurartion(BaseConfiguration):
         return self.data.get('provider')
 
     @property
+    def connectivity(self):
+        return ListDictConfiguration(self.data.get('connectivity', {}))
+
+    @property
     def scripts(self):
         return IsolationScriptsConfiguration(self.data.get('scripts', {}))
+
+
+class InfrastructureConfiguration(BaseConfiguration):
+    @property
+    def machines(self):
+        return DictConfiguration(ProviderConfiguration, self.data.get('machines', {}))
+
+    @property
+    def provision(self):
+        return ProvisionConfiguration(self.data.get('provision', {}))
+
+    @property
+    def isolation(self):
+        return IsolationConfigurartion(self.data.get('isolation', {}))
 
 
 class EnvironmentConfiguration(BaseConfiguration):
@@ -149,10 +153,6 @@ class EnvironmentConfiguration(BaseConfiguration):
     @property
     def performer(self):
         return ProviderConfiguration(self.data.get('performer', {}))
-
-    @property
-    def isolation(self):
-        return IsolationConfigurartion(self.data.get('isolation', {}))
 
     @property
     def infrastructures(self):
