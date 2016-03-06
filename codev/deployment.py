@@ -78,7 +78,7 @@ class Deployment(object):
             configuration_data=performer_specific
         )
 
-        self.current_installation =  self.installation
+        self.current_installation = self.installation
 
         if not disable_isolation:
             self.performer = self._isolation = self.infrastructure.isolation(performer, self.installation, self.next_installation, ident)
@@ -99,7 +99,6 @@ class Deployment(object):
             configuration_data=provision_configuration.specific
         )
 
-
     def isolation(self, create=False):
         if self._isolation:
             self.current_installation = self._isolation.enter(create=create)
@@ -113,6 +112,11 @@ class Deployment(object):
 
     def installation_transition(self):
         deployment_info = self.deployment_info(transition=False)
+
+        deployment_info.update(dict(
+            color_installation=color.GREEN,
+            color_reset=color.RESET + style.RESET_ALL
+        ))
 
         if self.next_installation:
             if not self.current_installation:
@@ -128,7 +132,7 @@ class Deployment(object):
             color_options = dict(
                 color_installation=color_installation,
                 color_next_installation=color_next_installation,
-                color_reset=color.RESET + style.RESET_ALL
+
             )
 
             deployment_info.update(color_options)

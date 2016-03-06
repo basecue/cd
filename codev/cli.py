@@ -84,6 +84,7 @@ def performer_option(func):
 
 def isolation_option(func):
     return click.option('--disable-isolation',
+                        is_flag=True,
                         default=False,
                         help='Disable isolation')(func)
 
