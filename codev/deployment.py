@@ -28,26 +28,13 @@ class Deployment(object):
             installation_options,
             next_installation_name='',
             next_installation_options='',
-            perform=False
+            performer_provider=None,
+            performer_specific={},
+            disable_isolation=False
     ):
         environment_configuration = configuration.environments[environment_name]
         self.environment = environment_name
         self.configuration = configuration
-
-        #TODO move to configuration and/or cli
-        if not perform:
-            performer_configuration = environment_configuration.performer
-            performer_provider = performer_configuration.provider
-            performer_specific = performer_configuration.specific
-        else:
-            performer_provider = 'local'
-            performer_specific = {}
-
-        # performer
-        performer = Performer(
-            performer_provider,
-            configuration_data=performer_specific
-        )
 
         # installation
         installation_configuration = environment_configuration.installations[installation_name]
@@ -57,7 +44,7 @@ class Deployment(object):
             configuration_data=installation_configuration
         )
 
-         # next installation
+        # next installation
         if next_installation_name:
             self.next_installation = Installation(
                 next_installation_name,
@@ -80,25 +67,48 @@ class Deployment(object):
         if self.next_installation:
             ident = '%s:%s' % (ident, self.next_installation.ident)
 
-        self._isolation = self.infrastructure.isolation(performer, self.installation, self.next_installation, ident)
+        # performer
+        if not performer_provider:
+            performer_configuration = environment_configuration.performer
+            performer_provider = performer_configuration.provider
+            performer_specific = performer_configuration.specific
+
+        performer = Performer(
+            performer_provider,
+            configuration_data=performer_specific
+        )
+
+        self.current_installation =  self.installation
+
+        if not disable_isolation:
+            self.performer = self._isolation = self.infrastructure.isolation(performer, self.installation, self.next_installation, ident)
+            if self.next_installation and self._isolation.exists():
+                self.current_installation = self.next_installation
+        else:
+            self.performer = performer
+            self._isolation = None
+            self.current_installation = None
 
         # provisioner
         provision_configuration = infrastructure_configuration.provision
         self.provisioner = Provisioner(
             provision_configuration.provider,
             provision_configuration.scripts,
-            self._isolation,
+            self.performer,
             self.infrastructure,
             configuration_data=provision_configuration.specific
         )
-        self.current_installation = None
+
 
     def isolation(self, create=False):
-        self.current_installation = self._isolation.enter(create=create)
-        return self._isolation
+        if self._isolation:
+            self.current_installation = self._isolation.enter(create=create)
+            return self._isolation
+        else:
+            raise Exception('No isolation')
 
     def provision(self):
-        with self._isolation.change_directory(self.installation.directory):
+        with self.performer.change_directory(self.installation.directory):
             self.provisioner.provision()
 
     def installation_transition(self):

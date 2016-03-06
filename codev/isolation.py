@@ -142,7 +142,7 @@ class BaseIsolation(BasePerformer):
                 environment=environment
             )
             with self.change_directory(current_installation.directory):
-                self.background_execute('codev install {deployment_options} --perform --force {perform_debug}'.format(
+                self.background_execute('codev install {deployment_options} --performer=local --disable-isolation --force {perform_debug}'.format(
                     deployment_options=deployment_options,
                     perform_debug=perform_debug
                 ), logger=command_logger)

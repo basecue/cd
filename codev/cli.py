@@ -34,7 +34,7 @@ def parse_installation(inp):
 
 def deployment_options(func):
     @wraps(func)
-    def deployment_wrapper(configuration, environment, infrastructure, installation, next_installation, **kwargs):
+    def deployment_wrapper(configuration, environment, infrastructure, installation, next_installation, performer, disable_isolation, **kwargs):
         installation_name, installation_options = parse_installation(installation)
         next_installation_name, next_installation_options = parse_installation(next_installation)
 
@@ -46,7 +46,8 @@ def deployment_options(func):
             installation_options,
             next_installation_name,
             next_installation_options,
-            kwargs.get('perform', False)
+            performer,
+            disable_isolation
         )
         return func(deployment, **kwargs)
 
@@ -75,22 +76,16 @@ def deployment_options(func):
         help='Next installation')(f)
 
 
-def perform_option(func):
-    @wraps(func)
-    def perform_wrapper(configuration, *args, **kwargs):
-        perform = kwargs.get('perform')
-        if perform:
-            logging_config(
-                perform=True
-            )
-            if not DebugConfiguration.configuration.disable_version_check:
-                assert configuration.version == VERSION
+def performer_option(func):
+    return click.option('--performer',
+                        default=None,
+                        help='Set performer')(func)
 
-        return func(configuration, *args, **kwargs)
 
-    return click.option('--perform',
-                        is_flag=True,
-                        help='Enable perform mode')(perform_wrapper)
+def isolation_option(func):
+    return click.option('--disable-isolation',
+                        default=False,
+                        help='Disable isolation')(func)
 
 
 def nice_exception(func):
@@ -180,14 +175,14 @@ def main(ctx, version):
         click.echo(ctx.get_help())
 
 
-def command(confirmation=None, perform=False, bool_exit=True, **kwargs):
+def command(confirmation=None, bool_exit=True, **kwargs):
     def decorator(func):
         if confirmation:
             func = confirmation_message(confirmation)(func)
         func = deployment_options(func)
         func = nice_exception(func)
-        if perform:
-            func = perform_option(func)
+        func = performer_option(func)
+        func = isolation_option(func)
         func = path_option(func)
         func = debug_option(func)
         if bool_exit:

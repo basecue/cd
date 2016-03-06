@@ -54,24 +54,34 @@ from codev.cli import command, main
 
 @command(
     help='Install project.',
-    confirmation="Install project '{project}' to '{environment}' environment with infrastructure '{infrastructure}' at installation '{installation_transition}'?",
-    perform=True
+    confirmation="Install project '{project}' to '{environment}' environment with infrastructure '{infrastructure}' at installation '{installation_transition}'?"
 )
-def install(deployment, perform):
+def install(deployment):
     """
     Install project
 
     :param deployment:
     :type deployment: codev.deployment.Deployment
-    :param perform:
-    :type perform: bool
     :return:
     :rtype: bool
     """
-    if perform:
-        return deployment.provision()
-    else:
-        return deployment.install()
+    return deployment.install()
+
+
+@command(
+    help='Install project.',
+    confirmation="Install project '{project}' to '{environment}' environment with infrastructure '{infrastructure}' at installation '{installation_transition}'?"
+)
+def provision(deployment):
+    """
+    Install project
+
+    :param deployment:
+    :type deployment: codev.deployment.Deployment
+    :return:
+    :rtype: bool
+    """
+    return deployment.provision()
 
 
 @command(help='Join the running command in isolation.')
