@@ -88,6 +88,8 @@ class Deployment(object):
             self.performer = performer
             self._isolation = None
             self.current_installation = None
+            # TODO change
+            logging_config(perform=True)
 
         # provisioner
         provision_configuration = infrastructure_configuration.provision
@@ -108,7 +110,7 @@ class Deployment(object):
 
     def deploy(self):
         with self.performer.change_directory(self.installation.directory):
-            self.provisioner.provision()
+            return self.provisioner.provision()
 
     def installation_transition(self):
         deployment_info = self.deployment_info(transition=False)
