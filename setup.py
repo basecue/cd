@@ -28,7 +28,7 @@ setup(
     include_package_data=True,
     scripts=['codev/bin/codev'],
     classifiers=[
-        'Development Status :: 2 - Pre-Alpha',
+        'Development Status :: 4 - Beta',
         'Environment :: Console',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: Apache Software License',
