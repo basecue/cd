@@ -24,6 +24,8 @@ info_filter = LoglevelFilter(logging.INFO)
 debug_filter = LoglevelFilter(logging.DEBUG)
 
 
+# TODO change logging system
+
 def logging_config(loglevel=None, perform=False, control_perform=False):
     """
     :param loglevel:

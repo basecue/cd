@@ -12,8 +12,6 @@ logger = getLogger(__name__)
 command_logger = getLogger('command')
 debug_logger = getLogger('debug')
 
-# TODO refactorize - split to separated contexts according to using of isolation
-
 
 class Deployment(object):
     """
