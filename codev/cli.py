@@ -34,7 +34,14 @@ def parse_installation(inp):
 
 def deployment_options(func):
     @wraps(func)
-    def deployment_wrapper(configuration, environment, infrastructure, installation, next_installation, performer, disable_isolation, **kwargs):
+    def deployment_wrapper(
+            configuration,
+            environment,
+            infrastructure,
+            installation,
+            next_installation,
+            performer,
+            disable_isolation, **kwargs):
         installation_name, installation_options = parse_installation(installation)
         next_installation_name, next_installation_options = parse_installation(next_installation)
 
@@ -44,10 +51,11 @@ def deployment_options(func):
             infrastructure,
             installation_name,
             installation_options,
-            next_installation_name,
-            next_installation_options,
-            performer,
-            disable_isolation
+            next_installation_name=next_installation_name,
+            next_installation_options=next_installation_options,
+            performer_provider=performer,
+            performer_specific={},  # TODO
+            disable_isolation=disable_isolation
         )
         return func(deployment, **kwargs)
 

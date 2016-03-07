@@ -86,6 +86,8 @@ def logging_config(loglevel=None, perform=False, control_perform=False):
         ' [DEBUG] %(message)s' +
         color.RESET
     )
+
+    # logger for output from remote run
     control_command_perform_formatter = logging.Formatter(
         color.YELLOW + '[PERFORM]' + color.RESET + ' %(message)s'
     )

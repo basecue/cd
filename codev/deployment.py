@@ -106,7 +106,7 @@ class Deployment(object):
         else:
             raise Exception('No isolation')
 
-    def provision(self):
+    def deploy(self):
         with self.performer.change_directory(self.installation.directory):
             self.provisioner.provision()
 

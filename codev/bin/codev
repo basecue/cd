@@ -69,10 +69,10 @@ def install(deployment):
 
 
 @command(
-    help='Install project.',
-    confirmation="Install project '{project}' to '{environment}' environment with infrastructure '{infrastructure}' at installation '{installation_transition}'?"
+    help='Deploy project.',
+    confirmation="Deploy project '{project}' to '{environment}' environment with infrastructure '{infrastructure}' at installation '{installation_transition}'?"
 )
-def provision(deployment):
+def deploy(deployment):
     """
     Install project
 
@@ -81,7 +81,7 @@ def provision(deployment):
     :return:
     :rtype: bool
     """
-    return deployment.provision()
+    return deployment.deploy()
 
 
 @command(help='Join the running command in isolation.')
