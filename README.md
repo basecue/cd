@@ -32,8 +32,8 @@ $ codev install -e <environment> -i <infrastructure> -s <installation>
 
 ### Create transition from one installation to another.
 
-First use will install the `<source installation>` and next time it will use `<next installation>`.
-You can identify this mode in ouptut messages via special 'transition' information `<source installation> -> <next installation>` where current installation is highlighted.
+The first use will install the `<source installation>` and next time it will use `<next installation>`.
+You can identify this mode in output messages via special 'transition' information `<source installation> -> <next installation>` where current installation is highlighted.
 
 ```bash
 $ codev install -e <environment> -i <infrastructure> -s <source installation> -n <next installation>
