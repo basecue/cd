@@ -1,5 +1,0 @@
-distfile: dist/codev-{version}.tar.gz
-show_client_exception: true
-loglevel: info
-repository: git@bitbucket.org:coex/hranipex.git
-directory: docs

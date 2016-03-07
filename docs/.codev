@@ -1,37 +1,6 @@
 #version: 0.0.5a3
 project: hranipex
 
-scripts:
-  end to end:
-    try:
-      - first scripts
-    except:
-      - on error scripts
-    else:
-      - on success scripts
-    finally:
-      - cleanup scripts
-
-infrastructures:
-  simple:
-    machines:
-      webservers:
-        distribution: debian
-        release: squeeze
-      elasticservers:
-        distribution: ubuntu
-        release: trusty
-
-provision:
-  standard:
-    provider: ansible
-    specific:
-      playbooks: provisioning/{nfrastructure}.yml
-
-scripts:
-  connect to vpn: connect_vpn.sh {environment} {infrastructure} {installation} {installation_options}
-
-
 environments:
   development:
     performer:
@@ -42,18 +11,17 @@ environments:
         password: codev
     infrastructures:
       full:
-      isolation:
-        provider: lxc
-        scripts:
-          oncreate:
-            - scripts/install_vpnc.sh
-          onenter:
-            - scripts/connect_vpn.sh
-        connectivity:
-          webservers[0]:
-            80: 80
-            22: 22
-
+        isolation:
+          provider: lxc
+          scripts:
+            oncreate:
+              - scripts/install_vpnc.sh
+            onenter:
+              - scripts/connect_vpn.sh
+          connectivity:
+            webservers[0]:
+              80: 80
+              22: 22
         machines:
           webservers:
             provider: lxc
