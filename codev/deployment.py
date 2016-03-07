@@ -104,7 +104,8 @@ class Deployment(object):
             self.current_installation = self._isolation.enter(create=create)
             return self._isolation
         else:
-            raise Exception('No isolation')
+            logger.error('Isolation is disabled.')
+            return False
 
     def deploy(self):
         with self.performer.change_directory(self.installation.directory):
@@ -166,7 +167,6 @@ class Deployment(object):
         :return: True if installation is successfully realized
         :rtype: bool
         """
-        logger.info("Starting installation...")
         return self._isolation.install(self.environment, self.infrastructure)
 
     def execute(self, command):

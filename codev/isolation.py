@@ -13,6 +13,10 @@ debug_logger = getLogger('debug')
 # TODO what is the difference between isolation and machine?
 
 
+class IsolationError(Exception):
+    pass
+
+
 class BaseIsolation(BasePerformer):
     def __init__(self, scripts, connectivity, installation, next_installation, performer, *args, **kwargs):
         super(BaseIsolation, self).__init__(*args, **kwargs)
@@ -41,7 +45,7 @@ class BaseIsolation(BasePerformer):
     def ip(self):
         raise NotImplementedError()
 
-    # TODO refactorize - move to another class
+    # TODO refactorize background methods - move to another class
     def background_execute(self, command, logger=None, writein=None):
         raise NotImplementedError()
 
@@ -95,6 +99,9 @@ class BaseIsolation(BasePerformer):
                     logger.info("Transition installation in isolation.")
                     current_installation = self.next_installation
                     current_installation.install(self)
+        else:
+            if not self.exists():
+                raise IsolationError('No such isolation found.')
 
         logger.info("Entering isolation...")
         # run onenter scripts
