@@ -18,9 +18,10 @@ Usage
 At a high level there is "control" mode, which checks a current version of configuration, creates isolated environment and delegates requested action to codev in "perform" mode in the isolated environment.
 
 There are three basic types of objects, which define the deployment:
-`environment` - general box, which should include the one or more `infrastructure` objects. 
-`infrastructure` - defines machines (types, numbers etc.)
-`installation` - defines source of application (version, branch, commit, directory)
+
+ - `environment` - general box, which should include the one or more `infrastructure` objects. 
+ - `infrastructure` - defines machines (types, numbers etc.)
+ - `installation` - defines source of application (version, branch, commit, directory)
 
 At first create `.codev` file in main directory of your git repository and configure your project deployment via this file. 
 
