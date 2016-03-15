@@ -66,7 +66,7 @@ class GitInstallation(BaseInstallation):
 
         if self.branch or self.tag:
             performer.execute('git clone {url} --branch {object} --single-branch {directory}'.format(
-                url=self.configuration.url,
+                url=self.repository_url,
                 directory=self.directory,
                 object=self.branch or self.tag
             ))

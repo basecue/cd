@@ -32,10 +32,18 @@ class Deployment(object):
     ):
         environment_configuration = configuration.environments[environment_name]
         self.environment = environment_name
-        self.configuration = configuration
+        self.project_name = configuration.project
 
         # installation
-        installation_configuration = environment_configuration.installations[installation_name]
+        try:
+            installation_configuration = environment_configuration.installations[installation_name]
+        except KeyError as e:
+            raise ValueError(
+                "Installation '{installation_name}' is not allowed installation for project '{project_name}'.".format(
+                    installation_name=installation_name,
+                    project_name=self.project_name
+                )
+            ) from e
         self.installation = Installation(
             installation_name,
             installation_options,
@@ -150,7 +158,7 @@ class Deployment(object):
 
     def deployment_info(self, transition=True):
         return dict(
-            project=self.configuration.project,
+            project=self.project_name,
             environment=self.environment,
             infrastructure=self.infrastructure.name,
             installation=self.installation.name,

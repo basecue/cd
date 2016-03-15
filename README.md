@@ -20,7 +20,7 @@ There are three basic types of objects, which define the deployment:
 
  - `environment` - general box, which should include the one or more `infrastructure` objects. 
  - `infrastructure` - defines machines (types, numbers etc.)
- - `installation` - defines source of application (version, branch, commit, directory)
+ - `installation` - defines source of application (version, branch, commit, directory...)
 
 At first create `.codev` file in the main directory of your git repository and configure your project deployment via this file. 
 
