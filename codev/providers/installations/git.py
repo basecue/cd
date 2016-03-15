@@ -1,29 +1,21 @@
 from codev.installation import Installation, BaseInstallation
-from codev.configuration import BaseConfiguration
 from git import Repo
 
 
-class RepositoryConfiguration(BaseConfiguration):
-    @property
-    def url(self):
-        return self.data['url']
-
-
-class RepositoryInstallation(BaseInstallation):
-    configuration_class = RepositoryConfiguration
-
+class GitInstallation(BaseInstallation):
     def __init__(self, *args, **kwargs):
         self.branch = None
         self.tag = None
         self.commit = None
-        super(RepositoryInstallation, self).__init__(*args, **kwargs)
+        self.repository = Repo()
+        self.repository_url = self.repository.remotes.origin.url
+        super().__init__(*args, **kwargs)
 
     def process_options(self, options):
         if not options:
             raise ValueError('Repository options must be specified.')
-        repo = Repo()
 
-        remote = repo.remote()
+        remote = self.repository.remote()
         remote.fetch()
 
         # branch
@@ -32,18 +24,17 @@ class RepositoryInstallation(BaseInstallation):
             return
 
         # tag
-        if options in repo.tags:
+        if options in self.repository.tags:
             self.tag = options
             return
 
         # commit
-        for commit in repo.iter_commits():
+        for commit in self.repository.iter_commits():
             if options == commit:
                 self.commit = commit
                 return
 
         raise ValueError(options)
-
 
     @property
     def id(self):
@@ -83,9 +74,9 @@ class RepositoryInstallation(BaseInstallation):
             # TODO TEST - cd
             performer.execute('git init {directory}'.format(directory=self.directory))
             performer.execute('cd {directory}'.format(directory=self.directory))
-            performer.execute('git remote add origin {url}'.format(url=self.configuration.url))
+            performer.execute('git remote add origin {url}'.format(url=self.repository_url))
             performer.execute('git fetch origin {commit}'.format(commit=self.commit))
             performer.execute('git reset --hard FETCH_HEAD')
 
 
-Installation.register('repository', RepositoryInstallation)
+Installation.register('git', GitInstallation)

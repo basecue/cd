@@ -1,2 +1,2 @@
 from .actual import *
-from .repository import *
+from .git import *

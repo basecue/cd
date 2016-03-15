@@ -171,13 +171,10 @@ class EnvironmentConfiguration(BaseConfiguration):
 
 class Configuration(BaseConfiguration):
 
-    def __init__(self, data=None, repository_url=''):
+    def __init__(self, data=None):
         super(Configuration, self).__init__(self.default_data)
         if data:
             self.data.update(data)
-
-        # TODO hook?
-        self.data.setdefault('installations', {}).setdefault('repository', {})['url'] = repository_url
 
     @property
     def default_data(self):

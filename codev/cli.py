@@ -1,6 +1,5 @@
 import click
 from functools import wraps
-from git import Repo
 
 from .configuration import YAMLConfigurationReader
 from .deployment import Deployment
@@ -115,14 +114,7 @@ def path_option(func):
     @wraps(func)
     def configuration_wrapper(path, *args, **kwargs):
         chdir(path)
-        repo = Repo(search_parent_directories=True)
-
-        repository_dir = DebugConfiguration.configuration.repository_dir or repo.working_dir
-        configuration_dir = DebugConfiguration.configuration.configuration_dir or repo.working_dir
-        repository_url = DebugConfiguration.configuration.repository_url or repo.remotes.origin.url
-        configuration = YAMLConfigurationReader().from_file('%s/.codev' % configuration_dir, repository_url=repository_url)
-
-        chdir(repository_dir)
+        configuration = YAMLConfigurationReader().from_file('.codev')
         return func(configuration, *args, **kwargs)
 
     return click.option('-p', '--path',
