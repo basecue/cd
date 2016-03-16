@@ -117,7 +117,7 @@ class Deployment(object):
 
     def deploy(self):
         with self.performer.change_directory(self.installation.directory):
-            return self.provisioner.provision()
+            return self.provisioner.provision(self.deployment_info())
 
     def installation_transition(self):
         deployment_info = self.deployment_info(transition=False)
