@@ -16,6 +16,10 @@ class AnsibleProvisionConfiguration(BaseConfiguration):
     def version(self):
         return self.data.get('version', None)
 
+    @property
+    def extra_vars(self):
+        return self.data.get('extra_vars', {})
+
 
 class AnsibleProvision(BaseProvisioner):
     configuration_class = AnsibleProvisionConfiguration
@@ -46,9 +50,21 @@ class AnsibleProvision(BaseProvisioner):
         with open(inventory_filepath, 'w+') as inventoryfile:
             inventory.write(inventoryfile)
 
-        self.performer.execute('ansible-playbook -i {inventory} {playbook}'.format(
+        if self.configuration.extra_vars:
+            extra_vars = '--extra-vars "{joined_extra_vars}"'.format(
+                extrjoined_extra_varsa_vars=' '.join(
+                    [
+                        'key=value'.format(key=key, value=value) for key, value in self.configuration.extra_vars.items()
+                    ]
+                )
+            )
+        else:
+            extra_vars = ''
+
+        self.performer.execute('ansible-playbook -i {inventory} {playbook} {extra_vars}'.format(
             inventory=inventory_filepath,
-            playbook=playbook
+            playbook=playbook,
+            extra_vars=extra_vars
         ))
         return True
 
