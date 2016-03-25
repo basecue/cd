@@ -88,7 +88,8 @@ class LXCMachine(BaseMachine):
     @property
     def share_directory(self):
         if not self.__share_directory:
-            abs_base_dir = self.performer.execute('pwd')
+            # abs_base_dir = self.performer.execute('pwd')
+            abs_base_dir = '$HOME/.local/codev'
             return '{abs_base_dir}/{container_name}/share'.format(
                 abs_base_dir=abs_base_dir,
                 container_name=self.ident
