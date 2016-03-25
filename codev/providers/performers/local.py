@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from subprocess import Popen, PIPE, call
 
 from codev.performer import CommandError, BasePerformer, Performer, OutputReader
@@ -35,7 +36,12 @@ class LocalPerformer(BasePerformer):
         return output
 
     def send_file(self, source, target):
-        call('cp', source, target)
+        call(['cp', source, target])
+
+    @contextmanager
+    def get_fo(self, remote_path):
+        with open(remote_path) as fo:
+            yield fo
 
 
 Performer.register('local', LocalPerformer)
