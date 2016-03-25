@@ -10,7 +10,7 @@ class LXCMachine(BaseMachine):
         super(LXCMachine, self).__init__(*args, **kwargs)
         self.__container_directory = None
         self.__share_directory = None
-        self.base_dir = '/root'
+        self.base_dir = self.working_dir = '/root'
 
     def exists(self):
         output = self.performer.execute('lxc-ls')
@@ -156,8 +156,9 @@ class LXCMachine(BaseMachine):
 
     def execute(self, command, logger=None, writein=None):
         output = self.performer.execute(
-            'lxc-attach -n {container_name} -v HOME={base_dir} -- bash -c "cd {base_dir} && {command}"'.format(
+            'lxc-attach -n {container_name} -v HOME={base_dir} -- bash -c "cd {working_dir} && {command}"'.format(
                 base_dir=self.base_dir,
+                working_dir=self.working_dir,
                 container_name=self.ident,
                 command=command,
             ), logger=logger, writein=writein

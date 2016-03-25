@@ -191,59 +191,59 @@ class Deployment(object):
 
         logging_config(control_perform=True)
         try:
-            isolation.background_execute(command, logger=command_logger)
+            isolation.execute(command, logger=command_logger)
         except CommandError as e:
             logger.error(e)
             return False
         else:
             logger.info('Command finished.')
             return True
-
-    def join(self):
-        """
-        Stop the running command in isolation
-
-        :return: True if command was running
-        :rtype: bool
-        """
-        logging_config(control_perform=True)
-        isolation = self.isolation()
-        if isolation.background_join(logger=command_logger):
-            logger.info('Command finished.')
-            return True
-        else:
-            logger.error('No running command.')
-            return False
-
-    def stop(self):
-        """
-        Stop the running command in isolation
-
-        :return: True if command was running
-        :rtype: bool
-        """
-        isolation = self.isolation()
-        if isolation.background_stop():
-            logger.info('Stop signal has been sent.')
-            return True
-        else:
-            logger.error('No running command.')
-            return False
-
-    def kill(self):
-        """
-        Kill the running command in isolation
-
-        :return: True if command was running
-        :rtype: bool
-        """
-        isolation = self.isolation()
-        if isolation.background_kill():
-            logger.info('Command has been killed.')
-            return True
-        else:
-            logger.error('No running command.')
-            return False
+    #
+    # def join(self):
+    #     """
+    #     Stop the running command in isolation
+    #
+    #     :return: True if command was running
+    #     :rtype: bool
+    #     """
+    #     logging_config(control_perform=True)
+    #     isolation = self.isolation()
+    #     if isolation.background_join(logger=command_logger):
+    #         logger.info('Command finished.')
+    #         return True
+    #     else:
+    #         logger.error('No running command.')
+    #         return False
+    #
+    # def stop(self):
+    #     """
+    #     Stop the running command in isolation
+    #
+    #     :return: True if command was running
+    #     :rtype: bool
+    #     """
+    #     isolation = self.isolation()
+    #     if isolation.background_stop():
+    #         logger.info('Stop signal has been sent.')
+    #         return True
+    #     else:
+    #         logger.error('No running command.')
+    #         return False
+    #
+    # def kill(self):
+    #     """
+    #     Kill the running command in isolation
+    #
+    #     :return: True if command was running
+    #     :rtype: bool
+    #     """
+    #     isolation = self.isolation()
+    #     if isolation.background_kill():
+    #         logger.info('Command has been killed.')
+    #         return True
+    #     else:
+    #         logger.error('No running command.')
+    #         return False
 
     def shell(self):
         """
@@ -286,7 +286,7 @@ class Deployment(object):
                         shell_logger.error(e.error)
                 continue
             try:
-                isolation.background_execute(command, logger=shell_logger)
+                isolation.execute(command, logger=shell_logger)
             except CommandError as e:
                 shell_logger.error(e.error)
 

@@ -1,6 +1,6 @@
 import re
 from .provider import BaseProvider
-from .performer import BasePerformer, BackgroundRunner, CommandError
+from .performer import BaseRunner, BasePerformer, CommandError
 from .debug import DebugConfiguration
 from .configuration import YAMLConfigurationReader
 from logging import getLogger
@@ -10,24 +10,18 @@ logger = getLogger(__name__)
 command_logger = getLogger('command')
 debug_logger = getLogger('debug')
 
-# TODO what is the difference between isolation and machine?
-
 
 class IsolationError(Exception):
     pass
 
 
-class BaseIsolation(BasePerformer):
-    def __init__(self, scripts, connectivity, installation, next_installation, performer, *args, **kwargs):
+class BaseIsolation(BaseRunner, BasePerformer):
+    def __init__(self, scripts, connectivity, installation, next_installation, *args, **kwargs):
         super(BaseIsolation, self).__init__(*args, **kwargs)
         self.connectivity = connectivity
         self.installation = installation
         self.next_installation = next_installation
         self.scripts = scripts
-        self.performer = performer
-
-        # TODO refactorize - move to another class (see bellow)
-        self.background_runner = BackgroundRunner(self.performer, ident=self.ident)
 
     def exists(self):
         raise NotImplementedError()
@@ -44,19 +38,6 @@ class BaseIsolation(BasePerformer):
     @property
     def ip(self):
         raise NotImplementedError()
-
-    # TODO refactorize background methods - move to another class
-    def background_execute(self, command, logger=None, writein=None):
-        raise NotImplementedError()
-
-    def background_join(self, logger=None):
-        return self.background_runner.join(logger=logger)
-
-    def background_stop(self):
-        return self.background_runner.stop()
-
-    def background_kill(self):
-        return self.background_runner.kill()
 
     def connect(self, infrastructure):
         """
@@ -149,7 +130,7 @@ class BaseIsolation(BasePerformer):
                 environment=environment
             )
             with self.change_directory(current_installation.directory):
-                self.background_execute('codev deploy {deployment_options} --performer=local --disable-isolation --force {perform_debug}'.format(
+                self.execute('codev deploy {deployment_options} --performer=local --disable-isolation --force {perform_debug}'.format(
                     deployment_options=deployment_options,
                     perform_debug=perform_debug
                 ), logger=command_logger)

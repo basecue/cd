@@ -1,12 +1,14 @@
 from .provider import BaseProvider, ConfigurableProvider
 from contextlib import contextmanager
 from os import path
+from time import time
 
 
 class BaseExecutor(object):
     def __init__(self, *args, ident=None, **kwargs):
         self.base_dir = '~'
-        self.ident = ident
+        self.working_dir = self.base_dir
+        self.ident = ident or str(time())
         self.output_logger = getLogger('command_output')
         super(BaseExecutor, self).__init__(*args, **kwargs)
 
@@ -27,10 +29,9 @@ class BaseExecutor(object):
 
     @contextmanager
     def change_directory(self, directory):
-        old_base_dir = self.base_dir
-        self.base_dir = path.join(self.base_dir, directory)
+        self.working_dir = path.join(self.base_dir, directory)
         yield
-        self.base_dir = old_base_dir
+        self.working_dir = self.base_dir
 
 
 class PerformerError(Exception):
@@ -131,9 +132,8 @@ class BackgroundRunner(BaseRunner):
                 self.ident = 'control_{ip}_{remote_port}_{local_port}'.format(
                     ip=ip, remote_port=remote_port, local_port=local_port
                 )
-            base_dir = self.performer.base_dir #execute('bash -c "echo ~"')
-            self.__isolation_directory = '{base_dir}/{ident}'.format(
-                base_dir=base_dir,
+
+            self.__isolation_directory = '/tmp/.codev/{ident}'.format(
                 ident=self.ident
             )
 
@@ -189,14 +189,19 @@ class BackgroundRunner(BaseRunner):
         return self._bg_signal(pid, 9)
 
     def _bg_signal(self, pid, signal=None):
-        pgid = self.performer.execute('ps -p %s -o pgid=' % pid)
         return self.performer.execute(
-            'kill {signal}-{pgid}'.format(
-                pgid=pgid,
-                exitcode_file=self._isolation.exitcode_file,
+            'kill {signal}{pid}'.format(
+                pid=pid,
                 signal='-%s ' % signal if signal else ''
             )
         )
+        # pgid = self.performer.execute('ps -p %s -o pgid=' % pid)
+        # return self.performer.execute(
+        #     'kill {signal}-{pgid}'.format(
+        #         pgid=pgid,
+        #         signal='-%s ' % signal if signal else ''
+        #     )
+        # )
 
     def _bg_wait(self, pid, logger=None):
         skip_lines = 1
@@ -212,7 +217,7 @@ class BackgroundRunner(BaseRunner):
     def _get_bg_running_pid(self):
         return self._cat_file(self._isolation.pid_file)
 
-    def execute(self, command, logger=None, writein=None):
+    def execute(self, command, logger=None, writein=None, wait=True):
         isolation = self._isolation
 
         if self._file_exists(isolation.exitcode_file) and self._cat_file(isolation.exitcode_file) == '':
@@ -245,6 +250,9 @@ class BackgroundRunner(BaseRunner):
         if not pid.isdigit():
             raise ValueError('not a pid %s' % pid)
 
+        if not wait:
+            return self.ident
+
         self._bg_wait(pid, logger=logger)
 
         exit_code = int(self._cat_file(isolation.exitcode_file))
@@ -258,7 +266,7 @@ class BackgroundRunner(BaseRunner):
         return output
 
     def _control(self, method, *args, **kwargs):
-        self.logger.debug('SSH control command')
+        self.logger.debug('control command')
         try:
             pid = self._get_bg_running_pid()
         except CommandError as e:
