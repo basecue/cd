@@ -43,7 +43,11 @@ class LXCIsolation(BaseIsolation):
 
     def _execute(self, executor, command, logger=None, writein=None):
         ssh_auth_sock = self.performer.execute('echo $SSH_AUTH_SOCK')
-        env_vars = {'HOME': self.machine.base_dir}
+        env_vars = {
+            'HOME': self.machine.base_dir,
+            'LANG': 'C.UTF-8',
+            'LC_ALL':  'C.UTF-8'
+        }
         if ssh_auth_sock and self.performer.check_execute('[ -S %s ]' % ssh_auth_sock):
             self.performer.execute('rm -f {share_directory}/ssh-agent-sock && ln {ssh_auth_sock} {share_directory}/ssh-agent-sock && chmod 7777 {share_directory}/ssh-agent-sock'.format(
                 share_directory=self.machine.share_directory,
