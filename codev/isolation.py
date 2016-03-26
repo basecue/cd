@@ -35,6 +35,10 @@ class BaseIsolation(BaseRunner, BasePerformer):
     def execute(self, command, logger=None, writein=None):
         raise NotImplementedError()
 
+    def make_link(self, source, target):
+        # experimental
+        raise NotImplementedError()
+
     @property
     def ip(self):
         raise NotImplementedError()

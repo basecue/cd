@@ -110,5 +110,23 @@ class LXCIsolation(LXCMachine, BaseIsolation):
             self.execute('systemctl restart lxc-net')
         return created
 
+    def make_link(self, source, target):
+        # experimental
+        background_runner = BackgroundRunner(self.performer)
+
+        from os import path
+
+        background_runner.execute(
+            "TO={share_directory}/{target} clsync -l live -M rsyncshell -w2 -t5 -W {source} -S {path}/scripts/clsync-synchandler-rsyncshell.sh".format(
+                path=path.dirname(__file__),
+                container_root=self.container_root
+            ),
+            wait=False
+        )
+        self.execute(
+            'ln -s /share/{target} {target}'.format(
+                target=target,
+            )
+        )
 
 Isolation.register('lxc', LXCIsolation)
