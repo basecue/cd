@@ -1,6 +1,3 @@
-lxc.network =
-lxc.network.type = veth
-lxc.network.link = lxc-bridge-nat
 lxc.network.ipv4 = {ip}/24
 lxc.network.ipv4.gateway = auto
 lxc.mount.auto = cgroup

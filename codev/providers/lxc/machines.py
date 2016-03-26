@@ -74,13 +74,22 @@ class LXCMachine(BaseMachine):
         ))
 
         if ip:
-            template = 'config_static_nat'
+            template_dir = 'static'
+            self.performer.send_file(
+                '{directory}/templates/{template_dir}/network_interfaces'.format(
+                    directory=path.dirname(__file__),
+                    template_dir=template_dir
+                ),
+                '{container_root}/etc/network/interfaces '.format(
+                    container_root=self.container_root
+                )
+            )
         else:
-            template = 'config_default'
+            template_dir = 'default'
 
-        for line in open('{directory}/templates/{template}'.format(
+        for line in open('{directory}/templates/{template_dir}/config'.format(
                 directory=path.dirname(__file__),
-                template=template
+                template_dir=template_dir
             )
         ):
             self.performer.execute('echo "{line}" >> {container_config}'.format(
@@ -186,18 +195,15 @@ class LXCMachinesConfiguration(BaseConfiguration):
     def number(self):
         return int(self.data.get('number', 1))
 
-    @property
-    def ip(self):
-        return self.data.get('ip', None)
-
 
 class LXCMachinesProvider(BaseMachinesProvider):
     configuration_class = LXCMachinesConfiguration
+    counter = 0
 
-    def _machine(self, ident, create=False, pub_key=None):
+    def _machine(self, ident, create=False, pub_key=None, ip=None):
         machine = LXCMachine(self.performer, ident=ident)
         if create:
-            machine.create(self.configuration.distribution, self.configuration.release, ip=self.configuration.ip)
+            machine.create(self.configuration.distribution, self.configuration.release, ip=ip)
 
         machine.start()
 
@@ -214,10 +220,22 @@ class LXCMachinesProvider(BaseMachinesProvider):
 
     def machines(self, create=False, pub_key=None):
         machines = []
+
+        ip_nums = None
+        for line in self.performer.execute('cat /etc/default/lxc-net').splitlines():
+            r = re.match('^LXC_ADDR=\"([\w\.]+)\"$', line)
+            if r:
+                ip_nums = list(map(int, r.group(1).split('.')))
+
         for i in range(1, self.configuration.number + 1):
             # TODO try lxc-clone instead of this
             ident = '%s_%000d' % (self.machines_name, i)
-            machine = self._machine(ident, create=create, pub_key=pub_key)
+            if create and ip_nums:
+                ip = '.'.join(map(str, ip_nums[:3] + [ip_nums[3] + self.counter + i]))
+                self.counter += 1
+            else:
+                ip = None
+            machine = self._machine(ident, create=create, pub_key=pub_key, ip=ip)
             machines.append(machine)
         return machines
 
