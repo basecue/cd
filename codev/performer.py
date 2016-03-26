@@ -162,6 +162,9 @@ class BackgroundRunner(BaseRunner):
             self._isolation_cache = self._create_isolation()
         return self._isolation_cache
 
+    def _clean(self):
+        self.performer.execute('rm -rf %s' % self._isolation_directory)
+
     def _file_exists(self, filepath):
         return self.performer.check_execute('[ -f %s ]' % filepath)
 
@@ -186,7 +189,8 @@ class BackgroundRunner(BaseRunner):
         return self._bg_signal(pid)
 
     def _bg_kill(self, pid):
-        return self._bg_signal(pid, 9)
+        self._bg_signal(pid, 9)
+        self._clean()
 
     def _bg_signal(self, pid, signal=None):
         return self.performer.execute(
@@ -261,8 +265,10 @@ class BackgroundRunner(BaseRunner):
 
         if exit_code:
             err = self._cat_file(isolation.error_file)
+            self._clean()
             raise CommandError(command, exit_code, err)
 
+        self._clean()
         return output
 
     def _control(self, method, *args, **kwargs):

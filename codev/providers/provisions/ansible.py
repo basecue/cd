@@ -52,16 +52,16 @@ class AnsibleProvision(BaseProvisioner):
 
         if self.configuration.extra_vars:
             extra_vars = '--extra-vars "{joined_extra_vars}"'.format(
-                extrjoined_extra_varsa_vars=' '.join(
+                joined_extra_vars=' '.join(
                     [
-                        'key=value'.format(key=key, value=value) for key, value in self.configuration.extra_vars.items()
+                        '{key}={value}'.format(key=key, value=value) for key, value in self.configuration.extra_vars.items()
                     ]
                 )
             )
         else:
             extra_vars = ''
 
-        self.performer.execute('ansible-playbook -i {inventory} {playbook} {extra_vars}'.format(
+        self.performer.execute('ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i {inventory} {playbook} {extra_vars}'.format(
             inventory=inventory_filepath,
             playbook=playbook,
             extra_vars=extra_vars

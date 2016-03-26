@@ -16,7 +16,7 @@ class RealMachinesConfiguration(BaseConfiguration):
 class RealMachinesProvider(BaseMachinesProvider):
     configuration_class = RealMachinesConfiguration
 
-    def create_machines(self):
+    def machines(self, create=False, pub_key=None):
         machines = []
         for host in self.configuration.hosts:
             machines.append(RealMachine(host))

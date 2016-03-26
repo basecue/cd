@@ -1,0 +1,5 @@
+lxc.mount.auto = cgroup
+lxc.aa_profile = lxc-container-default-with-nesting
+lxc.mount.entry = {share_directory} share none bind,create=dir 0.0
+lxc.cgroup.devices.allow = c 10:200 rwm
+lxc.mount.entry = /dev/net dev/net none bind,create=dir

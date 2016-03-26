@@ -3,6 +3,10 @@ import re
 from time import sleep
 from codev.configuration import BaseConfiguration
 from codev.machines import MachinesProvider, BaseMachinesProvider, BaseMachine
+from logging import getLogger
+from os import path
+
+logger = getLogger(__name__)
 
 
 class LXCMachine(BaseMachine):
@@ -34,7 +38,7 @@ class LXCMachine(BaseMachine):
         else:
             raise ValueError('s:%s:s' % state)
 
-    def create(self, distribution, release):
+    def create(self, distribution, release, ip=None):
         if not self.exists():
             architecture = self._get_architecture()
             self.performer.execute('lxc-create -t download -n {container_name} -- --dist {distribution} --release {release} --arch {architecture}'.format(
@@ -43,7 +47,7 @@ class LXCMachine(BaseMachine):
                 release=release,
                 architecture=architecture
             ))
-            self._configure()
+            self._configure(ip=ip)
             return True
         else:
             return False
@@ -64,26 +68,29 @@ class LXCMachine(BaseMachine):
             architecture = 'amd64'
         return architecture
 
-    def _configure(self):
-
-        self.performer.execute('echo "lxc.mount.auto = cgroup" >> {container_config}'.format(
-            container_config=self.container_config
-        ))
-
-        self.performer.execute('echo "lxc.aa_profile = lxc-container-default-with-nesting" >> {container_config}'.format(
-            container_config=self.container_config
-        ))
-
+    def _configure(self, ip=None):
         self.performer.execute('mkdir -p {share_directory} && chmod 7777 {share_directory}'.format(
             share_directory=self.share_directory
         ))
 
-        self.performer.execute(
-            'echo "lxc.mount.entry = {share_directory} share none bind,create=dir 0.0" >> {container_config}'.format(
-                share_directory=self.share_directory,
-                container_config=self.container_config
+        if ip:
+            template = 'config_static_nat'
+        else:
+            template = 'config_default'
+
+        for line in open('{directory}/templates/{template}'.format(
+                directory=path.dirname(__file__),
+                template=template
             )
-        )
+        ):
+            self.performer.execute('echo "{line}" >> {container_config}'.format(
+                    line=line.format(
+                        ip=ip,
+                        share_directory=self.share_directory
+                    ),
+                    container_config=self.container_config
+                )
+            )
 
     @property
     def share_directory(self):
@@ -179,14 +186,18 @@ class LXCMachinesConfiguration(BaseConfiguration):
     def number(self):
         return int(self.data.get('number', 1))
 
+    @property
+    def ip(self):
+        return self.data.get('ip', None)
+
 
 class LXCMachinesProvider(BaseMachinesProvider):
     configuration_class = LXCMachinesConfiguration
 
-    def _machine(self, ident, create=False):
+    def _machine(self, ident, create=False, pub_key=None):
         machine = LXCMachine(self.performer, ident=ident)
         if create:
-            machine.create(self.configuration.distribution, self.configuration.release)
+            machine.create(self.configuration.distribution, self.configuration.release, ip=self.configuration.ip)
 
         machine.start()
 
@@ -195,20 +206,18 @@ class LXCMachinesProvider(BaseMachinesProvider):
             machine.install_package('openssh-server')
 
             #authorize user for ssh
-            pub_key = '%s\n' % self.performer.execute('ssh-add -L')
-            machine.execute('mkdir -p ~/.ssh')
-            machine.execute('tee ~/.ssh/authorized_keys', writein=pub_key)
+            if pub_key:
+                machine.execute('mkdir -p .ssh')
+                machine.execute('tee .ssh/authorized_keys', writein=pub_key)
 
-            #add machine ssh signature to known_hosts
-            machine.performer.execute('ssh-keyscan -H {host} >> ~/.ssh/known_hosts'.format(host=machine.host))
         return machine
 
-    def machines(self, create=False):
+    def machines(self, create=False, pub_key=None):
         machines = []
         for i in range(1, self.configuration.number + 1):
             # TODO try lxc-clone instead of this
             ident = '%s_%000d' % (self.machines_name, i)
-            machine = self._machine(ident, create=create)
+            machine = self._machine(ident, create=create, pub_key=pub_key)
             machines.append(machine)
         return machines
 

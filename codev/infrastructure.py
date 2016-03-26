@@ -13,12 +13,13 @@ class Infrastructure(object):
 
     def machines_groups(self, performer, create=False):
         machines_groups = {}
+        pub_key = '%s\n' % performer.execute('ssh-add -L')
         for machines_name, machines_configuration in self.configuration.machines.items():
             machines_provider = MachinesProvider(
                 machines_configuration.provider,
                 machines_name, performer, configuration_data=machines_configuration.specific
             )
-            machines_groups[machines_name] = machines_provider.machines(create=create)
+            machines_groups[machines_name] = machines_provider.machines(create=create, pub_key=pub_key)
         return machines_groups
 
     def isolation(self, performer, installation, next_installation, ident):
