@@ -38,7 +38,7 @@ class LXCMachine(BaseMachine):
         else:
             raise ValueError('s:%s:s' % state)
 
-    def create(self, distribution, release, ip=None):
+    def create(self, distribution, release, ip=None, gateway=None):
         if not self.exists():
             architecture = self._get_architecture()
             self.performer.execute('lxc-create -t download -n {container_name} -- --dist {distribution} --release {release} --arch {architecture}'.format(
@@ -47,7 +47,7 @@ class LXCMachine(BaseMachine):
                 release=release,
                 architecture=architecture
             ))
-            self._configure(ip=ip)
+            self._configure(ip=ip, gateway=gateway)
             return True
         else:
             return False
@@ -68,22 +68,25 @@ class LXCMachine(BaseMachine):
             architecture = 'amd64'
         return architecture
 
-    def _configure(self, ip=None):
+    def _configure(self, ip=None, gateway=None):
         self.performer.execute('mkdir -p {share_directory} && chmod 7777 {share_directory}'.format(
             share_directory=self.share_directory
         ))
 
         if ip:
             template_dir = 'static'
-            self.performer.send_file(
-                '{directory}/templates/{template_dir}/network_interfaces'.format(
-                    directory=path.dirname(__file__),
-                    template_dir=template_dir
-                ),
-                '{container_root}/etc/network/interfaces '.format(
-                    container_root=self.container_root
-                )
-            )
+            # self.performer.send_file(
+            #     '{directory}/templates/{template_dir}/network_interfaces'.format(
+            #         directory=path.dirname(__file__),
+            #         template_dir=template_dir
+            #     ),
+            #     '{container_root}/etc/network/interfaces '.format(
+            #         container_root=self.container_root
+            #     )
+            # )
+            self.execute('rm -f /etc/resolv.conf')
+            self.execute('echo "nameserver {gateway}" >> /etc/resolv.conf'.format(gateway=gateway))
+
         else:
             template_dir = 'default'
 
@@ -200,10 +203,10 @@ class LXCMachinesProvider(BaseMachinesProvider):
     configuration_class = LXCMachinesConfiguration
     counter = 0
 
-    def _machine(self, ident, create=False, pub_key=None, ip=None):
+    def _machine(self, ident, create=False, pub_key=None, ip=None, gateway=None):
         machine = LXCMachine(self.performer, ident=ident)
         if create:
-            machine.create(self.configuration.distribution, self.configuration.release, ip=ip)
+            machine.create(self.configuration.distribution, self.configuration.release, ip=ip, gateway=gateway)
 
         machine.start()
 
@@ -222,10 +225,12 @@ class LXCMachinesProvider(BaseMachinesProvider):
         machines = []
 
         ip_nums = None
+        gateway = None
         for line in self.performer.execute('cat /etc/default/lxc-net').splitlines():
             r = re.match('^LXC_ADDR=\"([\w\.]+)\"$', line)
             if r:
-                ip_nums = list(map(int, r.group(1).split('.')))
+                gateway = r.group(1)
+                ip_nums = list(map(int, gateway.split('.')))
 
         for i in range(1, self.configuration.number + 1):
             # TODO try lxc-clone instead of this
@@ -235,7 +240,7 @@ class LXCMachinesProvider(BaseMachinesProvider):
                 self.counter += 1
             else:
                 ip = None
-            machine = self._machine(ident, create=create, pub_key=pub_key, ip=ip)
+            machine = self._machine(ident, create=create, pub_key=pub_key, ip=ip, gateway=gateway)
             machines.append(machine)
         return machines
 
