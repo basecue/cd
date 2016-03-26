@@ -49,11 +49,11 @@ class BaseIsolation(BaseRunner, BasePerformer):
         :return:
         """
         for machine_str, connectivity_conf in self.connectivity.items():
-            r = re.match('(?P<machine_group>[^\[]+)\[(?P<machine_index>\d+)\]', machine_str)
+            r = re.match('^(?P<machine_group>[^\[]+)_(?P<machine_index>\d+)$', machine_str)
             if r:
                 machines_groups = infrastructure.machines_groups(self, create=False)
                 machine_group = r.group('machine_group')
-                machine_index = int(r.group('machine_index'))
+                machine_index = int(r.group('machine_index')) - 1
                 machine = machines_groups[machine_group][machine_index]
 
                 for source_port, target_port in connectivity_conf.items():

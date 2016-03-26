@@ -164,17 +164,23 @@ def info(deployment):
     :return:
     :rtype: bool
     """
-
-    for machine_group_name, machines in deployment.info().items():
-        click.echo(machine_group_name)
+    info = deployment.info()
+    click.echo(
+        'Isolation:\n'
+        '    ident: {isolation.ident}\n'
+        '    ip: {isolation.ip}\n'.format(
+            isolation=info['isolation']
+        )
+    )
+    click.echo('Infrastructure:')
+    for machine_group_name, machines in info['machines_groups'].items():
+        click.echo('    Machines group: {name}'.format(name=machine_group_name))
         for machine in machines:
-            click.echo(machine.ip)
+            click.echo('        {machine.ip} {machine.ident}'.format(machine=machine))
     return True
     # click.echo(
     #     '{project} {environment} {infrastructure} {installation_transition}'.format(**deployment.deployment_info())
     # )
-
-
 
 
 if __name__ == "__main__":

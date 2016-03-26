@@ -2,7 +2,7 @@ from codev.isolation import BaseIsolation, Isolation
 from contextlib import contextmanager
 from logging import getLogger
 from .machines import LXCMachine
-from codev.performer import BackgroundRunner
+from codev.performer import BackgroundRunner, PerformerError
 
 
 class LXCIsolation(LXCMachine, BaseIsolation):
@@ -83,7 +83,7 @@ class LXCIsolation(LXCMachine, BaseIsolation):
             return self.performer.execute('lxc-attach {env} -n {container_name} -- bash -c "cd {working_dir} && {command}"'.format(
                 working_dir=self.working_dir,
                 container_name=self.ident,
-                command=command,
+                command=command.replace('$', '\$'),
                 env=' '.join('-v {var}={value}'.format(var=var, value=value) for var, value in env.items())
             ), logger=logger, writein=writein)
 
@@ -112,21 +112,51 @@ class LXCIsolation(LXCMachine, BaseIsolation):
 
     def make_link(self, source, target):
         # experimental
-        background_runner = BackgroundRunner(self.performer)
-
-        from os import path
-
-        background_runner.execute(
-            "TO={share_directory}/{target} clsync -l live -M rsyncshell -w2 -t5 -W {source} -S {path}/scripts/clsync-synchandler-rsyncshell.sh".format(
-                path=path.dirname(__file__),
-                container_root=self.container_root
-            ),
-            wait=False
-        )
-        self.execute(
-            'ln -s /share/{target} {target}'.format(
-                target=target,
+        background_runner = BackgroundRunner(
+            self.performer, ident='{share_directory}/{target}'.format(
+                share_directory=self.share_directory,
+                target=target
             )
         )
+        from os import path
+        dir_path = path.dirname(__file__)
+
+        try:
+            background_runner.execute(
+                "TO={share_directory}/{target} clsync -l live -M rsyncshell -w2 -t5 -W {source} -S {dir_path}/scripts/clsync-synchandler-rsyncshell.sh".format(
+                    share_directory=self.share_directory,
+                    target=target,
+                    source=source,
+                    dir_path=dir_path
+                ),
+                wait=False
+            )
+        except PerformerError:
+            pass
+
+        background_runner = BackgroundRunner(
+            self, ident=self.ident
+        )
+
+        self.send_file(
+            '{dir_path}/scripts/clsync-synchandler-rsyncshell.sh'.format(dir_path=dir_path),
+            '/usr/bin/clsync-synchandler-rsyncshell.sh'
+        )
+        self.execute('chmod +x /usr/bin/clsync-synchandler-rsyncshell.sh')
+
+        self.install_package('clsync')
+        self.install_package('rsync')
+
+        try:
+            background_runner.execute(
+                "TO={working_dir}/{target} clsync -l live -M rsyncshell -w2 -t5 -W /share/{target} -S /usr/bin/clsync-synchandler-rsyncshell.sh".format(
+                    working_dir=self.working_dir,
+                    target=target
+                ),
+                wait=False
+            )
+        except PerformerError:
+            pass
+
 
 Isolation.register('lxc', LXCIsolation)

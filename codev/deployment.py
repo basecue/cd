@@ -305,4 +305,9 @@ class Deployment(object):
             return False
 
     def info(self):
-        return self.infrastructure.machines_groups(self.isolation())
+        isolation = self.isolation()
+        return dict(
+            isolation=isolation,
+            machines_groups=self.infrastructure.machines_groups(isolation)
+        )
+

@@ -23,11 +23,11 @@ class LocalPerformer(BasePerformer):
             process.stdin.write(writein.encode())
             process.stdin.close()
 
+        # wait for exit code
+        exit_code = process.poll()
+
         # wait for end of output
         output = output_reader.output()
-
-        # wait for exit code
-        exit_code = process.wait()
 
         if exit_code:
             # read stderr for error output

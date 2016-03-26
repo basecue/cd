@@ -188,7 +188,7 @@ class LXCMachine(BaseMachine):
                 base_dir=self.base_dir,
                 working_dir=self.working_dir,
                 container_name=self.ident,
-                command=command,
+                command=command.replace('$', '\$'),
             ), logger=logger, writein=writein
         )
         return output
