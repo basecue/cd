@@ -84,8 +84,17 @@ class LXCMachine(BaseMachine):
             #         container_root=self.container_root
             #     )
             # )
-            self.execute('rm -f /etc/resolv.conf')
-            self.execute('echo "nameserver {gateway}" >> /etc/resolv.conf'.format(gateway=gateway))
+            self.performer.execute(
+                'rm -f {container_root}/etc/resolv.conf'.format(
+                    container_root=self.container_root
+                )
+            )
+            self.performer.execute(
+                'echo "nameserver {gateway}" >> {container_root}/etc/resolv.conf'.format(
+                    gateway=gateway,
+                    container_root=self.container_root
+                )
+            )
 
         else:
             template_dir = 'default'
