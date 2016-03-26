@@ -207,6 +207,14 @@ class LXCMachinesConfiguration(BaseConfiguration):
     def number(self):
         return int(self.data.get('number', 1))
 
+    @property
+    def networking(self):
+        return self.data.get('networking', 'static')
+
+    @property
+    def static_networking(self):
+        return self.networking == 'static'
+
 
 class LXCMachinesProvider(BaseMachinesProvider):
     configuration_class = LXCMachinesConfiguration
@@ -235,11 +243,13 @@ class LXCMachinesProvider(BaseMachinesProvider):
 
         ip_nums = None
         gateway = None
-        for line in self.performer.execute('cat /etc/default/lxc-net').splitlines():
-            r = re.match('^LXC_ADDR=\"([\w\.]+)\"$', line)
-            if r:
-                gateway = r.group(1)
-                ip_nums = list(map(int, gateway.split('.')))
+
+        if self.configuration.static_networking:
+            for line in self.performer.execute('cat /etc/default/lxc-net').splitlines():
+                r = re.match('^LXC_ADDR=\"([\w\.]+)\"$', line)
+                if r:
+                    gateway = r.group(1)
+                    ip_nums = list(map(int, gateway.split('.')))
 
         for i in range(1, self.configuration.number + 1):
             # TODO try lxc-clone instead of this

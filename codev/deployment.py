@@ -303,3 +303,6 @@ class Deployment(object):
         else:
             logger.info('There is no such isolation.')
             return False
+
+    def info(self):
+        return self.infrastructure.machines_groups(self.isolation())

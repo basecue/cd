@@ -153,7 +153,7 @@ def destroy(deployment):
     :return:
     :rtype: bool
     """
-    deployment.destroy()
+    return deployment.destroy()
 
 
 @command(help='Show info about the deployment.')
@@ -164,9 +164,17 @@ def info(deployment):
     :return:
     :rtype: bool
     """
-    click.echo(
-        '{project} {environment} {infrastructure} {installation_transition}'.format(**deployment.deployment_info())
-    )
+
+    for machine_group_name, machines in deployment.info().items():
+        click.echo(machine_group_name)
+        for machine in machines:
+            click.echo(machine.ip)
+    return True
+    # click.echo(
+    #     '{project} {environment} {infrastructure} {installation_transition}'.format(**deployment.deployment_info())
+    # )
+
+
 
 
 if __name__ == "__main__":
