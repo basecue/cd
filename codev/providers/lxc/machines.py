@@ -75,15 +75,15 @@ class LXCMachine(BaseMachine):
 
         if ip:
             template_dir = 'static'
-            # self.performer.send_file(
-            #     '{directory}/templates/{template_dir}/network_interfaces'.format(
-            #         directory=path.dirname(__file__),
-            #         template_dir=template_dir
-            #     ),
-            #     '{container_root}/etc/network/interfaces '.format(
-            #         container_root=self.container_root
-            #     )
-            # )
+            self.performer.send_file(
+                '{directory}/templates/{template_dir}/network_interfaces'.format(
+                    directory=path.dirname(__file__),
+                    template_dir=template_dir
+                ),
+                '{container_root}/etc/network/interfaces'.format(
+                    container_root=self.container_root
+                )
+            )
             self.performer.execute(
                 'rm -f {container_root}/etc/resolv.conf'.format(
                     container_root=self.container_root
@@ -218,7 +218,7 @@ class LXCMachinesConfiguration(BaseConfiguration):
 
 class LXCMachinesProvider(BaseMachinesProvider):
     configuration_class = LXCMachinesConfiguration
-    counter = 0
+    ip_counter = 0
 
     def _machine(self, ident, create=False, pub_key=None, ip=None, gateway=None):
         machine = LXCMachine(self.performer, ident=ident)
@@ -255,8 +255,8 @@ class LXCMachinesProvider(BaseMachinesProvider):
             # TODO try lxc-clone instead of this
             ident = '%s_%000d' % (self.machines_name, i)
             if create and ip_nums:
-                ip = '.'.join(map(str, ip_nums[:3] + [ip_nums[3] + self.counter + i]))
-                self.counter += 1
+                ip = '.'.join(map(str, ip_nums[:3] + [ip_nums[3] + self.__class__.ip_counter + 1]))
+                self.__class__.ip_counter += 1
             else:
                 ip = None
             machine = self._machine(ident, create=create, pub_key=pub_key, ip=ip, gateway=gateway)

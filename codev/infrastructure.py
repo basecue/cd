@@ -13,7 +13,10 @@ class Infrastructure(object):
 
     def machines_groups(self, performer, create=False):
         machines_groups = {}
-        pub_key = '%s\n' % performer.execute('ssh-add -L')
+        if create:
+            pub_key = '%s\n' % performer.execute('ssh-add -L')
+        else:
+            pub_key = None
         for machines_name, machines_configuration in self.configuration.machines.items():
             machines_provider = MachinesProvider(
                 machines_configuration.provider,
