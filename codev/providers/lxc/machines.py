@@ -182,14 +182,14 @@ class LXCMachine(BaseMachine):
     def host(self):
         return self.ip
 
-    def execute(self, command, logger=None, writein=None):
+    def execute(self, command, logger=None, writein=None, max_lines=None):
         output = self.performer.execute(
             'lxc-attach -n {container_name} -v HOME={base_dir} -- bash -c "cd {working_dir} && {command}"'.format(
                 base_dir=self.base_dir,
                 working_dir=self.working_dir,
                 container_name=self.ident,
                 command=command.replace('$', '\$'),
-            ), logger=logger, writein=writein
+            ), logger=logger, writein=writein, max_lines=max_lines
         )
         return output
 

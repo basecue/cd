@@ -123,6 +123,7 @@ class BaseRunner(BaseExecutor):
 
 
 class BackgroundRunner(BaseRunner):
+
     def __init__(self, *args, **kwargs):
         super(BackgroundRunner, self).__init__(*args, **kwargs)
         self._isolation_cache = None

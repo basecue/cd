@@ -104,8 +104,8 @@ class LXCIsolation(LXCMachine, BaseIsolation):
             yield env
         finally:
             if ssh_auth_sock_remote:
-                background_runner_remote.stop()
-                background_runner_local.stop()
+                background_runner_remote.kill()
+                background_runner_local.kill()
                 pass
 
     def execute(self, command, logger=None, writein=None, max_lines=None):
@@ -172,7 +172,7 @@ class LXCIsolation(LXCMachine, BaseIsolation):
             pass
 
         background_runner = BackgroundRunner(
-            self, ident=self.ident
+            self.machine, ident=self.ident
         )
 
         self.send_file(
