@@ -1,6 +1,6 @@
 from codev.provision import Provisioner, BaseProvisioner
 from codev.configuration import BaseConfiguration
-
+# from os import environ
 import configparser
 
 from logging import getLogger
@@ -65,6 +65,10 @@ class AnsibleProvision(BaseProvisioner):
         else:
             extra_vars = ''
 
+        # env = {}
+        # env.update(environ)
+        # env.update(self.configuration.env_vars)
+
         if self.configuration.env_vars:
             env_vars = '{joined_env_vars} '.format(
                 joined_env_vars=' '.join(
@@ -82,6 +86,12 @@ class AnsibleProvision(BaseProvisioner):
             extra_vars=extra_vars,
             env_vars=env_vars
         ))
+        # self.performer.execute('{env_vars}ansible all -m ping -i {inventory}{extra_vars}'.format(
+        #     inventory=inventory_filepath,
+        #     playbook=playbook,
+        #     extra_vars=extra_vars,
+        #     env_vars=env_vars
+        # ))
         return True
 
 

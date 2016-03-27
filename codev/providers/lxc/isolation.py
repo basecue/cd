@@ -9,6 +9,7 @@ class LXCIsolation(LXCMachine, BaseIsolation):
     def __init__(self, *args, **kwargs):
         super(LXCIsolation, self).__init__(*args, **kwargs)
         self.logger = getLogger(__name__)
+        self.__gateway = None
 
     def _sanitize_path(self, path):
         if path.startswith('~/'):
@@ -23,6 +24,16 @@ class LXCIsolation(LXCMachine, BaseIsolation):
                 path=path
             )
         return path
+
+    @property
+    def _gateway(self):
+        if not self.__gateway:
+            self.__gateway = self.performer.execute(
+                'lxc-attach -n {container_name} -- ip route | grep default | cut -d " " -f 3'.format(
+                    container_name=self.ident
+                )
+            )
+        return self.__gateway
 
     @contextmanager
     def get_fo(self, remote_path):
@@ -48,36 +59,54 @@ class LXCIsolation(LXCMachine, BaseIsolation):
             'LANG': 'C.UTF-8',
             'LC_ALL':  'C.UTF-8'
         }
-        background_runner = None
+        background_runner_local = None
+        background_runner_remote = None
         ssh_auth_sock_remote = None
         if ssh_auth_sock_local and self.performer.check_execute(
             '[ -S {ssh_auth_sock_local} ]'.format(
                 ssh_auth_sock_local=ssh_auth_sock_local
             )
         ):
-            background_runner = BackgroundRunner(self.performer)
-            # TODO tmp to specific
-            ssh_auth_sock_remote = '/tmp/{ident}-ssh-agent-sock'.format(ident=background_runner.ident)
-            background_runner.execute(
-                "while true ; do socat UNIX:$SSH_AUTH_SOCK EXEC:'lxc-usernsexec socat STDIN UNIX-LISTEN\:{container_root}{ssh_auth_sock_remote}'; done".format(
+            # TODO tmp to specific, tcp is dangerous, check it
+            background_runner_local = BackgroundRunner(self.performer)
+            background_runner_remote = BackgroundRunner(self.performer)
+
+            ssh_auth_sock_remote = '/tmp/{ident}-ssh-agent-sock'.format(ident=background_runner_remote.ident)
+
+            background_runner_local.execute(
+                'socat TCP-LISTEN:44444,bind={gateway},fork UNIX-CONNECT:{ssh_auth_sock_local}'.format(
+                    gateway=self._gateway,
+                    ssh_auth_sock_local=ssh_auth_sock_local
+                ),
+                wait=False
+            )
+            background_runner_remote.execute(
+                'lxc-usernsexec -- socat UNIX-LISTEN:{container_root}{ssh_auth_sock_remote},fork TCP:{gateway}:44444'.format(
+                    gateway=self._gateway,
                     ssh_auth_sock_remote=ssh_auth_sock_remote,
                     container_root=self.container_root
                 ),
                 wait=False
             )
+            # background_runner.execute(
+            #     "trap '{{ kill 0; exit; kill 0; }}' SIGINT; "
+            #     "while true ; "
+            #     "do socat UNIX:$SSH_AUTH_SOCK"
+            #     " EXEC:'lxc-usernsexec socat STDIN UNIX-LISTEN\:{container_root}{ssh_auth_sock_remote}';"
+            #     " test $? -gt 128 && break; done".format(
+            #         ssh_auth_sock_remote=ssh_auth_sock_remote,
+            #         container_root=self.container_root
+            #     ),
+            #     wait=False
+            # )
             env['SSH_AUTH_SOCK'] = ssh_auth_sock_remote
         try:
             yield env
         finally:
-            if background_runner:
-                background_runner.kill()
-                self.performer.check_execute(
-                    '[ -f {container_root}{ssh_auth_sock_remote} ] && lxc-usernsexec rm {container_root}{ssh_auth_sock_remote}'.format(
-                        ssh_auth_sock_local=ssh_auth_sock_local,
-                        ssh_auth_sock_remote=ssh_auth_sock_remote,
-                        container_root=self.container_root
-                    )
-                )
+            if ssh_auth_sock_remote:
+                background_runner_remote.stop()
+                background_runner_local.stop()
+                pass
 
     def execute(self, command, logger=None, writein=None, max_lines=None):
         with self._environment() as env:
