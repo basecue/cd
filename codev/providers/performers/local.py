@@ -11,26 +11,26 @@ class LocalPerformer(BasePerformer):
         super(LocalPerformer, self).__init__(*args, **kwargs)
         self.logger = getLogger(__name__)
 
-    def execute(self, command, logger=None, writein=None):
+    def execute(self, command, logger=None, writein=None, max_lines=None):
         self.logger.debug('Executing LOCAL command: %s' % command)
         process = Popen(command, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=True)
-
-        # read stdout asynchronously - in 'realtime'
-        output_reader = OutputReader(process.stdout, logger=logger or self.output_logger)
 
         if writein:
             # write writein to stdin
             process.stdin.write(writein.encode())
-            process.stdin.close()
+            process.stdin.flush()
+        process.stdin.close()
 
-        # wait for exit code
-        exit_code = process.poll()
+        # read stdout asynchronously - in 'realtime'
+        output_reader = OutputReader(process.stdout, logger=logger or self.output_logger, max_lines=max_lines)
 
         # wait for end of output
         output = output_reader.output()
 
+        # wait for exit code
+        exit_code = process.wait()
+
         if exit_code:
-            # read stderr for error output
             err = process.stderr.read().decode('utf-8').strip()
             raise CommandError(command, exit_code, err)
         return output

@@ -32,7 +32,7 @@ class BaseIsolation(BaseRunner, BasePerformer):
     def destroy(self):
         raise NotImplementedError()
 
-    def execute(self, command, logger=None, writein=None):
+    def execute(self, command, logger=None, writein=None, max_lines=None):
         raise NotImplementedError()
 
     def make_link(self, source, target):

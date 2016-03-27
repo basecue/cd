@@ -57,13 +57,17 @@ from threading import Thread
 
 
 class OutputReader(object):
-    def __init__(self, output, logger=None):
+    def __init__(self, output, logger=None, max_lines=None):
         self._output_lines = []
-        self._output_reader = Thread(target=self._reader, args=(output,), kwargs=dict(logger=logger))
+        self._output_reader = Thread(
+            target=self._reader,
+            args=(output,),
+            kwargs=dict(logger=logger, max_lines=max_lines)
+        )
         self._output_reader.start()
 
-    def _reader(self, output, logger=None):
-        while True:
+    def _reader(self, output, logger=None, max_lines=None):
+        while max_lines is None or (len(self._output_lines) < max_lines):
             line = output.readline()
             if not line:
                 break
@@ -249,7 +253,8 @@ class BackgroundRunner(BaseRunner):
             **isolation._asdict()
         )
 
-        pid = self.performer.execute(bg_command, writein=writein)
+        # max lines against readline hang
+        pid = self.performer.execute(bg_command, writein=writein, max_lines=1)
 
         if not pid.isdigit():
             raise ValueError('not a pid %s' % pid)

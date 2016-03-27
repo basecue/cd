@@ -78,14 +78,14 @@ class LXCIsolation(LXCMachine, BaseIsolation):
                 )
             )
 
-    def execute(self, command, logger=None, writein=None):
+    def execute(self, command, logger=None, writein=None, max_lines=None):
         with self._environment() as env:
             return self.performer.execute('lxc-attach {env} -n {container_name} -- bash -c "cd {working_dir} && {command}"'.format(
                 working_dir=self.working_dir,
                 container_name=self.ident,
                 command=command.replace('$', '\$'),
                 env=' '.join('-v {var}={value}'.format(var=var, value=value) for var, value in env.items())
-            ), logger=logger, writein=writein)
+            ), logger=logger, writein=writein, max_lines=max_lines)
 
     def send_file(self, source, target):
         tempfile = '/tmp/codev.{ident}.tempfile'.format(ident=self.ident)

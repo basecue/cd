@@ -86,6 +86,7 @@ def deployment_options(func):
 def performer_option(func):
     return click.option('--performer',
                         default=None,
+                        metavar='<performer>',
                         help='Set performer')(func)
 
 
