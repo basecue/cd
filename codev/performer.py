@@ -29,6 +29,7 @@ class BaseExecutor(object):
 
     @contextmanager
     def change_directory(self, directory):
+        # TODO try: finally
         self.working_dir = path.join(self.base_dir, directory)
         yield
         self.working_dir = self.base_dir
@@ -88,6 +89,7 @@ class BasePerformer(BaseExecutor, ConfigurableProvider):
 
     @contextmanager
     def get_fo(self, remote_path):
+        # TODO try: finally
         yield NotImplementedError()
 
 

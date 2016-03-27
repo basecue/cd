@@ -20,6 +20,10 @@ class AnsibleProvisionConfiguration(BaseConfiguration):
     def extra_vars(self):
         return self.data.get('extra_vars', {})
 
+    @property
+    def env_vars(self):
+        return self.data.get('env_vars', {})
+
 
 class AnsibleProvision(BaseProvisioner):
     configuration_class = AnsibleProvisionConfiguration
@@ -51,7 +55,7 @@ class AnsibleProvision(BaseProvisioner):
             inventory.write(inventoryfile)
 
         if self.configuration.extra_vars:
-            extra_vars = '--extra-vars "{joined_extra_vars}"'.format(
+            extra_vars = ' --extra-vars "{joined_extra_vars}"'.format(
                 joined_extra_vars=' '.join(
                     [
                         '{key}={value}'.format(key=key, value=value) for key, value in self.configuration.extra_vars.items()
@@ -61,10 +65,22 @@ class AnsibleProvision(BaseProvisioner):
         else:
             extra_vars = ''
 
-        self.performer.execute('ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i {inventory} {playbook} {extra_vars}'.format(
+        if self.configuration.env_vars:
+            env_vars = '{joined_env_vars} '.format(
+                joined_env_vars=' '.join(
+                    [
+                        '{key}="{value}"'.format(key=key, value=value) for key, value in self.configuration.env_vars.items()
+                    ]
+                )
+            )
+        else:
+            env_vars = ''
+
+        self.performer.execute('{env_vars}ansible-playbook -i {inventory} {playbook}{extra_vars}'.format(
             inventory=inventory_filepath,
             playbook=playbook,
-            extra_vars=extra_vars
+            extra_vars=extra_vars,
+            env_vars=env_vars
         ))
         return True
 

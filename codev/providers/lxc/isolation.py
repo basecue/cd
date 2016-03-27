@@ -26,6 +26,7 @@ class LXCIsolation(LXCMachine, BaseIsolation):
 
     @contextmanager
     def get_fo(self, remote_path):
+        # TODO try: finally
         tempfile = '/tmp/codev.{ident}.tempfile'.format(ident=self.ident)
 
         remote_path = self._sanitize_path(remote_path)
@@ -65,18 +66,18 @@ class LXCIsolation(LXCMachine, BaseIsolation):
                 wait=False
             )
             env['SSH_AUTH_SOCK'] = ssh_auth_sock_remote
-
-        yield env
-
-        if background_runner:
-            background_runner.kill()
-            self.performer.check_execute(
-                '[ -f {container_root}{ssh_auth_sock_remote} ] && lxc-usernsexec rm {container_root}{ssh_auth_sock_remote}'.format(
-                    ssh_auth_sock_local=ssh_auth_sock_local,
-                    ssh_auth_sock_remote=ssh_auth_sock_remote,
-                    container_root=self.container_root
+        try:
+            yield env
+        finally:
+            if background_runner:
+                background_runner.kill()
+                self.performer.check_execute(
+                    '[ -f {container_root}{ssh_auth_sock_remote} ] && lxc-usernsexec rm {container_root}{ssh_auth_sock_remote}'.format(
+                        ssh_auth_sock_local=ssh_auth_sock_local,
+                        ssh_auth_sock_remote=ssh_auth_sock_remote,
+                        container_root=self.container_root
+                    )
                 )
-            )
 
     def execute(self, command, logger=None, writein=None, max_lines=None):
         with self._environment() as env:
@@ -123,7 +124,14 @@ class LXCIsolation(LXCMachine, BaseIsolation):
 
         try:
             background_runner.execute(
-                "TO={share_directory}/{target} clsync -l live -M rsyncshell -w2 -t5 -W {source} -S {dir_path}/scripts/clsync-synchandler-rsyncshell.sh".format(
+                "TO={share_directory}/{target}"
+                " clsync"
+                " --label live"
+                " --mode rsyncshell"
+                " --delay-sync 2"
+                " --delay-collect 3"
+                " --watch-dir {source}"
+                " --sync-handler {dir_path}/scripts/clsync-synchandler-rsyncshell.sh".format(
                     share_directory=self.share_directory,
                     target=target,
                     source=source,
@@ -149,7 +157,14 @@ class LXCIsolation(LXCMachine, BaseIsolation):
 
         try:
             background_runner.execute(
-                "TO={working_dir}/{target} clsync -l live -M rsyncshell -w2 -t5 -W /share/{target} -S /usr/bin/clsync-synchandler-rsyncshell.sh".format(
+                "TO={working_dir}/{target}"
+                " clsync"
+                " --label live"
+                " --mode rsyncshell"
+                " --delay-sync 2"
+                " --delay-collect 3"
+                " --watch-dir /share/{target}"
+                " --sync-handler /usr/bin/clsync-synchandler-rsyncshell.sh".format(
                     working_dir=self.working_dir,
                     target=target
                 ),

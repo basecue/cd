@@ -23,8 +23,10 @@ class BaseMachine(BaseRunner):
 
     def _is_package_installed(self, package):
         # http://www.cyberciti.biz/faq/find-out-if-package-is-installed-in-linux/
+        # TODO
+        # alternative: dpkg-query -W -f='${Status}' {package}
         try:
-            return 'Status: install ok installed' in self.execute('dpkg -s {package}'.format(package=package))
+            return 'install ok installed' == self.execute("dpkg-query -W -f='${{Status}}' {package}".format(package=package))
         except CommandError:
             return False
 

@@ -107,6 +107,7 @@ class SSHperformer(BasePerformer):
 
     @contextmanager
     def get_fo(self, remote_path):
+        # TODO try: finally
         from tempfile import SpooledTemporaryFile
         self.logger.debug('SSH Get fo: %s' % remote_path)
         sftp = self.client.open_sftp()
