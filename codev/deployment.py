@@ -306,8 +306,10 @@ class Deployment(object):
 
     def info(self):
         isolation = self.isolation()
+
         return dict(
             isolation=isolation,
-            machines_groups=self.infrastructure.machines_groups(isolation)
+            machines_groups=self.infrastructure.machines_groups(isolation),
+            connectivity=isolation.connectivity
         )
 

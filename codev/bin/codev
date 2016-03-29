@@ -176,7 +176,10 @@ def info(deployment):
     for machine_group_name, machines in info['machines_groups'].items():
         click.echo('    Machines group: {name}'.format(name=machine_group_name))
         for machine in machines:
+            machine_connectivity = info['connectivity'].get(machine.ident, {})
             click.echo('        {machine.ip} {machine.ident}'.format(machine=machine))
+            for source, target in machine_connectivity.items():
+                click.echo('                {source} -> {target}'.format(source=source, target=target))
     return True
     # click.echo(
     #     '{project} {environment} {infrastructure} {installation_transition}'.format(**deployment.deployment_info())

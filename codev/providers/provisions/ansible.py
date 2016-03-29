@@ -30,6 +30,7 @@ class AnsibleProvision(BaseProvisioner):
 
     def install(self):
         self.performer.execute('apt-get install python-dev python-pip -y --force-yes')
+        self.performer.execute('pip install setuptools')
         self.performer.execute('pip install --upgrade markupsafe paramiko PyYAML Jinja2 httplib2 six ecdsa==0.11')
 
         version_add = ''

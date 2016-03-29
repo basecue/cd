@@ -2,6 +2,7 @@ from .provider import BaseProvider, ConfigurableProvider
 from contextlib import contextmanager
 from os import path
 from time import time
+from urllib.parse import urlencode
 
 
 class BaseExecutor(object):
@@ -25,7 +26,7 @@ class BaseExecutor(object):
     def run_scripts(self, scripts, common_arguments={}):
         for script, arguments in scripts.items():
             arguments.update(common_arguments)
-            self.execute(script.format(arguments))
+            self.execute(script.format(arguments), writein=urlencode(arguments))
 
     @contextmanager
     def change_directory(self, directory):

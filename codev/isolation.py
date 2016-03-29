@@ -103,6 +103,7 @@ class BaseIsolation(BaseRunner, BasePerformer):
 
         # install python3 pip
         self.execute('apt-get install python3-pip -y --force-yes')
+        self.execute('pip3 install setuptools')
 
         # install proper version of codev
         if not DebugConfiguration.configuration.distfile:

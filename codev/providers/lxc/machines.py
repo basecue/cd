@@ -72,6 +72,10 @@ class LXCMachine(BaseMachine):
         self.performer.execute('mkdir -p {share_directory} && chmod 7777 {share_directory}'.format(
             share_directory=self.share_directory
         ))
+        if self.performer.check_execute('[ -f /usr/share/lxc/config/nesting.conf ]'):
+            nesting = 'lxc.include = /usr/share/lxc/config/nesting.conf'
+        else:
+            nesting = 'lxc.mount.auto = cgroup\nlxc.aa_profile = lxc-container-default-with-nesting'
 
         if ip:
             template_dir = 'static'
@@ -99,6 +103,7 @@ class LXCMachine(BaseMachine):
         else:
             template_dir = 'default'
 
+
         for line in open('{directory}/templates/{template_dir}/config'.format(
                 directory=path.dirname(__file__),
                 template_dir=template_dir
@@ -107,11 +112,16 @@ class LXCMachine(BaseMachine):
             self.performer.execute('echo "{line}" >> {container_config}'.format(
                     line=line.format(
                         ip=ip,
-                        share_directory=self.share_directory
+                        share_directory=self.share_directory,
+                        nesting=nesting
                     ),
                     container_config=self.container_config
                 )
             )
+
+        # ubuntu trusty workaround
+        # self.performer.execute("sed -e '/lxc.include\s=\s\/usr\/share\/lxc\/config\/ubuntu.userns\.conf/ s/^#*/#/' -i {container_config}".format(container_config=self.container_config))
+
 
     @property
     def share_directory(self):
@@ -207,13 +217,18 @@ class LXCMachinesConfiguration(BaseConfiguration):
     def number(self):
         return int(self.data.get('number', 1))
 
+    # TODO rethink
     @property
-    def networking(self):
-        return self.data.get('networking', 'static')
+    def network(self):
+        return self.data.get('network', {})
 
     @property
-    def static_networking(self):
-        return self.networking == 'static'
+    def network_ip_start(self):
+        return self.network.get('ip_start', 0)
+
+    @property
+    def static_network(self):
+        return self.network == {} or self.network_ip_start
 
 
 class LXCMachinesProvider(BaseMachinesProvider):
@@ -228,6 +243,7 @@ class LXCMachinesProvider(BaseMachinesProvider):
         machine.start()
 
         if create:
+            machine.execute('apt-get update')
             #install ssh server
             machine.install_package('openssh-server')
 
@@ -244,7 +260,7 @@ class LXCMachinesProvider(BaseMachinesProvider):
         ip_nums = None
         gateway = None
 
-        if self.configuration.static_networking:
+        if self.configuration.static_network:
             for line in self.performer.execute('cat /etc/default/lxc-net').splitlines():
                 r = re.match('^LXC_ADDR=\"([\w\.]+)\"$', line)
                 if r:
@@ -252,13 +268,19 @@ class LXCMachinesProvider(BaseMachinesProvider):
                     ip_nums = list(map(int, gateway.split('.')))
 
         for i in range(1, self.configuration.number + 1):
-            # TODO try lxc-clone instead of this
             ident = '%s_%000d' % (self.machines_name, i)
-            if create and ip_nums:
-                ip = '.'.join(map(str, ip_nums[:3] + [ip_nums[3] + self.__class__.ip_counter + 1]))
-                self.__class__.ip_counter += 1
+            if create:
+                if self.configuration.network_ip_start:
+                    ip = '.'.join(map(str, ip_nums[:3] + [self.configuration.network_ip_start + i - 1]))
+                elif ip_nums:
+                    ip = '.'.join(map(str, ip_nums[:3] + [ip_nums[3] + self.__class__.ip_counter + 1]))
+                    self.__class__.ip_counter += 1
+                else:
+                    ip = None
             else:
                 ip = None
+
+            # TODO maybe lxc-clone instead of this - huge performance gain
             machine = self._machine(ident, create=create, pub_key=pub_key, ip=ip, gateway=gateway)
             machines.append(machine)
         return machines
