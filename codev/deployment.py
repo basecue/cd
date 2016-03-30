@@ -39,8 +39,9 @@ class Deployment(object):
             installation_configuration = environment_configuration.installations[installation_name]
         except KeyError as e:
             raise ValueError(
-                "Installation '{installation_name}' is not allowed installation for project '{project_name}'.".format(
+                "Installation '{installation_name}' is not allowed installation for environment '{environment_name}'.".format(
                     installation_name=installation_name,
+                    environment_name=environment_name,
                     project_name=self.project_name
                 )
             ) from e
@@ -192,7 +193,7 @@ class Deployment(object):
         try:
             # TODO refactorize into isolation
             with isolation.change_directory(isolation.installation.directory):
-                isolation.run_script(command, logger=command_logger)
+                isolation.run_script(command, arguments=self.deployment_info(), logger=command_logger)
         except CommandError as e:
             logger.error(e)
             return False
