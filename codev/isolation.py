@@ -92,7 +92,7 @@ class BaseIsolation(BaseRunner, BasePerformer):
         logger.info("Entering isolation...")
         # run onenter scripts
         with self.change_directory(current_installation.directory):
-            self.run_scripts(self.scripts.onenter, self.infrastructure.machines_info(self))
+            self.run_scripts(self.scripts.onenter)
         return current_installation
 
     def install(self, environment):
