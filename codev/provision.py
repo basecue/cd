@@ -44,7 +44,10 @@ class BaseProvisioner(ConfigurableProvider):
             return False
         else:
             try:
-                self.performer.run_scripts(self.scripts.onsuccess, deployment_info)
+                arguments = {}
+                arguments.update(deployment_info)
+                arguments.update(self.infrastructure.machines_info(self.performer))
+                self.performer.run_scripts(self.scripts.onsuccess, arguments)
                 return True
             except CommandError as e:
                 self._onerror(deployment_info, e)

@@ -25,6 +25,16 @@ class Infrastructure(object):
             machines_groups[machines_name] = machines_provider.machines(create=create, pub_key=pub_key)
         return machines_groups
 
+    def machines(self, performer):
+        for machine_group_name, machines in self.machines_groups(performer).items():
+            for machine in machines:
+                yield machine
+
+    def machines_info(self, performer):
+        return {
+            'machine_{ident}'.format(ident=machine.ident): machine.ip for machine in self.machines(performer)
+        }
+
     def isolation(self, performer, installation, next_installation, ident):
         isolation_configuration = self.configuration.isolation
         return Isolation(

@@ -73,9 +73,7 @@ class BaseIsolation(BaseRunner, BasePerformer):
         if arguments is None:
             arguments = {}
 
-        for machine_group_name, machines in self.infrastructure.machines_groups(self).items():
-            for machine in machines:
-                arguments['machine_{ident}'.format(ident=machine.ident)] = machine.ip
+        arguments.update(self.infrastructure.machines_info(self))
 
         super(BaseIsolation, self).run_script(script, arguments=arguments, logger=logger)
     
