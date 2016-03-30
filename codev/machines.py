@@ -8,6 +8,7 @@ class BaseMachine(BaseRunner):
         self.__cache_packages = False
 
     def install_package(self, package):
+        # TODO make this as a module for using in events scripts
         if not self._is_package_installed(package):
             self._cache_packages()
             self.execute(

@@ -69,14 +69,6 @@ class BaseIsolation(BaseRunner, BasePerformer):
                     self.execute('iptables -t nat -A POSTROUTING -p tcp --dst {source_ip} --dport {source_port} -j SNAT --to-source {target_ip}'.format(**redirection))
                     self.execute('iptables -t nat -A OUTPUT --dst {target_ip} -p tcp --dport {target_port} -j DNAT --to-destination {source_ip}:{source_port}'.format(**redirection))
     
-    def run_script(self, script, arguments=None, logger=None):
-        if arguments is None:
-            arguments = {}
-
-        arguments.update(self.infrastructure.machines_info(self))
-
-        super(BaseIsolation, self).run_script(script, arguments=arguments, logger=logger)
-    
     def enter(self, create=False, next_install=False):
         current_installation = self.installation
         if create:
@@ -100,7 +92,7 @@ class BaseIsolation(BaseRunner, BasePerformer):
         logger.info("Entering isolation...")
         # run onenter scripts
         with self.change_directory(current_installation.directory):
-            self.run_scripts(self.scripts.onenter)
+            self.run_scripts(self.scripts.onenter, self.infrastructure.machines_info(self))
         return current_installation
 
     def install(self, environment):
