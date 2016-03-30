@@ -16,9 +16,10 @@ class IsolationError(Exception):
 
 
 class BaseIsolation(BaseRunner, BasePerformer):
-    def __init__(self, scripts, connectivity, installation, next_installation, *args, **kwargs):
+    def __init__(self, scripts, connectivity, infrastructure, installation, next_installation, *args, **kwargs):
         super(BaseIsolation, self).__init__(*args, **kwargs)
         self.connectivity = connectivity
+        self.infrastructure = infrastructure
         self.installation = installation
         self.next_installation = next_installation
         self.scripts = scripts
@@ -43,7 +44,7 @@ class BaseIsolation(BaseRunner, BasePerformer):
     def ip(self):
         raise NotImplementedError()
 
-    def connect(self, infrastructure):
+    def connect(self):
         """
         :param isolation:
         :return:
@@ -51,7 +52,7 @@ class BaseIsolation(BaseRunner, BasePerformer):
         for machine_str, connectivity_conf in self.connectivity.items():
             r = re.match('^(?P<machine_group>[^\[]+)_(?P<machine_index>\d+)$', machine_str)
             if r:
-                machines_groups = infrastructure.machines_groups(self, create=False)
+                machines_groups = self.infrastructure.machines_groups(self, create=False)
                 machine_group = r.group('machine_group')
                 machine_index = int(r.group('machine_index')) - 1
                 machine = machines_groups[machine_group][machine_index]
@@ -67,7 +68,17 @@ class BaseIsolation(BaseRunner, BasePerformer):
                     self.execute('iptables -t nat -A PREROUTING --dst {target_ip} -p tcp --dport {target_port} -j DNAT --to-destination {source_ip}:{source_port}'.format(**redirection))
                     self.execute('iptables -t nat -A POSTROUTING -p tcp --dst {source_ip} --dport {source_port} -j SNAT --to-source {target_ip}'.format(**redirection))
                     self.execute('iptables -t nat -A OUTPUT --dst {target_ip} -p tcp --dport {target_port} -j DNAT --to-destination {source_ip}:{source_port}'.format(**redirection))
+    
+    def run_script(self, script, arguments=None, logger=None):
+        if arguments is None:
+            arguments = {}
 
+        for machine_group_name, machines in self.infrastructure.machines_groups(self).items():
+            for machine in machines:
+                arguments['machine_{ident}'.format(ident=machine.ident)] = machine.ip
+
+        super(BaseIsolation, self).run_script(script, arguments=arguments, logger=logger)
+    
     def enter(self, create=False, next_install=False):
         current_installation = self.installation
         if create:
@@ -94,7 +105,8 @@ class BaseIsolation(BaseRunner, BasePerformer):
             self.run_scripts(self.scripts.onenter)
         return current_installation
 
-    def install(self, environment, infrastructure):
+    def install(self, environment):
+
         current_installation = self.enter(create=True, next_install=True)
 
         with self.change_directory(current_installation.directory):
@@ -131,7 +143,7 @@ class BaseIsolation(BaseRunner, BasePerformer):
         try:
             deployment_options = '-e {environment} -i {infrastructure} -s {current_installation.provider_name}:{current_installation.options}'.format(
                 current_installation=current_installation,
-                infrastructure=infrastructure.name,
+                infrastructure=self.infrastructure.name,
                 environment=environment
             )
             with self.change_directory(current_installation.directory):
@@ -145,7 +157,7 @@ class BaseIsolation(BaseRunner, BasePerformer):
             return False
         else:
             logger.info("Setting up connectivity.")
-            self.connect(infrastructure)
+            self.connect()
             logger.info("Installation has been successfully completed.")
             return True
 

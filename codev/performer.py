@@ -23,10 +23,17 @@ class BaseExecutor(object):
     def execute(self, command, logger=None, writein=None):
         raise NotImplementedError()
 
-    def run_scripts(self, scripts, common_arguments={}):
+    def run_script(self, script, arguments=None, logger=None):
+        if arguments is None:
+            arguments = {}
+        return self.execute(script.format(**arguments), writein=urlencode(arguments), logger=logger)
+
+    def run_scripts(self, scripts, common_arguments=None):
+        if common_arguments is None:
+            common_arguments = {}
         for script, arguments in scripts.items():
             arguments.update(common_arguments)
-            self.execute(script.format(arguments), writein=urlencode(arguments))
+            self.run_script(script, arguments)
 
     @contextmanager
     def change_directory(self, directory):

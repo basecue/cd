@@ -73,7 +73,7 @@ class LXCMachine(BaseMachine):
             share_directory=self.share_directory
         ))
         if self.performer.check_execute('[ -f /usr/share/lxc/config/nesting.conf ]'):
-            nesting = 'lxc.include = /usr/share/lxc/config/nesting.conf'
+            nesting = 'lxc.mount.auto = cgroup\nlxc.include = /usr/share/lxc/config/nesting.conf'
         else:
             nesting = 'lxc.mount.auto = cgroup\nlxc.aa_profile = lxc-container-default-with-nesting'
 

@@ -17,6 +17,17 @@ class BaseProvisioner(ConfigurableProvider):
     def run(self, machines):
         raise NotImplementedError()
 
+    def _onerror(self, arguments, error):
+        self.logger.error(error)
+        arguments.update(
+            dict(
+                command=error.command,
+                exit_code=error.exit_code,
+                error=error.error
+            )
+        )
+        self.performer.run_scripts(self.scripts.onerror, arguments)
+
     def provision(self, deployment_info):
         self.performer.run_scripts(self.scripts.onstart, deployment_info)
         try:
@@ -29,22 +40,15 @@ class BaseProvisioner(ConfigurableProvider):
             self.logger.info('Starting provisioning...')
             self.run(machines_groups)
         except CommandError as e:
-            self.logger.error(e)
-            deployment_info.update(
-                dict(
-                    command=e.command,
-                    exit_code=e.exit_code,
-                    error=e.error
-                )
-            )
-            self.performer.run_scripts(
-                self.scripts.onerror,
-                deployment_info
-            )
+            self._onerror(deployment_info, e)
             return False
         else:
-            self.performer.run_scripts(self.scripts.onsuccess, deployment_info)
-            return True
+            try:
+                self.performer.run_scripts(self.scripts.onsuccess, deployment_info)
+                return True
+            except CommandError as e:
+                self._onerror(deployment_info, e)
+                return False
 
 
 class Provisioner(BaseProvider):

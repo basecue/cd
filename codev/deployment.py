@@ -175,7 +175,29 @@ class Deployment(object):
         :return: True if installation is successfully realized
         :rtype: bool
         """
-        return self._isolation.install(self.environment, self.infrastructure)
+        return self._isolation.install(self.environment)
+
+    def run(self, command):
+        """
+        Run command in project context in isolation.
+
+        :param command: Command to execute
+        :type command: str
+        :return: True if executed command returns 0
+        :rtype: bool
+        """
+        isolation = self.isolation()
+
+        logging_config(control_perform=True)
+        try:
+            # TODO refactorize into isolation
+            with isolation.change_directory(isolation.installation.directory):
+                isolation.run_script(command, logger=command_logger)
+        except CommandError as e:
+            logger.error(e)
+            return False
+        else:
+            return True
 
     def execute(self, command):
         """

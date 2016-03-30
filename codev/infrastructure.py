@@ -31,6 +31,7 @@ class Infrastructure(object):
             isolation_configuration.provider,
             isolation_configuration.scripts,
             isolation_configuration.connectivity,
+            self,
             installation,
             next_installation,
             performer,

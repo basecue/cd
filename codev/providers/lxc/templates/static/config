@@ -1,7 +1,7 @@
+{nesting}
+
 lxc.network.ipv4 = {ip}/24
 lxc.network.ipv4.gateway = auto
-
-{nesting}
 
 lxc.mount.entry = {share_directory} share none bind,create=dir 0.0
 lxc.cgroup.devices.allow = c 10:200 rwm

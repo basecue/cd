@@ -142,7 +142,10 @@ class LXCIsolation(LXCMachine, BaseIsolation):
         return uid_start, uid_range, gid_start, gid_range
 
     def create(self):
-        created = LXCMachine.create(self, 'ubuntu', 'wily')
+        try:
+            created = LXCMachine.create(self, 'ubuntu', 'wily')
+        except:
+            created = LXCMachine.create(self, 'ubuntu', 'trusty')
 
         self.start()
         self.install_package('lxc')
