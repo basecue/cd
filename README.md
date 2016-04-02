@@ -1,5 +1,15 @@
 # codev - continuous delivery tool
 
+Highly configurable tool for automatic creating and configuration environments.
+
+codev is designed for ease of use.
+
+It's also:
+
+ * decentralized
+ * extensible
+ * backwards compatible
+ * lightweight
 
 There is no stable version (yet). Only beta is available now.
 
@@ -12,8 +22,9 @@ $ pip3 install setuptools
 $ pip3 install codev --pre
 ```
 
-## Usage
+## Basic usage
 
+### Overview
 At a high level there is "control" mode, which checks a current version of configuration, creates isolated environment and delegates requested action to codev in "perform" mode in the isolated environment.
 
 There are three basic types of objects, which define the deployment:
@@ -22,7 +33,7 @@ There are three basic types of objects, which define the deployment:
  - `infrastructure` - defines machines (types, numbers etc.)
  - `installation` - defines source of application (version, branch, commit, directory...)
 
-At first create `.codev` file in the main directory of your git repository and configure your project deployment via this file. 
+At first create `.codev` file in the main directory of your git repository and configure your project deployment via this file. <!--- TODO link to docs -->
 
 ### Initiate installation project in isolation and start deployment:
 
