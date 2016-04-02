@@ -67,12 +67,12 @@ class LXCIsolation(LXCMachine, BaseIsolation):
                 ssh_auth_sock_local=ssh_auth_sock_local
             )
         ):
-            # TODO tmp to specific, tcp is dangerous, check it
             background_runner_local = BackgroundRunner(self.performer)
             background_runner_remote = BackgroundRunner(self.performer)
 
             ssh_auth_sock_remote = '/tmp/{ident}-ssh-agent-sock'.format(ident=background_runner_remote.ident)
 
+            # TODO avoid tcp because security reason
             background_runner_local.execute(
                 'socat TCP-LISTEN:44444,bind={gateway},fork UNIX-CONNECT:{ssh_auth_sock_local}'.format(
                     gateway=self._gateway,
@@ -88,23 +88,14 @@ class LXCIsolation(LXCMachine, BaseIsolation):
                 ),
                 wait=False
             )
-            # background_runner.execute(
-            #     "trap '{{ kill 0; exit; kill 0; }}' SIGINT; "
-            #     "while true ; "
-            #     "do socat UNIX:$SSH_AUTH_SOCK"
-            #     " EXEC:'lxc-usernsexec socat STDIN UNIX-LISTEN\:{container_root}{ssh_auth_sock_remote}';"
-            #     " test $? -gt 128 && break; done".format(
-            #         ssh_auth_sock_remote=ssh_auth_sock_remote,
-            #         container_root=self.container_root
-            #     ),
-            #     wait=False
-            # )
             env['SSH_AUTH_SOCK'] = ssh_auth_sock_remote
         try:
             yield env
         finally:
             if ssh_auth_sock_remote:
+                #TODO use lxc-usernsexec
                 background_runner_remote.kill()
+
                 background_runner_local.kill()
                 pass
 
@@ -150,6 +141,7 @@ class LXCIsolation(LXCMachine, BaseIsolation):
         self.start()
         self.install_package('lxc')
 
+        # TODO test uid/gid mapping
         # if created:
         #     uid_start, uid_range, gid_start, gid_range = self._get_id_mapping()
         #

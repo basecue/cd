@@ -5,10 +5,10 @@ There is no stable version (yet). Only beta is available now.
 
 ## Installation
 
-
-Install prerelease version (notice the --pre parameter):
-
+### Ubuntu
 ```bash
+$ apt-get install python3-pip
+$ pip3 install setuptools
 $ pip3 install codev --pre
 ```
 
