@@ -6,10 +6,10 @@ codev is designed for ease of use.
 
 It's also:
 
+ * lightweight
  * decentralized
  * extensible
  * backwards compatible
- * lightweight
 
 There is no stable version (yet). Only beta is available now.
 
