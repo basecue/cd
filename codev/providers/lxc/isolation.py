@@ -1,124 +1,16 @@
 from codev.isolation import BaseIsolation, Isolation
-from contextlib import contextmanager
 from logging import getLogger
 from .machines import LXCMachine
 from codev.performer import BackgroundRunner, PerformerError
+from contextlib import contextmanager
 
 
-class LXCIsolation(LXCMachine, BaseIsolation):
+class LXCIsolation(BaseIsolation):
     def __init__(self, *args, **kwargs):
+
         super(LXCIsolation, self).__init__(*args, **kwargs)
+        self.machine = LXCMachine(self.performer, ident=self.ident)
         self.logger = getLogger(__name__)
-        self.__gateway = None
-
-    def _sanitize_path(self, path):
-        if path.startswith('~/'):
-            path = '{base_dir}/{path}'.format(
-                base_dir=self.base_dir,
-                path=path[2:]
-            )
-
-        if not path.startswith('/'):
-            path = '{working_dir}/{path}'.format(
-                working_dir=self.working_dir,
-                path=path
-            )
-        return path
-
-    @property
-    def _gateway(self):
-        if not self.__gateway:
-            self.__gateway = self.performer.execute(
-                'lxc-attach -n {container_name} -- ip route | grep default | cut -d " " -f 3'.format(
-                    container_name=self.ident
-                )
-            )
-        return self.__gateway
-
-    @contextmanager
-    def get_fo(self, remote_path):
-        # TODO try: finally
-        tempfile = '/tmp/codev.{ident}.tempfile'.format(ident=self.ident)
-
-        remote_path = self._sanitize_path(remote_path)
-
-        self.performer.execute('lxc-usernsexec -- cp {container_root}{remote_path} {tempfile}'.format(
-            tempfile=tempfile,
-            remote_path=remote_path,
-            container_root=self.container_root
-        ))
-        with self.performer.get_fo(tempfile) as fo:
-            yield fo
-        self.performer.execute('lxc-usernsexec -- rm {tempfile}'.format(tempfile=tempfile))
-
-    @contextmanager
-    def _environment(self):
-        ssh_auth_sock_local = self.performer.execute('echo $SSH_AUTH_SOCK')
-        env = {
-            'HOME': self.base_dir,
-            'LANG': 'C.UTF-8',
-            'LC_ALL':  'C.UTF-8'
-        }
-        background_runner_local = None
-        background_runner_remote = None
-        ssh_auth_sock_remote = None
-        if ssh_auth_sock_local and self.performer.check_execute(
-            '[ -S {ssh_auth_sock_local} ]'.format(
-                ssh_auth_sock_local=ssh_auth_sock_local
-            )
-        ):
-            background_runner_local = BackgroundRunner(self.performer)
-            background_runner_remote = BackgroundRunner(self.performer)
-
-            ssh_auth_sock_remote = '/tmp/{ident}-ssh-agent-sock'.format(ident=background_runner_remote.ident)
-
-            # TODO avoid tcp because security reason
-            background_runner_local.execute(
-                'socat TCP-LISTEN:44444,bind={gateway},fork UNIX-CONNECT:{ssh_auth_sock_local}'.format(
-                    gateway=self._gateway,
-                    ssh_auth_sock_local=ssh_auth_sock_local
-                ),
-                wait=False
-            )
-            background_runner_remote.execute(
-                'lxc-usernsexec -- socat UNIX-LISTEN:{container_root}{ssh_auth_sock_remote},fork TCP:{gateway}:44444'.format(
-                    gateway=self._gateway,
-                    ssh_auth_sock_remote=ssh_auth_sock_remote,
-                    container_root=self.container_root
-                ),
-                wait=False
-            )
-            env['SSH_AUTH_SOCK'] = ssh_auth_sock_remote
-        try:
-            yield env
-        finally:
-            if ssh_auth_sock_remote:
-                #TODO use lxc-usernsexec
-                background_runner_remote.kill()
-
-                background_runner_local.kill()
-                pass
-
-    def execute(self, command, logger=None, writein=None, max_lines=None):
-        with self._environment() as env:
-            return self.performer.execute('lxc-attach {env} -n {container_name} -- bash -c "cd {working_dir} && {command}"'.format(
-                working_dir=self.working_dir,
-                container_name=self.ident,
-                command=command.replace('$', '\$').replace('"', '\\"'),
-                env=' '.join('-v {var}={value}'.format(var=var, value=value) for var, value in env.items())
-            ), logger=logger, writein=writein, max_lines=max_lines)
-
-    def send_file(self, source, target):
-        tempfile = '/tmp/codev.{ident}.tempfile'.format(ident=self.ident)
-        self.performer.send_file(source, tempfile)
-        target = self._sanitize_path(target)
-
-        self.performer.execute('lxc-usernsexec -- cp {tempfile} {container_root}{target}'.format(
-            tempfile=tempfile,
-            target=target,
-            container_root=self.container_root
-        ))
-        self.performer.execute('rm {tempfile}'.format(tempfile=tempfile))
 
     def _get_id_mapping(self):
         parent_uid_map, parent_uid_start, parent_uid_range = list(map(int, self.execute('cat /proc/self/uid_map').split()))
@@ -132,14 +24,32 @@ class LXCIsolation(LXCMachine, BaseIsolation):
         gid_range = parent_gid_range - gid_start
         return uid_start, uid_range, gid_start, gid_range
 
+    def exists(self):
+        return self.machine.exists()
+
+    def destroy(self):
+        return self.machine.destroy()
+
+    @property
+    def ip(self):
+        return self.machine.ip
+
+    @contextmanager
+    def get_fo(self, remote_path):
+        with self.machine.get_fo(remote_path) as fo:
+            yield fo
+
+    def send_file(self, source, target):
+        return self.machine.send_file(source, target)
+
     def create(self):
         try:
-            created = LXCMachine.create(self, 'ubuntu', 'wily')
+            created = self.machine.create('ubuntu', 'wily')
         except:
-            created = LXCMachine.create(self, 'ubuntu', 'trusty')
+            created = self.machine.create('ubuntu', 'trusty')
 
-        self.start()
-        self.install_package('lxc')
+        self.machine.start()
+        self.machine.install_package('lxc')
 
         # TODO test uid/gid mapping
         # if created:
@@ -164,11 +74,62 @@ class LXCIsolation(LXCMachine, BaseIsolation):
 
         return created
 
+    @contextmanager
+    def _environment(self):
+        env = {}
+        ssh_auth_sock_local = self.performer.execute('echo $SSH_AUTH_SOCK')
+        background_runner_local = None
+        background_runner_remote = None
+        ssh_auth_sock_remote = None
+        if ssh_auth_sock_local and self.performer.check_execute(
+            '[ -S {ssh_auth_sock_local} ]'.format(
+                ssh_auth_sock_local=ssh_auth_sock_local
+            )
+        ):
+            background_runner_local = BackgroundRunner(self.performer)
+            background_runner_remote = BackgroundRunner(self)
+
+            ssh_auth_sock_remote = '/tmp/{ident}-ssh-agent-sock'.format(ident=background_runner_remote.ident)
+
+            # TODO avoid tcp because security reason
+            background_runner_local.execute(
+                'socat TCP-LISTEN:44444,bind={gateway},fork UNIX-CONNECT:{ssh_auth_sock_local}'.format(
+                    gateway=self.machine._gateway,
+                    ssh_auth_sock_local=ssh_auth_sock_local
+                ),
+                wait=False
+            )
+            background_runner_remote.execute(
+                'socat UNIX-LISTEN:{container_root}{ssh_auth_sock_remote},fork TCP:{gateway}:44444'.format(
+                    gateway=self.machine._gateway,
+                    ssh_auth_sock_remote=ssh_auth_sock_remote,
+                    container_root=self.machine.container_root
+                ),
+                wait=False
+            )
+            env['SSH_AUTH_SOCK'] = ssh_auth_sock_remote
+        try:
+            yield env
+        finally:
+            if ssh_auth_sock_remote:
+                background_runner_remote.kill()
+                background_runner_local.kill()
+
+    def execute(self, command, logger=None, writein=None, max_lines=None):
+        with self._environment() as env:
+            with self.machine.change_directory(self.working_dir):
+                return self.machine.execute(command, env=env, logger=logger, writein=writein, max_lines=max_lines)
+
+    @contextmanager
+    def change_directory(self, directory):
+        with self.machine.change_directory(directory):
+            yield
+
     def make_link(self, source, target):
         # experimental
         background_runner = BackgroundRunner(
             self.performer, ident='{share_directory}/{target}'.format(
-                share_directory=self.share_directory,
+                share_directory=self.machine.share_directory,
                 target=target
             )
         )
@@ -185,7 +146,7 @@ class LXCIsolation(LXCMachine, BaseIsolation):
                 " --delay-collect 3"
                 " --watch-dir {source}"
                 " --sync-handler {dir_path}/scripts/clsync-synchandler-rsyncshell.sh".format(
-                    share_directory=self.share_directory,
+                    share_directory=self.machine.share_directory,
                     target=target,
                     source=source,
                     dir_path=dir_path
@@ -195,20 +156,18 @@ class LXCIsolation(LXCMachine, BaseIsolation):
         except PerformerError:
             pass
 
-
-        # TODO use LXCMachine execute
         background_runner = BackgroundRunner(
-            self, ident=self.ident
+            self.machine, ident=self.ident
         )
 
-        self.send_file(
+        self.machine.send_file(
             '{dir_path}/scripts/clsync-synchandler-rsyncshell.sh'.format(dir_path=dir_path),
             '/usr/bin/clsync-synchandler-rsyncshell.sh'
         )
-        self.execute('chmod +x /usr/bin/clsync-synchandler-rsyncshell.sh')
+        self.machine.execute('chmod +x /usr/bin/clsync-synchandler-rsyncshell.sh')
 
-        self.install_package('clsync')
-        self.install_package('rsync')
+        self.machine.install_package('clsync')
+        self.machine.install_package('rsync')
 
         try:
             background_runner.execute(

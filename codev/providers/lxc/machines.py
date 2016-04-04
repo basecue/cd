@@ -3,6 +3,7 @@ import re
 from time import sleep
 from codev.configuration import BaseConfiguration
 from codev.machines import MachinesProvider, BaseMachinesProvider, BaseMachine
+from contextlib import contextmanager
 from logging import getLogger
 from os import path
 
@@ -15,6 +16,7 @@ class LXCMachine(BaseMachine):
         self.__container_directory = None
         self.__share_directory = None
         self.base_dir = self.working_dir = '/root'
+        self.__gateway = None
 
     def exists(self):
         output = self.performer.execute('lxc-ls')
@@ -103,7 +105,6 @@ class LXCMachine(BaseMachine):
         else:
             template_dir = 'default'
 
-
         for line in open('{directory}/templates/{template_dir}/config'.format(
                 directory=path.dirname(__file__),
                 template_dir=template_dir
@@ -121,7 +122,6 @@ class LXCMachine(BaseMachine):
 
         # ubuntu trusty workaround
         # self.performer.execute("sed -e '/lxc.include\s=\s\/usr\/share\/lxc\/config\/ubuntu.userns\.conf/ s/^#*/#/' -i {container_config}".format(container_config=self.container_config))
-
 
     @property
     def share_directory(self):
@@ -188,20 +188,75 @@ class LXCMachine(BaseMachine):
 
         return None
 
+    def _sanitize_path(self, path):
+        if path.startswith('~/'):
+            path = '{base_dir}/{path}'.format(
+                base_dir=self.base_dir,
+                path=path[2:]
+            )
+
+        if not path.startswith('/'):
+            path = '{working_dir}/{path}'.format(
+                working_dir=self.working_dir,
+                path=path
+            )
+        return path
+
+    @property
+    def _gateway(self):
+        if not self.__gateway:
+            self.__gateway = self.performer.execute(
+                'lxc-attach -n {container_name} -- ip route | grep default | cut -d " " -f 3'.format(
+                    container_name=self.ident
+                )
+            )
+        return self.__gateway
+
+    @contextmanager
+    def get_fo(self, remote_path):
+        tempfile = '/tmp/codev.{ident}.tempfile'.format(ident=self.ident)
+
+        remote_path = self._sanitize_path(remote_path)
+
+        self.performer.execute('lxc-usernsexec -- cp {container_root}{remote_path} {tempfile}'.format(
+            tempfile=tempfile,
+            remote_path=remote_path,
+            container_root=self.container_root
+        ))
+        try:
+            with self.performer.get_fo(tempfile) as fo:
+                yield fo
+        finally:
+            self.performer.execute('lxc-usernsexec -- rm {tempfile}'.format(tempfile=tempfile))
+
+    def send_file(self, source, target):
+        tempfile = '/tmp/codev.{ident}.tempfile'.format(ident=self.ident)
+        self.performer.send_file(source, tempfile)
+        target = self._sanitize_path(target)
+
+        self.performer.execute('lxc-usernsexec -- cp {tempfile} {container_root}{target}'.format(
+            tempfile=tempfile,
+            target=target,
+            container_root=self.container_root
+        ))
+        self.performer.execute('rm {tempfile}'.format(tempfile=tempfile))
+
     @property
     def host(self):
         return self.ip
 
-    def execute(self, command, logger=None, writein=None, max_lines=None):
-        output = self.performer.execute(
-            'lxc-attach -n {container_name} -v HOME={base_dir} -- bash -c "cd {working_dir} && {command}"'.format(
-                base_dir=self.base_dir,
-                working_dir=self.working_dir,
-                container_name=self.ident,
-                command=command.replace('$', '\$'),
-            ), logger=logger, writein=writein, max_lines=max_lines
-        )
-        return output
+    def execute(self, command, env={}, logger=None, writein=None, max_lines=None):
+        env.update({
+            'HOME': self.base_dir,
+            'LANG': 'C.UTF-8',
+            'LC_ALL':  'C.UTF-8'
+        })
+        return self.performer.execute('lxc-attach {env} -n {container_name} -- bash -c "cd {working_dir} && {command}"'.format(
+            working_dir=self.working_dir,
+            container_name=self.ident,
+            command=command.replace('$', '\$').replace('"', '\\"'),
+            env=' '.join('-v {var}={value}'.format(var=var, value=value) for var, value in env.items())
+        ), logger=logger, writein=writein, max_lines=max_lines)
 
 
 class LXCMachinesConfiguration(BaseConfiguration):

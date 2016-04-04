@@ -254,7 +254,6 @@ class BackgroundRunner(BaseRunner):
                 **isolation._asdict()
             ),
             writein='{command}; echo $? > {exitcode_file}\n'.format(
-                base_dir=self.performer.base_dir,
                 command=command,
                 exitcode_file=isolation.exitcode_file
             )
