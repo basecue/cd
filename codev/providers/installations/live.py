@@ -1,20 +1,16 @@
-from codev.installation import Installation, BaseInstallation
+from codev.installation import Installation
 from os import getcwd
-from time import sleep
+from .actual import ActualInstallation
 # experimental
-# TODO inherit from actual and after classic installation create the link with make_link
 
 
-class LivelInstallation(BaseInstallation):
+class LiveInstallation(ActualInstallation):
     def install(self, performer):
+        super(LiveInstallation, self).install(performer)
         performer.make_link(getcwd(), self.directory)
-        sleep(5)
 
     def process_options(self, options):
         self.uid = options
 
-    @property
-    def id(self):
-        return self.uid
 
-Installation.register('live', LivelInstallation)
+Installation.register('live', LiveInstallation)

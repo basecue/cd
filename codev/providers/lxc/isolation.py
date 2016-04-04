@@ -78,28 +78,28 @@ class LXCIsolation(BaseIsolation):
     def _environment(self):
         env = {}
         ssh_auth_sock_local = self.performer.execute('echo $SSH_AUTH_SOCK')
-        background_runner_local = None
-        background_runner_remote = None
+        performer_background_runner = None
+        machine_background_runner = None
         ssh_auth_sock_remote = None
         if ssh_auth_sock_local and self.performer.check_execute(
             '[ -S {ssh_auth_sock_local} ]'.format(
                 ssh_auth_sock_local=ssh_auth_sock_local
             )
         ):
-            background_runner_local = BackgroundRunner(self.performer)
-            background_runner_remote = BackgroundRunner(self)
+            performer_background_runner = BackgroundRunner(self.performer)
+            machine_background_runner = BackgroundRunner(self.machine)
 
-            ssh_auth_sock_remote = '/tmp/{ident}-ssh-agent-sock'.format(ident=background_runner_remote.ident)
+            ssh_auth_sock_remote = '/tmp/{ident}-ssh-agent-sock'.format(ident=machine_background_runner.ident)
 
             # TODO avoid tcp because security reason
-            background_runner_local.execute(
+            performer_background_runner.execute(
                 'socat TCP-LISTEN:44444,bind={gateway},fork UNIX-CONNECT:{ssh_auth_sock_local}'.format(
                     gateway=self.machine._gateway,
                     ssh_auth_sock_local=ssh_auth_sock_local
                 ),
                 wait=False
             )
-            background_runner_remote.execute(
+            machine_background_runner.execute(
                 'socat UNIX-LISTEN:{container_root}{ssh_auth_sock_remote},fork TCP:{gateway}:44444'.format(
                     gateway=self.machine._gateway,
                     ssh_auth_sock_remote=ssh_auth_sock_remote,
@@ -112,8 +112,8 @@ class LXCIsolation(BaseIsolation):
             yield env
         finally:
             if ssh_auth_sock_remote:
-                background_runner_remote.kill()
-                background_runner_local.kill()
+                machine_background_runner.kill()
+                performer_background_runner.kill()
 
     def execute(self, command, logger=None, writein=None, max_lines=None):
         with self._environment() as env:
@@ -127,7 +127,7 @@ class LXCIsolation(BaseIsolation):
 
     def make_link(self, source, target):
         # experimental
-        background_runner = BackgroundRunner(
+        performer_background_runner = BackgroundRunner(
             self.performer, ident='{share_directory}/{target}'.format(
                 share_directory=self.machine.share_directory,
                 target=target
@@ -137,7 +137,7 @@ class LXCIsolation(BaseIsolation):
         dir_path = path.dirname(__file__)
 
         try:
-            background_runner.execute(
+            performer_background_runner.execute(
                 "TO={share_directory}/{target}"
                 " clsync"
                 " --label live"
@@ -156,7 +156,7 @@ class LXCIsolation(BaseIsolation):
         except PerformerError:
             pass
 
-        background_runner = BackgroundRunner(
+        machine_background_runner = BackgroundRunner(
             self.machine, ident=self.ident
         )
 
@@ -170,7 +170,7 @@ class LXCIsolation(BaseIsolation):
         self.machine.install_package('rsync')
 
         try:
-            background_runner.execute(
+            machine_background_runner.execute(
                 "TO={working_dir}/{target}"
                 " clsync"
                 " --label live"

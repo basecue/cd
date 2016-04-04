@@ -7,7 +7,8 @@ from urllib.parse import urlencode
 
 class BaseExecutor(object):
     def __init__(self, *args, ident=None, **kwargs):
-        self.base_dir = '~'
+        # TODO work with directories
+        self.base_dir = ''
         self.working_dir = self.base_dir
         self.ident = ident or str(time())
         self.output_logger = getLogger('command_output')
@@ -287,11 +288,17 @@ class BackgroundRunner(BaseRunner):
         return output
 
     def _control(self, method, *args, **kwargs):
-        self.logger.debug('control command')
+        """
+        :param method:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        self.logger.debug('control command: {method}'.format(method=method.__name__))
         try:
             pid = self._get_bg_running_pid()
         except CommandError as e:
-            raise PerformerError('No active isolation.')
+            raise PerformerError('No active process.')
 
         if pid:
             try:

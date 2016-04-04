@@ -45,7 +45,7 @@ class GitInstallation(BaseInstallation):
         Install project to directory
 
         :param performer:
-        :param directory:
+        :type performer: codev.performer.BasePerformer
         :return:
         """
         performer.execute('apt-get install git -y --force-yes')
@@ -71,12 +71,11 @@ class GitInstallation(BaseInstallation):
                 object=self.branch or self.tag
             ))
         elif self.commit:
-            # TODO TEST - cd
             performer.execute('git init {directory}'.format(directory=self.directory))
-            performer.execute('cd {directory}'.format(directory=self.directory))
-            performer.execute('git remote add origin {url}'.format(url=self.repository_url))
-            performer.execute('git fetch origin {commit}'.format(commit=self.commit))
-            performer.execute('git reset --hard FETCH_HEAD')
+            with performer.change_directory(self.directory):
+                performer.execute('git remote add origin {url}'.format(url=self.repository_url))
+                performer.execute('git fetch origin {commit}'.format(commit=self.commit))
+                performer.execute('git reset --hard FETCH_HEAD')
 
 
 Installation.register('git', GitInstallation)
