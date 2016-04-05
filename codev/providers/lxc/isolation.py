@@ -117,8 +117,7 @@ class LXCIsolation(BaseIsolation):
 
     def execute(self, command, logger=None, writein=None, max_lines=None):
         with self._environment() as env:
-            with self.machine.change_directory(self.working_dir):
-                return self.machine.execute(command, env=env, logger=logger, writein=writein, max_lines=max_lines)
+            return self.machine.execute(command, env=env, logger=logger, writein=writein, max_lines=max_lines)
 
     @contextmanager
     def change_directory(self, directory):

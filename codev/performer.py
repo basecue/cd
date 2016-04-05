@@ -7,7 +7,6 @@ from urllib.parse import urlencode
 
 class BaseExecutor(object):
     def __init__(self, *args, ident=None, **kwargs):
-        # TODO work with directories
         self.base_dir = ''
         self.working_dir = self.base_dir
         self.ident = ident or str(time())
@@ -38,7 +37,6 @@ class BaseExecutor(object):
 
     @contextmanager
     def change_directory(self, directory):
-        # TODO try: finally
         self.working_dir = path.join(self.base_dir, directory)
         yield
         self.working_dir = self.base_dir
