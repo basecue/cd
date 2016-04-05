@@ -96,7 +96,6 @@ class BasePerformer(BaseExecutor, ConfigurableProvider):
 
     @contextmanager
     def get_fo(self, remote_path):
-        # TODO try: finally
         yield NotImplementedError()
 
 
@@ -208,7 +207,7 @@ class BackgroundRunner(BaseRunner):
 
     def _bg_signal(self, pid, signal=None):
         return self.performer.execute(
-            'kill {signal}{pid}'.format(
+            'kill {signal}-{pid}'.format(
                 pid=pid,
                 signal='-%s ' % signal if signal else ''
             )
@@ -236,6 +235,7 @@ class BackgroundRunner(BaseRunner):
         return self._cat_file(self._isolation.pid_file)
 
     def execute(self, command, logger=None, writein=None, wait=True):
+        self.logger.debug('Command: {command} wait: {wait}'.format(command=command, wait=wait))
         isolation = self._isolation
 
         if self._file_exists(isolation.exitcode_file) and self._cat_file(isolation.exitcode_file) == '':

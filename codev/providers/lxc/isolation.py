@@ -50,6 +50,7 @@ class LXCIsolation(BaseIsolation):
 
         self.machine.start()
         self.machine.install_package('lxc')
+        self.machine.install_package('socat')
 
         # TODO test uid/gid mapping
         # if created:
@@ -100,10 +101,9 @@ class LXCIsolation(BaseIsolation):
                 wait=False
             )
             machine_background_runner.execute(
-                'socat UNIX-LISTEN:{container_root}{ssh_auth_sock_remote},fork TCP:{gateway}:44444'.format(
+                'socat UNIX-LISTEN:{ssh_auth_sock_remote},fork TCP:{gateway}:44444'.format(
                     gateway=self.machine._gateway,
                     ssh_auth_sock_remote=ssh_auth_sock_remote,
-                    container_root=self.machine.container_root
                 ),
                 wait=False
             )
