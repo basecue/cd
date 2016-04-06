@@ -52,6 +52,11 @@ class LXCIsolation(BaseIsolation):
         self.machine.install_package('lxc')
         self.machine.install_package('socat')
 
+        if created:
+            # reboot
+            self.machine.stop()
+            self.machine.start()
+
         # TODO test uid/gid mapping
         # if created:
         #     uid_start, uid_range, gid_start, gid_range = self._get_id_mapping()

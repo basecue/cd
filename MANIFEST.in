@@ -1,6 +1,6 @@
 include LICENSE
 include MANIFEST.in
-recursive-include docs *
+recursive-exclude docs *
 recursive-exclude tests *
 recursive-include codev *
 recursive-exclude * __pycache__
