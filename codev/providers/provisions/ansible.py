@@ -54,11 +54,18 @@ class AnsibleProvision(BaseProvisioner):
         with open(inventory_filepath, 'w+') as inventoryfile:
             inventory.write(inventoryfile)
 
+        template_vars = {
+            'working_dir': self.performer.working_dir
+        }
+
         if self.configuration.extra_vars:
             extra_vars = ' --extra-vars "{joined_extra_vars}"'.format(
                 joined_extra_vars=' '.join(
                     [
-                        '{key}={value}'.format(key=key, value=value) for key, value in self.configuration.extra_vars.items()
+                        '{key}={value}'.format(
+                            key=key,
+                            value=value.format(**template_vars) if isinstance(value, str) else value
+                        ) for key, value in self.configuration.extra_vars.items()
                     ]
                 )
             )
@@ -73,7 +80,10 @@ class AnsibleProvision(BaseProvisioner):
             env_vars = '{joined_env_vars} '.format(
                 joined_env_vars=' '.join(
                     [
-                        '{key}="{value}"'.format(key=key, value=value) for key, value in self.configuration.env_vars.items()
+                        '{key}="{value}"'.format(
+                            key=key,
+                            value=value.format(**template_vars) if isinstance(value, str) else value
+                        ) for key, value in self.configuration.env_vars.items()
                     ]
                 )
             )

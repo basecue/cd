@@ -113,6 +113,7 @@ class BaseIsolation(BaseRunner, BasePerformer):
             debug_logger.info('Install codev {distfile}'.format(distfile=distfile))
             self.send_file(distfile, '/tmp/codev.tar.gz')
             self.execute('pip3 install --upgrade /tmp/codev.tar.gz')
+            version = self.execute('pip3 show codev | grep Version | cut -d " " -f 2')
 
         logger.info("Run 'codev {version}' in isolation.".format(version=version))
 

@@ -7,7 +7,7 @@ from urllib.parse import urlencode
 
 class BaseExecutor(object):
     def __init__(self, *args, ident=None, **kwargs):
-        self.base_dir = ''
+        self.base_dir = '~'
         self.working_dir = self.base_dir
         self.ident = ident or str(time())
         self.output_logger = getLogger('command_output')
