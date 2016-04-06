@@ -178,7 +178,7 @@ class LXCIsolation(BaseIsolation):
                 " --delay-collect 3"
                 " --watch-dir /share/{target}"
                 " --sync-handler /usr/bin/clsync-synchandler-rsyncshell.sh".format(
-                    working_dir=self.working_dir,
+                    working_dir=self.machine.working_dir,
                     target=target
                 ),
                 wait=False

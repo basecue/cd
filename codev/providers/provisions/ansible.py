@@ -39,7 +39,6 @@ class AnsibleProvision(BaseProvisioner):
         self.performer.execute('pip install --upgrade ansible%s' % version_add)
 
     def run(self, machines_groups):
-        logger.debug('machines: %s' % machines_groups)
         playbook = self.configuration.playbook.format(infrastructure=self.infrastructure.name)
 
         inventory = configparser.ConfigParser(allow_no_value=True, delimiters=('',))

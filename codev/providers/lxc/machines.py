@@ -298,7 +298,6 @@ class LXCMachinesProvider(BaseMachinesProvider):
         machine.start()
 
         if create:
-            machine.execute('apt-get update')
             #install ssh server
             machine.install_package('openssh-server')
 
