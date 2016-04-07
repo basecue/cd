@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 
-REQUIRES = ['requests']
-
 import sys
-import requests
-from urllib.parse import parse_qs
+import json
+from urllib.request import urlopen
+from urllib.parse import parse_qs, urlencode
 
 
 def send_message(message, url, channel, username, project, environment, infrastructure, installation, icon):
@@ -52,7 +51,14 @@ def send_message(message, url, channel, username, project, environment, infrastr
             }
         ]
     }
-    requests.post(url, json=data)
+    urlopen(
+        url,
+        data=urlencode(
+            dict(
+                payload=json.dumps(data)
+            )
+        ).encode()
+    )
 
 
 if __name__ == "__main__":
