@@ -5,7 +5,6 @@ from .debug import DebugConfiguration
 from .configuration import YAMLConfigurationReader
 from logging import getLogger
 from .logging import logging_config
-from .machines import BaseMachine
 
 logger = getLogger(__name__)
 command_logger = getLogger('command')
@@ -113,8 +112,12 @@ class BaseIsolation(BaseRunner, BasePerformer):
         else:
             distfile = DebugConfiguration.configuration.distfile.format(version=version)
             debug_logger.info('Install codev {distfile}'.format(distfile=distfile))
-            self.send_file(distfile, '/tmp/codev.tar.gz')
-            self.execute('pip3 install --upgrade /tmp/codev.tar.gz')
+
+            from os.path import basename
+            remote_distfile = '/tmp/{distfile}'.format(distfile=basename(distfile))
+
+            self.send_file(distfile, remote_distfile)
+            self.execute('pip3 install --upgrade {distfile}'.format(distfile=remote_distfile))
             version = self.execute('pip3 show codev | grep Version | cut -d " " -f 2')
 
         logger.info("Run 'codev {version}' in isolation.".format(version=version))
