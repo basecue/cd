@@ -5,6 +5,7 @@ from .debug import DebugConfiguration
 from .configuration import YAMLConfigurationReader
 from logging import getLogger
 from .logging import logging_config
+from .machines import BaseMachine
 
 logger = getLogger(__name__)
 command_logger = getLogger('command')
@@ -69,7 +70,8 @@ class BaseIsolation(BaseRunner, BasePerformer):
     def enter(self, create=False, next_install=False):
         current_installation = self.installation
         if create:
-            logger.info("Creating isolation...")
+            if not self.exists():
+                logger.info("Creating isolation...")
             if self.create():
                 logger.info("Install project to isolation.")
                 current_installation.install(self)
@@ -101,7 +103,7 @@ class BaseIsolation(BaseRunner, BasePerformer):
                 version = YAMLConfigurationReader().from_yaml(codev_file).version
 
         # install python3 pip
-        self.execute('apt-get install python3-pip -y --force-yes')
+        self.install_packages('python3-pip')
         self.execute('pip3 install setuptools')
 
         # install proper version of codev

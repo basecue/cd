@@ -305,7 +305,7 @@ class LXCMachinesProvider(BaseMachinesProvider):
 
         if create:
             #install ssh server
-            machine.install_package('openssh-server')
+            machine.install_packages('openssh-server')
 
             #authorize user for ssh
             if pub_key:

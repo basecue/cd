@@ -44,7 +44,7 @@ class BaseExecutor(object):
                 )
                 script = script.replace(script_ident, script_replace, 1)
                 break
-
+        
         return self.execute(script.format(**arguments), writein=urlencode(arguments), logger=logger)
 
     def run_scripts(self, scripts, common_arguments=None):
@@ -110,6 +110,35 @@ class OutputReader(object):
 
 
 class BasePerformer(BaseExecutor, ConfigurableProvider):
+    def __init__(self, *args, **kwargs):
+        super(BasePerformer, self).__init__(*args, **kwargs)
+        self.__cache_packages = False
+
+    def install_packages(self, *packages):
+        # TODO make this as a module for using in events scripts
+        not_installed_packages = filter(self._is_package_installed, packages)
+        if not_installed_packages:
+            self._cache_packages()
+            self.execute(
+                'DEBIAN_FRONTEND=noninteractive apt-get install {packages} -y --force-yes'.format(
+                    packages=' '.join(not_installed_packages)
+                )
+            )
+
+    def _cache_packages(self):
+        if not self.__cache_packages:
+            self.execute('apt-get update')
+        self.__cache_packages = True
+
+    def _is_package_installed(self, package):
+        # http://www.cyberciti.biz/faq/find-out-if-package-is-installed-in-linux/
+        # TODO
+        # alternative: dpkg-query -W -f='${Status}' {package}
+        try:
+            return 'install ok installed' == self.execute("dpkg-query -W -f='${{Status}}' {package}".format(package=package))
+        except CommandError:
+            return False
+
     def send_file(self, source, target):
         raise NotImplementedError()
 

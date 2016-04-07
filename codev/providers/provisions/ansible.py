@@ -29,7 +29,7 @@ class AnsibleProvision(BaseProvisioner):
     configuration_class = AnsibleProvisionConfiguration
 
     def install(self):
-        self.performer.execute('apt-get install python-dev python-pip -y --force-yes')
+        self.performer.install_packages('python-dev', 'python-pip')
         self.performer.execute('pip install setuptools')
         self.performer.execute('pip install --upgrade markupsafe paramiko PyYAML Jinja2 httplib2 six ecdsa==0.11')
 
@@ -46,7 +46,7 @@ class AnsibleProvision(BaseProvisioner):
             inventory.add_section(name)
             for machine in machines:
                 # ansible node additional requirements
-                machine.install_package('python')
+                machine.install_packages('python')
                 inventory.set(name, machine.host, '')
 
         inventory_filepath = 'codev.ansible.inventory'
