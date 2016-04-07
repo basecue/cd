@@ -115,8 +115,8 @@ class BasePerformer(BaseExecutor, ConfigurableProvider):
         self.__cache_packages = False
 
     def install_packages(self, *packages):
-        # TODO make this as a module for using in events scripts
-        not_installed_packages = filter(self._is_package_installed, packages)
+        # TODO make this os independent
+        not_installed_packages = [package for package in packages if not self._is_package_installed(package)]
         if not_installed_packages:
             self._cache_packages()
             self.execute(
