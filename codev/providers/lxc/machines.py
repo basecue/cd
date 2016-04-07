@@ -205,11 +205,17 @@ class LXCMachine(BaseMachine):
     @property
     def _gateway(self):
         if not self.__gateway:
-            self.__gateway = self.performer.execute(
-                'lxc-attach -n {container_name} -- ip route | grep default | cut -d " " -f 3'.format(
-                    container_name=self.ident
+            # attempts to get gateway ip
+            for i in range(3):
+                self.__gateway = self.performer.execute(
+                    'lxc-attach -n {container_name} -- ip route | grep default | cut -d " " -f 3'.format(
+                        container_name=self.ident
+                    )
                 )
-            )
+                if self.__gateway:
+                    break
+                else:
+                    sleep(3)
         return self.__gateway
 
     @contextmanager
