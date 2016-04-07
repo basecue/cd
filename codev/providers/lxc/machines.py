@@ -298,12 +298,13 @@ class LXCMachinesProvider(BaseMachinesProvider):
 
     def _machine(self, ident, create=False, pub_key=None, ip=None, gateway=None):
         machine = LXCMachine(self.performer, ident=ident)
-        if create:
-            machine.create(self.configuration.distribution, self.configuration.release, ip=ip, gateway=gateway)
+        created = create and machine.create(
+            self.configuration.distribution, self.configuration.release, ip=ip, gateway=gateway
+        )
 
         machine.start()
 
-        if create:
+        if created:
             #install ssh server
             machine.install_packages('openssh-server')
 
