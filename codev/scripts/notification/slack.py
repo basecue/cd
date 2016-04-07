@@ -1,30 +1,28 @@
 #!/usr/bin/env python3
 
+# https://api.slack.com/incoming-webhooks
+
 import sys
 import json
 from urllib.request import urlopen
 from urllib.parse import parse_qs, urlencode
 
 
-def send_message(message, url, channel, username, project, environment, infrastructure, installation, icon):
+def send_message(message, color, url, channel, username, project, environment, infrastructure, installation, icon):
+    format_vars = dict(
+        project=project,
+        environment=environment,
+        infrastructure=infrastructure,
+        installation=installation
+    )
     data = {
-        'channel': channel,
-        'username': username.format(
-            project=project,
-            environment=environment,
-            infrastructure=infrastructure,
-            installation=installation
-        ),
+        'channel': channel.format(**format_vars),
+        'username': username.format(**format_vars),
         "icon_emoji": icon,
         "attachments": [
             {
-                "pretext": message.format(
-                    project=project,
-                    environment=environment,
-                    infrastructure=infrastructure,
-                    installation=installation
-                ),
-                "color": "good",
+                "pretext": message.format(**format_vars) if message else '',
+                "color": color,
                 "fields": [
                     {
                         "title": "Project",
@@ -72,7 +70,8 @@ if __name__ == "__main__":
     url = stdin.get('url', [''])[0]
     channel = stdin.get('channel', [''])[0]
     username = stdin.get('username', ['{project} bot'])[0]
-    message = stdin.get('message', ['Project *{project}* has been installed to environment *{environment}* with infrastructure *{infrastructure}* at installation *{installation}*.'])[0]
+    message = stdin.get('message', [''])[0]
     icon = stdin.get('icon', [':ghost:'])[0]
+    color = stdin.get('color', ['good'])[0]
 
-    send_message(message, url, channel, username, project, environment, infrastructure, installation, icon)
+    send_message(message, color, url, channel, username, project, environment, infrastructure, installation, icon)
