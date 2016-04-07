@@ -3,6 +3,10 @@ from contextlib import contextmanager
 from os import path
 from time import time
 from urllib.parse import urlencode
+from codev.scripts import COMMON_SCRIPTS
+
+COMMON_SCRIPTS_PREFIX = 'codev/'
+COMMON_SCRIPTS_PATH = '{directory}/scripts'.format(directory=path.dirname(__file__))
 
 
 class BaseExecutor(object):
@@ -26,6 +30,21 @@ class BaseExecutor(object):
     def run_script(self, script, arguments=None, logger=None):
         if arguments is None:
             arguments = {}
+
+        # common scripts
+        for common_script, script_path in COMMON_SCRIPTS:
+            script_ident = '{prefix}{common_script}'.format(
+                prefix=COMMON_SCRIPTS_PREFIX,
+                common_script=common_script
+            )
+            if script.startswith(script_ident):
+                script_replace = '{common_scripts_path}/{script_path}'.format(
+                    common_scripts_path=COMMON_SCRIPTS_PATH,
+                    script_path=script_path
+                )
+                script = script.replace(script_ident, script_replace, 1)
+                break
+
         return self.execute(script.format(**arguments), writein=urlencode(arguments), logger=logger)
 
     def run_scripts(self, scripts, common_arguments=None):
