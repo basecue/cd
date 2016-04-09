@@ -32,7 +32,7 @@ class BaseExecutor(object):
             arguments = {}
 
         # common scripts
-        for common_script, script_path in COMMON_SCRIPTS:
+        for common_script, script_path in COMMON_SCRIPTS.items():
             script_ident = '{prefix}{common_script}'.format(
                 prefix=COMMON_SCRIPTS_PREFIX,
                 common_script=common_script
