@@ -37,7 +37,7 @@ class BaseProvisioner(ConfigurableProvider):
             self.logger.info('Creating machines...')
             machines_groups = self.infrastructure.machines_groups(self.performer, create=True)
 
-            self.logger.info('Starting provisioning...')
+            self.logger.info('Configuration...')
             self.run(machines_groups)
         except CommandError as e:
             self._onerror(deployment_info, e)

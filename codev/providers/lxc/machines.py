@@ -205,11 +205,17 @@ class LXCMachine(BaseMachine):
     @property
     def _gateway(self):
         if not self.__gateway:
-            self.__gateway = self.performer.execute(
-                'lxc-attach -n {container_name} -- ip route | grep default | cut -d " " -f 3'.format(
-                    container_name=self.ident
+            # attempts to get gateway ip
+            for i in range(3):
+                self.__gateway = self.performer.execute(
+                    'lxc-attach -n {container_name} -- ip route | grep default | cut -d " " -f 3'.format(
+                        container_name=self.ident
+                    )
                 )
-            )
+                if self.__gateway:
+                    break
+                else:
+                    sleep(3)
         return self.__gateway
 
     @contextmanager
@@ -292,14 +298,15 @@ class LXCMachinesProvider(BaseMachinesProvider):
 
     def _machine(self, ident, create=False, pub_key=None, ip=None, gateway=None):
         machine = LXCMachine(self.performer, ident=ident)
-        if create:
-            machine.create(self.configuration.distribution, self.configuration.release, ip=ip, gateway=gateway)
+        created = create and machine.create(
+            self.configuration.distribution, self.configuration.release, ip=ip, gateway=gateway
+        )
 
         machine.start()
 
-        if create:
+        if created:
             #install ssh server
-            machine.install_package('openssh-server')
+            machine.install_packages('openssh-server')
 
             #authorize user for ssh
             if pub_key:

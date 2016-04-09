@@ -3,6 +3,10 @@ from contextlib import contextmanager
 from os import path
 from time import time
 from urllib.parse import urlencode
+from codev.scripts import COMMON_SCRIPTS
+
+COMMON_SCRIPTS_PREFIX = 'codev/'
+COMMON_SCRIPTS_PATH = '{directory}/scripts'.format(directory=path.dirname(__file__))
 
 
 class BaseExecutor(object):
@@ -26,6 +30,21 @@ class BaseExecutor(object):
     def run_script(self, script, arguments=None, logger=None):
         if arguments is None:
             arguments = {}
+
+        # common scripts
+        for common_script, script_path in COMMON_SCRIPTS:
+            script_ident = '{prefix}{common_script}'.format(
+                prefix=COMMON_SCRIPTS_PREFIX,
+                common_script=common_script
+            )
+            if script.startswith(script_ident):
+                script_replace = '{common_scripts_path}/{script_path}'.format(
+                    common_scripts_path=COMMON_SCRIPTS_PATH,
+                    script_path=script_path
+                )
+                script = script.replace(script_ident, script_replace, 1)
+                break
+        
         return self.execute(script.format(**arguments), writein=urlencode(arguments), logger=logger)
 
     def run_scripts(self, scripts, common_arguments=None):
@@ -91,6 +110,35 @@ class OutputReader(object):
 
 
 class BasePerformer(BaseExecutor, ConfigurableProvider):
+    def __init__(self, *args, **kwargs):
+        super(BasePerformer, self).__init__(*args, **kwargs)
+        self.__cache_packages = False
+
+    def install_packages(self, *packages):
+        # TODO make this os independent
+        not_installed_packages = [package for package in packages if not self._is_package_installed(package)]
+        if not_installed_packages:
+            self._cache_packages()
+            self.execute(
+                'DEBIAN_FRONTEND=noninteractive apt-get install {packages} -y --force-yes'.format(
+                    packages=' '.join(not_installed_packages)
+                )
+            )
+
+    def _cache_packages(self):
+        if not self.__cache_packages:
+            self.execute('apt-get update')
+        self.__cache_packages = True
+
+    def _is_package_installed(self, package):
+        # http://www.cyberciti.biz/faq/find-out-if-package-is-installed-in-linux/
+        # TODO
+        # alternative: dpkg-query -W -f='${Status}' {package}
+        try:
+            return 'install ok installed' == self.execute("dpkg-query -W -f='${{Status}}' {package}".format(package=package))
+        except CommandError:
+            return False
+
     def send_file(self, source, target):
         raise NotImplementedError()
 

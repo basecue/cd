@@ -69,7 +69,8 @@ class BaseIsolation(BaseRunner, BasePerformer):
     def enter(self, create=False, next_install=False):
         current_installation = self.installation
         if create:
-            logger.info("Creating isolation...")
+            if not self.exists():
+                logger.info("Creating isolation...")
             if self.create():
                 logger.info("Install project to isolation.")
                 current_installation.install(self)
@@ -101,7 +102,7 @@ class BaseIsolation(BaseRunner, BasePerformer):
                 version = YAMLConfigurationReader().from_yaml(codev_file).version
 
         # install python3 pip
-        self.execute('apt-get install python3-pip -y --force-yes')
+        self.install_packages('python3-pip')
         self.execute('pip3 install setuptools')
 
         # install proper version of codev
@@ -111,8 +112,12 @@ class BaseIsolation(BaseRunner, BasePerformer):
         else:
             distfile = DebugConfiguration.configuration.distfile.format(version=version)
             debug_logger.info('Install codev {distfile}'.format(distfile=distfile))
-            self.send_file(distfile, '/tmp/codev.tar.gz')
-            self.execute('pip3 install --upgrade /tmp/codev.tar.gz')
+
+            from os.path import basename
+            remote_distfile = '/tmp/{distfile}'.format(distfile=basename(distfile))
+
+            self.send_file(distfile, remote_distfile)
+            self.execute('pip3 install --upgrade {distfile}'.format(distfile=remote_distfile))
             version = self.execute('pip3 show codev | grep Version | cut -d " " -f 2')
 
         logger.info("Run 'codev {version}' in isolation.".format(version=version))

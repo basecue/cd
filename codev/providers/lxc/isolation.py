@@ -49,8 +49,7 @@ class LXCIsolation(BaseIsolation):
             created = self.machine.create('ubuntu', 'trusty')
 
         self.machine.start()
-        self.machine.install_package('lxc')
-        self.machine.install_package('socat')
+        self.machine.install_packages('lxc', 'socat')
 
         if created:
             # reboot
@@ -170,8 +169,7 @@ class LXCIsolation(BaseIsolation):
         )
         self.machine.execute('chmod +x /usr/bin/clsync-synchandler-rsyncshell.sh')
 
-        self.machine.install_package('clsync')
-        self.machine.install_package('rsync')
+        self.machine.install_packages('clsync', 'rsync')
 
         try:
             machine_background_runner.execute(

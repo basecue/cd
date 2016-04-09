@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/home/beer/projects/baseclue/codev/env/bin/python3.4
 
 """
 Use cases
@@ -54,7 +54,7 @@ from codev.cli import command, main
 
 @command(
     help='Install project.',
-    confirmation="Install project '{project}' to '{environment}' environment with infrastructure '{infrastructure}' at installation '{installation_transition}'?"
+    confirmation="Install project '{project}' to environment '{environment}' with infrastructure '{infrastructure}' at installation '{installation_transition}'?"
 )
 def install(deployment):
     """
@@ -70,7 +70,7 @@ def install(deployment):
 
 @command(
     help='Deploy project.',
-    confirmation="Deploy project '{project}' to '{environment}' environment with infrastructure '{infrastructure}' at installation '{installation_transition}'?"
+    confirmation="Deploy project '{project}' to environment '{environment}' with infrastructure '{infrastructure}' at installation '{installation_transition}'?"
 )
 def deploy(deployment):
     """
@@ -158,7 +158,7 @@ def shell(deployment):
 
 @command(
     help='Destroy isolation.',
-    confirmation="Destroy isolation of project '{project}' in '{environment}' environment with infrastructure '{infrastructure}' at installation '{installation_transition}'?"
+    confirmation="Destroy isolation of project '{project}' in environment '{environment}' with infrastructure '{infrastructure}' at installation '{installation_transition}'?"
 )
 def destroy(deployment):
     """
