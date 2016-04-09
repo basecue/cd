@@ -26,7 +26,7 @@ class AnsibleProvisionSettings(BaseSettings):
 
 
 class AnsibleProvision(BaseProvisioner):
-    configuration_class = AnsibleProvisionSettings
+    settings_class = AnsibleProvisionSettings
 
     def install(self):
         self.performer.install_packages('python-dev', 'python-pip')
@@ -34,12 +34,12 @@ class AnsibleProvision(BaseProvisioner):
         self.performer.execute('pip install --upgrade markupsafe paramiko PyYAML Jinja2 httplib2 six ecdsa==0.11')
 
         version_add = ''
-        if self.configuration.version:
-            version_add = '==%s' % self.configuration.version
+        if self.settings.version:
+            version_add = '==%s' % self.settings.version
         self.performer.execute('pip install --upgrade ansible%s' % version_add)
 
     def run(self, machines_groups):
-        playbook = self.configuration.playbook.format(infrastructure=self.infrastructure.name)
+        playbook = self.settings.playbook.format(configuration=self.configuration.name)
 
         inventory = configparser.ConfigParser(allow_no_value=True, delimiters=('',))
         for name, machines in machines_groups.items():
@@ -58,14 +58,14 @@ class AnsibleProvision(BaseProvisioner):
             'installation_directory': self.performer.working_dir
         }
 
-        if self.configuration.extra_vars:
+        if self.settings.extra_vars:
             extra_vars = ' --extra-vars "{joined_extra_vars}"'.format(
                 joined_extra_vars=' '.join(
                     [
                         '{key}={value}'.format(
                             key=key,
                             value=value.format(**template_vars) if isinstance(value, str) else value
-                        ) for key, value in self.configuration.extra_vars.items()
+                        ) for key, value in self.settings.extra_vars.items()
                     ]
                 )
             )
@@ -74,16 +74,16 @@ class AnsibleProvision(BaseProvisioner):
 
         # env = {}
         # env.update(environ)
-        # env.update(self.configuration.env_vars)
+        # env.update(self.settings.env_vars)
 
-        if self.configuration.env_vars:
+        if self.settings.env_vars:
             env_vars = '{joined_env_vars} '.format(
                 joined_env_vars=' '.join(
                     [
                         '{key}="{value}"'.format(
                             key=key,
                             value=value.format(**template_vars) if isinstance(value, str) else value
-                        ) for key, value in self.configuration.env_vars.items()
+                        ) for key, value in self.settings.env_vars.items()
                     ]
                 )
             )

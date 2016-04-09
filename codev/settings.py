@@ -131,7 +131,7 @@ class IsolationSettings(BaseSettings):
         return IsolationScriptsSettings(self.data.get('scripts', {}))
 
 
-class InfrastructureSettings(BaseSettings):
+class ConfigurationSettings(BaseSettings):
     @property
     def machines(self):
         return DictSettings(ProviderSettings, self.data.get('machines', {}))
@@ -155,10 +155,10 @@ class EnvironmentSettings(BaseSettings):
         return ProviderSettings(self.data.get('performer', {}))
 
     @property
-    def infrastructures(self):
+    def configurations(self):
         return DictSettings(
-            InfrastructureSettings,
-            self.data.get('infrastructures', {}),
+            ConfigurationSettings,
+            self.data.get('configurations', {}),
         )
 
     @property
@@ -206,21 +206,21 @@ class Settings(BaseSettings):
 
 
 class YAMLSettingsReader(object):
-    def __init__(self, configuration_class=Settings):
-        self.configuration_class = configuration_class
+    def __init__(self, settings_class=Settings):
+        self.settings_class = settings_class
 
     def from_file(self, filepath, *args, **kwargs):
         return self.from_yaml(open(filepath), *args, **kwargs)
 
     def from_yaml(self, yamldata, *args, **kwargs):
-        return self.configuration_class(yaml.load(yamldata), *args, **kwargs)
+        return self.settings_class(yaml.load(yamldata), *args, **kwargs)
 
 
 class YAMLSettingsWriter(object):
-    def __init__(self, configuration=None):
-        if configuration is None:
-            configuration = Settings()
-        self.configuration = configuration
+    def __init__(self, settings=None):
+        if settings is None:
+            settings = Settings()
+        self.settings = settings
 
     def save_to_file(self, filepath):
-        yaml.dump(self.configuration.data, open(filepath, 'w+'))
+        yaml.dump(self.settings.data, open(filepath, 'w+'))

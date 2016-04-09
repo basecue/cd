@@ -293,13 +293,13 @@ class LXCMachinesSettings(BaseSettings):
 
 
 class LXCMachinesProvider(BaseMachinesProvider):
-    configuration_class = LXCMachinesSettings
+    settings_class = LXCMachinesSettings
     ip_counter = 0
 
     def _machine(self, ident, create=False, pub_key=None, ip=None, gateway=None):
         machine = LXCMachine(self.performer, ident=ident)
         created = create and machine.create(
-            self.configuration.distribution, self.configuration.release, ip=ip, gateway=gateway
+            self.settings.distribution, self.settings.release, ip=ip, gateway=gateway
         )
 
         machine.start()
@@ -321,18 +321,18 @@ class LXCMachinesProvider(BaseMachinesProvider):
         ip_nums = None
         gateway = None
 
-        if self.configuration.static_network:
+        if self.settings.static_network:
             for line in self.performer.execute('cat /etc/default/lxc-net').splitlines():
                 r = re.match('^LXC_ADDR=\"([\w\.]+)\"$', line)
                 if r:
                     gateway = r.group(1)
                     ip_nums = list(map(int, gateway.split('.')))
 
-        for i in range(1, self.configuration.number + 1):
+        for i in range(1, self.settings.number + 1):
             ident = '%s_%000d' % (self.machines_name, i)
             if create:
-                if self.configuration.network_ip_start:
-                    ip = '.'.join(map(str, ip_nums[:3] + [self.configuration.network_ip_start + i - 1]))
+                if self.settings.network_ip_start:
+                    ip = '.'.join(map(str, ip_nums[:3] + [self.settings.network_ip_start + i - 1]))
                 elif ip_nums:
                     ip = '.'.join(map(str, ip_nums[:3] + [ip_nums[3] + self.__class__.ip_counter + 1]))
                     self.__class__.ip_counter += 1

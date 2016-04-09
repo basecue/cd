@@ -16,10 +16,10 @@ class IsolationError(Exception):
 
 
 class BaseIsolation(BaseRunner, BasePerformer):
-    def __init__(self, scripts, connectivity, infrastructure, installation, next_installation, *args, **kwargs):
+    def __init__(self, scripts, connectivity, configuration, installation, next_installation, *args, **kwargs):
         super(BaseIsolation, self).__init__(*args, **kwargs)
         self.connectivity = connectivity
-        self.infrastructure = infrastructure
+        self.configuration = configuration
         self.installation = installation
         self.next_installation = next_installation
         self.scripts = scripts
@@ -49,7 +49,7 @@ class BaseIsolation(BaseRunner, BasePerformer):
         for machine_str, connectivity_conf in self.connectivity.items():
             r = re.match('^(?P<machine_group>[^\[]+)_(?P<machine_index>\d+)$', machine_str)
             if r:
-                machines_groups = self.infrastructure.machines_groups(self, create=False)
+                machines_groups = self.configuration.machines_groups(self, create=False)
                 machine_group = r.group('machine_group')
                 machine_index = int(r.group('machine_index')) - 1
                 machine = machines_groups[machine_group][machine_index]
@@ -106,11 +106,11 @@ class BaseIsolation(BaseRunner, BasePerformer):
         self.execute('pip3 install setuptools')
 
         # install proper version of codev
-        if not DebugSettings.configuration.distfile:
+        if not DebugSettings.settings.distfile:
             logger.debug("Install codev version '{version}' to isolation.".format(version=version))
             self.execute('pip3 install --upgrade codev=={version}'.format(version=version))
         else:
-            distfile = DebugSettings.configuration.distfile.format(version=version)
+            distfile = DebugSettings.settings.distfile.format(version=version)
             debug_logger.info('Install codev {distfile}'.format(distfile=distfile))
 
             from os.path import basename
@@ -122,11 +122,11 @@ class BaseIsolation(BaseRunner, BasePerformer):
 
         logger.info("Run 'codev {version}' in isolation.".format(version=version))
 
-        if DebugSettings.perform_configuration:
+        if DebugSettings.perform_settings:
             perform_debug = ' '.join(
                 (
                     '--debug {key} {value}'.format(key=key, value=value)
-                    for key, value in DebugSettings.perform_configuration.data.items()
+                    for key, value in DebugSettings.perform_settings.data.items()
                 )
             )
         else:
@@ -134,9 +134,9 @@ class BaseIsolation(BaseRunner, BasePerformer):
 
         logging_config(control_perform=True)
         try:
-            deployment_options = '-e {environment} -i {infrastructure} -s {current_installation.provider_name}:{current_installation.options}'.format(
+            deployment_options = '-e {environment} -c {configuration} -s {current_installation.provider_name}:{current_installation.options}'.format(
                 current_installation=current_installation,
-                infrastructure=self.infrastructure.name,
+                configuration=self.configuration.name,
                 environment=environment
             )
             with self.change_directory(current_installation.directory):

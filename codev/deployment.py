@@ -1,4 +1,4 @@
-from .infrastructure import Infrastructure
+from .configuration import Configuration
 from .installation import Installation
 from .logging import logging_config
 from .performer import CommandError, Performer
@@ -19,9 +19,9 @@ class Deployment(object):
     """
     def __init__(
             self,
-            configuration,
+            settings,
             environment_name,
-            infrastructure_name,
+            configuration_name,
             installation_name,
             installation_options,
             next_installation_name='',
@@ -30,13 +30,13 @@ class Deployment(object):
             performer_specific={},
             disable_isolation=False
     ):
-        environment_configuration = configuration.environments[environment_name]
+        environment_settings = settings.environments[environment_name]
         self.environment = environment_name
-        self.project_name = configuration.project
+        self.project_name = settings.project
 
         # installation
         try:
-            installation_configuration = environment_configuration.installations[installation_name]
+            installation_settings = environment_settings.installations[installation_name]
         except KeyError as e:
             raise ValueError(
                 "Installation '{installation_name}' is not allowed installation for environment '{environment_name}'.".format(
@@ -48,7 +48,7 @@ class Deployment(object):
         self.installation = Installation(
             installation_name,
             installation_options,
-            configuration_data=installation_configuration
+            settings_data=installation_settings
         )
 
         # next installation
@@ -56,19 +56,19 @@ class Deployment(object):
             self.next_installation = Installation(
                 next_installation_name,
                 next_installation_options,
-                configuration_data=installation_configuration
+                settings_data=installation_settings
             )
         else:
             self.next_installation = None
 
-        # infrastructure
-        infrastructure_configuration = environment_configuration.infrastructures[infrastructure_name]
-        self.infrastructure = Infrastructure(infrastructure_name, infrastructure_configuration)
+        # configuration
+        configuration_settings = environment_settings.configurations[configuration_name]
+        self.configuration = Configuration(configuration_name, configuration_settings)
 
         ident = '%s:%s:%s:%s' % (
-            configuration.project,
+            settings.project,
             environment_name,
-            infrastructure_name,
+            configuration_name,
             self.installation.ident,
         )
         if self.next_installation:
@@ -76,19 +76,19 @@ class Deployment(object):
 
         # performer
         if not performer_provider:
-            performer_configuration = environment_configuration.performer
-            performer_provider = performer_configuration.provider
-            performer_specific = performer_configuration.specific
+            performer_settings = environment_settings.performer
+            performer_provider = performer_settings.provider
+            performer_specific = performer_settings.specific
 
         performer = Performer(
             performer_provider,
-            configuration_data=performer_specific
+            settings_data=performer_specific
         )
 
         self.current_installation = self.installation
 
         if not disable_isolation:
-            self.performer = self._isolation = self.infrastructure.isolation(performer, self.installation, self.next_installation, ident)
+            self.performer = self._isolation = self.configuration.isolation(performer, self.installation, self.next_installation, ident)
             if self.next_installation and self._isolation.exists():
                 self.current_installation = self.next_installation
         else:
@@ -99,13 +99,13 @@ class Deployment(object):
             logging_config(perform=True)
 
         # provisioner
-        provision_configuration = infrastructure_configuration.provision
+        provision_settings = configuration_settings.provision
         self.provisioner = Provisioner(
-            provision_configuration.provider,
-            provision_configuration.scripts,
+            provision_settings.provider,
+            provision_settings.scripts,
             self.performer,
-            self.infrastructure,
-            configuration_data=provision_configuration.specific
+            self.configuration,
+            settings_data=provision_settings.specific
         )
 
     def isolation(self, create=False):
@@ -161,7 +161,7 @@ class Deployment(object):
         return dict(
             project=self.project_name,
             environment=self.environment,
-            infrastructure=self.infrastructure.name,
+            configuration=self.configuration.name,
             installation=self.installation.name,
             installation_options=self.installation.options,
             next_installation=self.next_installation.name if self.next_installation else '',
@@ -288,7 +288,7 @@ class Deployment(object):
 
             command = input(
                 (color.GREEN +
-                 '{project} {environment} {infrastructure} {installation_transition}' +
+                 '{project} {environment} {configuration} {installation_transition}' +
                  color.RESET + ':' + color.BLUE + '~' + color.RESET + '$ ').format(
                     **self.deployment_info()
                 )
@@ -332,7 +332,7 @@ class Deployment(object):
 
         return dict(
             isolation=isolation,
-            machines_groups=self.infrastructure.machines_groups(isolation),
+            machines_groups=self.configuration.machines_groups(isolation),
             connectivity=isolation.connectivity
         )
 

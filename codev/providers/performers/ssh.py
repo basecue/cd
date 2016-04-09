@@ -28,7 +28,7 @@ class SSHPerformerSettings(BaseSettings):
 
 
 class SSHperformer(BasePerformer):
-    configuration_class = SSHPerformerSettings
+    settings_class = SSHPerformerSettings
 
     def __init__(self, *args, **kwargs):
         super(SSHperformer, self).__init__(*args, **kwargs)
@@ -41,16 +41,16 @@ class SSHperformer(BasePerformer):
         self.client.load_system_host_keys()
 
         connection_details = {}
-        if self.configuration.port:
-            connection_details['port'] = self.configuration.port
-        if self.configuration.username:
-            connection_details['username'] = self.configuration.username
-        if self.configuration.password:
-            connection_details['password'] = self.configuration.password
+        if self.settings.port:
+            connection_details['port'] = self.settings.port
+        if self.settings.username:
+            connection_details['username'] = self.settings.username
+        if self.settings.password:
+            connection_details['password'] = self.settings.password
         try:
-            self.client.connect(self.configuration.hostname, **connection_details)
+            self.client.connect(self.settings.hostname, **connection_details)
         except NoValidConnectionsError as e:
-            raise PerformerError('Cant connect to %s' % self.configuration.hostname)
+            raise PerformerError('Cant connect to %s' % self.settings.hostname)
         else:
             #ssh agent forwarding
             s = self.client.get_transport().open_session()

@@ -14,11 +14,11 @@ class RealMachinesSettings(BaseSettings):
 
 
 class RealMachinesProvider(BaseMachinesProvider):
-    configuration_class = RealMachinesSettings
+    settings_class = RealMachinesSettings
 
     def machines(self, create=False, pub_key=None):
         machines = []
-        for host in self.configuration.hosts:
+        for host in self.settings.hosts:
             machines.append(RealMachine(host))
         return machines
 

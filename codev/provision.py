@@ -4,10 +4,10 @@ from logging import getLogger
 
 
 class BaseProvisioner(ConfigurableProvider):
-    def __init__(self, scripts, performer, infrastructure, *args, **kwargs):
+    def __init__(self, scripts, performer, configuration, *args, **kwargs):
         self.scripts = scripts
         self.performer = performer
-        self.infrastructure = infrastructure
+        self.configuration = configuration
         self.logger = getLogger(__name__)
         super(BaseProvisioner, self).__init__(*args, **kwargs)
 
@@ -35,7 +35,7 @@ class BaseProvisioner(ConfigurableProvider):
             self.install()
 
             self.logger.info('Creating machines...')
-            machines_groups = self.infrastructure.machines_groups(self.performer, create=True)
+            machines_groups = self.configuration.machines_groups(self.performer, create=True)
 
             self.logger.info('Configuration...')
             self.run(machines_groups)
@@ -46,7 +46,7 @@ class BaseProvisioner(ConfigurableProvider):
             try:
                 arguments = {}
                 arguments.update(deployment_info)
-                arguments.update(self.infrastructure.machines_info(self.performer))
+                arguments.update(self.configuration.machines_info(self.performer))
                 self.performer.run_scripts(self.scripts.onsuccess, arguments)
                 return True
             except CommandError as e:

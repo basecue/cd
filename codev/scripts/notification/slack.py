@@ -8,11 +8,11 @@ from urllib.request import urlopen
 from urllib.parse import parse_qs, urlencode
 
 
-def send_message(message, color, url, channel, username, project, environment, infrastructure, installation, icon):
+def send_message(message, color, url, channel, username, project, environment, configuration, installation, icon):
     format_vars = dict(
         project=project,
         environment=environment,
-        infrastructure=infrastructure,
+        configuration=configuration,
         installation=installation
     )
     data = {
@@ -35,8 +35,8 @@ def send_message(message, color, url, channel, username, project, environment, i
                         "short": True
                     },
                     {
-                        "title": "Infrastructure",
-                        "value": infrastructure,
+                        "title": "Configuration",
+                        "value": configuration,
                         "short": True
                     },
                     {
@@ -64,7 +64,7 @@ if __name__ == "__main__":
     stdin = parse_qs(sys.stdin.read())
     project = stdin.get('project', [''])[0]
     environment = stdin.get('environment', [''])[0]
-    infrastructure = stdin.get('infrastructure', [''])[0]
+    configuration = stdin.get('configuration', [''])[0]
     installation = stdin.get('installation_transition', [''])[0]
 
     url = stdin.get('url', [''])[0]
@@ -74,4 +74,4 @@ if __name__ == "__main__":
     icon = stdin.get('icon', [':ghost:'])[0]
     color = stdin.get('color', ['good'])[0]
 
-    send_message(message, color, url, channel, username, project, environment, infrastructure, installation, icon)
+    send_message(message, color, url, channel, username, project, environment, configuration, installation, icon)

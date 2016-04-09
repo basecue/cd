@@ -6,16 +6,16 @@ Use cases
 codev init --template=[template]
     -- create new project
 
-codev install [environment] [infrastructure] [version]
+codev install [environment] [configuration] [version]
     -- install project
 
-codev start [environment] [infrastructure] [version]
+codev start [environment] [configuration] [version]
     -- start installed project
 
-codev stop [environment] [infrastructure] [version]
+codev stop [environment] [configuration] [version]
     -- stop installed project
 
-codev run [script] [environment] [infrastructure] [version]
+codev run [script] [environment] [configuration] [version]
 """
 
 import click
@@ -24,13 +24,13 @@ from codev.cli import command, main
 
 # import os.path
 #
-# from codev.configuration import YAMLSettingsWriter
+# from codev.settings import YAMLSettingsWriter
 # @main.command(
 #     help='Create .codev file with basic settings in current directory or in given file path.',
 #     short_help='Create .codev file with basic settings.'
 #               )
-# # TODO ?Merge with configuration option?
-# @click.option('-p', '--path', default='.codev', help='Path to configuration file.')
+# # TODO ?Merge with settings option?
+# @click.option('-p', '--path', default='.codev', help='Path to settings file.')
 # def init(path):
 #     """
 #     :param path:
@@ -54,7 +54,7 @@ from codev.cli import command, main
 
 @command(
     help='Install project.',
-    confirmation="Install project '{project}' to environment '{environment}' with infrastructure '{infrastructure}' at installation '{installation_transition}'?"
+    confirmation="Install project '{project}' to environment '{environment}' with configuration '{configuration}' at installation '{installation_transition}'?"
 )
 def install(deployment):
     """
@@ -70,7 +70,7 @@ def install(deployment):
 
 @command(
     help='Deploy project.',
-    confirmation="Deploy project '{project}' to environment '{environment}' with infrastructure '{infrastructure}' at installation '{installation_transition}'?"
+    confirmation="Deploy project '{project}' to environment '{environment}' with configuration '{configuration}' at installation '{installation_transition}'?"
 )
 def deploy(deployment):
     """
@@ -158,7 +158,7 @@ def shell(deployment):
 
 @command(
     help='Destroy isolation.',
-    confirmation="Destroy isolation of project '{project}' in environment '{environment}' with infrastructure '{infrastructure}' at installation '{installation_transition}'?"
+    confirmation="Destroy isolation of project '{project}' in environment '{environment}' with configuration '{configuration}' at installation '{installation_transition}'?"
 )
 def destroy(deployment):
     """
@@ -186,7 +186,7 @@ def info(deployment):
             isolation=info['isolation']
         )
     )
-    click.echo('Infrastructure:')
+    click.echo('Configuration:')
     for machine_group_name, machines in info['machines_groups'].items():
         click.echo('    Machines group: {name}'.format(name=machine_group_name))
         for machine in machines:
@@ -196,7 +196,7 @@ def info(deployment):
                 click.echo('                {source} -> {target}'.format(source=source, target=target))
     return True
     # click.echo(
-    #     '{project} {environment} {infrastructure} {installation_transition}'.format(**deployment.deployment_info())
+    #     '{project} {environment} {configuration} {installation_transition}'.format(**deployment.deployment_info())
     # )
 
 

@@ -34,9 +34,9 @@ def parse_installation(inp):
 def deployment_options(func):
     @wraps(func)
     def deployment_wrapper(
-            configuration,
+            settings,
             environment,
-            infrastructure,
+            configuration,
             installation,
             next_installation,
             performer,
@@ -45,9 +45,9 @@ def deployment_options(func):
         next_installation_name, next_installation_options = parse_installation(next_installation)
 
         deployment = Deployment(
-            configuration,
+            settings,
             environment,
-            infrastructure,
+            configuration,
             installation_name,
             installation_options,
             next_installation_name=next_installation_name,
@@ -65,10 +65,10 @@ def deployment_options(func):
         help='environment')(deployment_wrapper)
 
     f = click.option(
-        '-i', '--infrastructure',
-        metavar='<infrastructure>',
+        '-c', '--configuration',
+        metavar='<configuration>',
         required=True,
-        help='infrastructure')(f)
+        help='configuration')(f)
 
     f = click.option(
         '-s', '--installation',
@@ -103,7 +103,7 @@ def nice_exception(func):
         try:
             return func(*args, **kwargs)
         except Exception as e:
-            if DebugSettings.configuration.show_client_exception:
+            if DebugSettings.settings.show_client_exception:
                 raise
             if issubclass(type(e), click.ClickException) or issubclass(type(e), RuntimeError):
                 raise
@@ -113,26 +113,26 @@ def nice_exception(func):
 
 def path_option(func):
     @wraps(func)
-    def configuration_wrapper(path, *args, **kwargs):
+    def settings_wrapper(path, *args, **kwargs):
         chdir(path)
-        configuration = YAMLSettingsReader().from_file('.codev')
-        return func(configuration, *args, **kwargs)
+        settings = YAMLSettingsReader().from_file('.codev')
+        return func(settings, *args, **kwargs)
 
     return click.option('-p', '--path',
                         default='./',
                         metavar='<path to repository>',
-                        help='path to repository')(configuration_wrapper)
+                        help='path to repository')(settings_wrapper)
 
 
 def debug_option(func):
     @wraps(func)
     def debug_wrapper(debug, debug_perform, **kwargs):
         if debug:
-            DebugSettings.configuration = DebugSettings(dict(debug))
-            logging_config(DebugSettings.configuration.loglevel)
+            DebugSettings.settings = DebugSettings(dict(debug))
+            logging_config(DebugSettings.settings.loglevel)
 
         if debug_perform:
-            DebugSettings.perform_configuration = DebugSettings(dict(debug_perform))
+            DebugSettings.perform_settings = DebugSettings(dict(debug_perform))
 
         return func(**kwargs)
 

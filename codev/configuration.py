@@ -6,10 +6,10 @@ from .isolation import Isolation
 logger = getLogger(__name__)
 
 
-class Infrastructure(object):
-    def __init__(self, infrastructure_name, configuration):
-        self.name = infrastructure_name
-        self.configuration = configuration
+class Configuration(object):
+    def __init__(self, name, settings):
+        self.name = name
+        self.settings = settings
 
     def machines_groups(self, performer, create=False):
         machines_groups = {}
@@ -17,10 +17,10 @@ class Infrastructure(object):
             pub_key = '%s\n' % performer.execute('ssh-add -L')
         else:
             pub_key = None
-        for machines_name, machines_configuration in self.configuration.machines.items():
+        for machines_name, machines_settings in self.settings.machines.items():
             machines_provider = MachinesProvider(
-                machines_configuration.provider,
-                machines_name, performer, configuration_data=machines_configuration.specific
+                machines_settings.provider,
+                machines_name, performer, settings_data=machines_settings.specific
             )
             machines_groups[machines_name] = machines_provider.machines(create=create, pub_key=pub_key)
         return machines_groups
@@ -36,11 +36,11 @@ class Infrastructure(object):
         }
 
     def isolation(self, performer, installation, next_installation, ident):
-        isolation_configuration = self.configuration.isolation
+        isolation_settings = self.settings.isolation
         return Isolation(
-            isolation_configuration.provider,
-            isolation_configuration.scripts,
-            isolation_configuration.connectivity,
+            isolation_settings.provider,
+            isolation_settings.scripts,
+            isolation_settings.connectivity,
             self,
             installation,
             next_installation,
