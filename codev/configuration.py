@@ -13,12 +13,13 @@ class Configuration(object):
 
     # TODO refactorize - Infrastructure class
     def infrastructure(self, performer, create=False):
+        settings = self.settings.infrastructure
         machines_groups = {}
         if create:
             pub_key = '%s\n' % performer.execute('ssh-add -L')
         else:
             pub_key = None
-        for machines_name, machines_settings in self.settings.machines.items():
+        for machines_name, machines_settings in settings.items():
             machines_provider = MachinesProvider(
                 machines_settings.provider,
                 machines_name, performer, settings_data=machines_settings.specific
