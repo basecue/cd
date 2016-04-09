@@ -11,7 +11,8 @@ class Configuration(object):
         self.name = name
         self.settings = settings
 
-    def machines_groups(self, performer, create=False):
+    # TODO refactorize - Infrastructure class
+    def infrastructure(self, performer, create=False):
         machines_groups = {}
         if create:
             pub_key = '%s\n' % performer.execute('ssh-add -L')
@@ -26,7 +27,7 @@ class Configuration(object):
         return machines_groups
 
     def machines(self, performer):
-        for machine_group_name, machines in self.machines_groups(performer).items():
+        for machine_group_name, machines in self.infrastructure(performer).items():
             for machine in machines:
                 yield machine
 
@@ -34,6 +35,8 @@ class Configuration(object):
         return {
             'machine_{ident}'.format(ident=machine.ident): machine.ip for machine in self.machines(performer)
         }
+
+    ###
 
     def isolation(self, performer, installation, next_installation, ident):
         isolation_settings = self.settings.isolation

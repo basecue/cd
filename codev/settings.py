@@ -133,8 +133,8 @@ class IsolationSettings(BaseSettings):
 
 class ConfigurationSettings(BaseSettings):
     @property
-    def machines(self):
-        return DictSettings(ProviderSettings, self.data.get('machines', {}))
+    def infrastructure(self):
+        return DictSettings(ProviderSettings, self.data.get('infrastructure', {}))
 
     @property
     def provision(self):

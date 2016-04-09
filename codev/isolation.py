@@ -49,7 +49,7 @@ class BaseIsolation(BaseRunner, BasePerformer):
         for machine_str, connectivity_conf in self.connectivity.items():
             r = re.match('^(?P<machine_group>[^\[]+)_(?P<machine_index>\d+)$', machine_str)
             if r:
-                machines_groups = self.configuration.machines_groups(self, create=False)
+                machines_groups = self.configuration.infrastructure(self, create=False)
                 machine_group = r.group('machine_group')
                 machine_index = int(r.group('machine_index')) - 1
                 machine = machines_groups[machine_group][machine_index]

@@ -187,7 +187,7 @@ def info(deployment):
         )
     )
     click.echo('Configuration:')
-    for machine_group_name, machines in info['machines_groups'].items():
+    for machine_group_name, machines in info['infrastructure'].items():
         click.echo('    Machines group: {name}'.format(name=machine_group_name))
         for machine in machines:
             machine_connectivity = info['connectivity'].get(machine.ident, {})

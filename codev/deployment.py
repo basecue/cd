@@ -332,7 +332,7 @@ class Deployment(object):
 
         return dict(
             isolation=isolation,
-            machines_groups=self.configuration.machines_groups(isolation),
+            machines_groups=self.configuration.infrastructure(isolation),
             connectivity=isolation.connectivity
         )
 
