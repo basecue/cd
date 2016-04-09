@@ -8,7 +8,9 @@ class ActualInstallation(BaseInstallation):
     def install(self, performer):
         archive = shutil.make_archive('/tmp/{filename}'.format(filename=uuid1()), 'gztar')
         performer.send_file(archive, archive)
-        performer.install_packages('gunzip')
+        # install gunzip
+        performer.install_packages('gzip')
+
         performer.execute('mkdir -p {directory}'.format(directory=self.directory))
         performer.execute(
             'tar -xzf {archive} --directory {directory}'.format(
