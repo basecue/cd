@@ -1,7 +1,7 @@
 import re
 
 from time import sleep
-from codev.configuration import BaseConfiguration
+from codev.settings import BaseSettings
 from codev.machines import MachinesProvider, BaseMachinesProvider, BaseMachine
 from contextlib import contextmanager
 from logging import getLogger
@@ -265,7 +265,7 @@ class LXCMachine(BaseMachine):
         ), logger=logger, writein=writein, max_lines=max_lines)
 
 
-class LXCMachinesConfiguration(BaseConfiguration):
+class LXCMachinesSettings(BaseSettings):
     @property
     def distribution(self):
         return self.data.get('distribution')
@@ -293,7 +293,7 @@ class LXCMachinesConfiguration(BaseConfiguration):
 
 
 class LXCMachinesProvider(BaseMachinesProvider):
-    configuration_class = LXCMachinesConfiguration
+    configuration_class = LXCMachinesSettings
     ip_counter = 0
 
     def _machine(self, ident, create=False, pub_key=None, ip=None, gateway=None):

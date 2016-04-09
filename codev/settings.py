@@ -25,7 +25,7 @@ yaml.add_constructor(_mapping_tag, dict_constructor)
 """
 
 
-class BaseConfiguration(object):
+class BaseSettings(object):
     def __init__(self, data=None):
         if data is None:
             data = {}
@@ -35,7 +35,7 @@ class BaseConfiguration(object):
         return bool(self.data)
 
 
-class ProviderConfiguration(BaseConfiguration):
+class ProviderSettings(BaseSettings):
     @property
     def provider(self):
         return self.data.get('provider')
@@ -45,14 +45,14 @@ class ProviderConfiguration(BaseConfiguration):
         return self.data.get('specific', {})
 
 
-class DictConfiguration(OrderedDict):
+class DictSettings(OrderedDict):
     def __init__(self, cls, data, *args, **kwargs):
-        super(DictConfiguration, self).__init__()
+        super(DictSettings, self).__init__()
         for name, itemdata in data.items():
             self[name] = cls(itemdata, *args, **kwargs)
 
 
-class ListDictConfiguration(OrderedDict):
+class ListDictSettings(OrderedDict):
 
     @staticmethod
     def _intersect_default_value(intersect_default, key, value):
@@ -63,7 +63,7 @@ class ListDictConfiguration(OrderedDict):
     def __init__(self, data, intersect_default=None):
         if intersect_default is None:
             intersect_default = {}
-        super(ListDictConfiguration, self).__init__()
+        super(ListDictSettings, self).__init__()
 
         if isinstance(data, dict) or isinstance(data, OrderedDict):
             for key, value in data.items():
@@ -87,92 +87,92 @@ class ListDictConfiguration(OrderedDict):
             raise ValueError('Object {data} must be list or dictionary.'.format(data=data))
 
 
-class ProvisionScriptsConfiguration(BaseConfiguration):
+class ProvisionScriptsSettings(BaseSettings):
     @property
     def onstart(self):
-        return ListDictConfiguration(self.data.get('onstart', []))
+        return ListDictSettings(self.data.get('onstart', []))
 
     @property
     def onsuccess(self):
-        return ListDictConfiguration(self.data.get('onsuccess', []))
+        return ListDictSettings(self.data.get('onsuccess', []))
 
     @property
     def onerror(self):
-        return ListDictConfiguration(self.data.get('onerror', []))
+        return ListDictSettings(self.data.get('onerror', []))
 
 
-class ProvisionConfiguration(ProviderConfiguration):
+class ProvisionSettings(ProviderSettings):
     @property
     def scripts(self):
-        return ProvisionScriptsConfiguration(self.data.get('scripts', {}))
+        return ProvisionScriptsSettings(self.data.get('scripts', {}))
 
 
-class IsolationScriptsConfiguration(BaseConfiguration):
+class IsolationScriptsSettings(BaseSettings):
     @property
     def oncreate(self):
-        return ListDictConfiguration(self.data.get('oncreate', []))
+        return ListDictSettings(self.data.get('oncreate', []))
 
     @property
     def onenter(self):
-        return ListDictConfiguration(self.data.get('onenter', []))
+        return ListDictSettings(self.data.get('onenter', []))
 
 
-class IsolationConfigurartion(BaseConfiguration):
+class IsolationSettings(BaseSettings):
     @property
     def provider(self):
         return self.data.get('provider')
 
     @property
     def connectivity(self):
-        return ListDictConfiguration(self.data.get('connectivity', {}))
+        return ListDictSettings(self.data.get('connectivity', {}))
 
     @property
     def scripts(self):
-        return IsolationScriptsConfiguration(self.data.get('scripts', {}))
+        return IsolationScriptsSettings(self.data.get('scripts', {}))
 
 
-class InfrastructureConfiguration(BaseConfiguration):
+class InfrastructureSettings(BaseSettings):
     @property
     def machines(self):
-        return DictConfiguration(ProviderConfiguration, self.data.get('machines', {}))
+        return DictSettings(ProviderSettings, self.data.get('machines', {}))
 
     @property
     def provision(self):
-        return ProvisionConfiguration(self.data.get('provision', {}))
+        return ProvisionSettings(self.data.get('provision', {}))
 
     @property
     def isolation(self):
-        return IsolationConfigurartion(self.data.get('isolation', {}))
+        return IsolationSettings(self.data.get('isolation', {}))
 
 
-class EnvironmentConfiguration(BaseConfiguration):
+class EnvironmentSettings(BaseSettings):
     def __init__(self, data, default_installations):
-        super(EnvironmentConfiguration, self).__init__(data)
+        super(EnvironmentSettings, self).__init__(data)
         self.default_installations = default_installations
 
     @property
     def performer(self):
-        return ProviderConfiguration(self.data.get('performer', {}))
+        return ProviderSettings(self.data.get('performer', {}))
 
     @property
     def infrastructures(self):
-        return DictConfiguration(
-            InfrastructureConfiguration,
+        return DictSettings(
+            InfrastructureSettings,
             self.data.get('infrastructures', {}),
         )
 
     @property
     def installations(self):
-        return ListDictConfiguration(
+        return ListDictSettings(
             self.data.get('installations', []),
             intersect_default=self.default_installations
         )
 
 
-class Configuration(BaseConfiguration):
+class Settings(BaseSettings):
 
     def __init__(self, data=None):
-        super(Configuration, self).__init__(self.default_data)
+        super(Settings, self).__init__(self.default_data)
         if data:
             self.data.update(data)
 
@@ -194,19 +194,19 @@ class Configuration(BaseConfiguration):
 
     @property
     def environments(self):
-        return DictConfiguration(
-            EnvironmentConfiguration,
+        return DictSettings(
+            EnvironmentSettings,
             self.data['environments'],
             default_installations=self.installations
         )
 
     @property
     def installations(self):
-        return ListDictConfiguration(self.data.get('installations', []))
+        return ListDictSettings(self.data.get('installations', []))
 
 
-class YAMLConfigurationReader(object):
-    def __init__(self, configuration_class=Configuration):
+class YAMLSettingsReader(object):
+    def __init__(self, configuration_class=Settings):
         self.configuration_class = configuration_class
 
     def from_file(self, filepath, *args, **kwargs):
@@ -216,10 +216,10 @@ class YAMLConfigurationReader(object):
         return self.configuration_class(yaml.load(yamldata), *args, **kwargs)
 
 
-class YAMLConfigurationWriter(object):
+class YAMLSettingsWriter(object):
     def __init__(self, configuration=None):
         if configuration is None:
-            configuration = Configuration()
+            configuration = Settings()
         self.configuration = configuration
 
     def save_to_file(self, filepath):

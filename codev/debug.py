@@ -1,8 +1,8 @@
-from .configuration import BaseConfiguration
+from .settings import BaseSettings
 from ast import literal_eval
 
 
-class DebugConfiguration(BaseConfiguration):
+class DebugSettings(BaseSettings):
     configuration = None
     perform_configuration = None
 
@@ -19,5 +19,5 @@ class DebugConfiguration(BaseConfiguration):
         return literal_eval(self.data.get('show_client_exception', 'False'))
 
 
-DebugConfiguration.configuration = DebugConfiguration()
-DebugConfiguration.perform_configuration = DebugConfiguration()
+DebugSettings.configuration = DebugSettings()
+DebugSettings.perform_configuration = DebugSettings()

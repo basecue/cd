@@ -24,7 +24,7 @@ from codev.cli import command, main
 
 # import os.path
 #
-# from codev.configuration import YAMLConfigurationWriter
+# from codev.configuration import YAMLSettingsWriter
 # @main.command(
 #     help='Create .codev file with basic settings in current directory or in given file path.',
 #     short_help='Create .codev file with basic settings.'
@@ -46,7 +46,7 @@ from codev.cli import command, main
 #             raise click.Abort()
 #
 #     try:
-#         YAMLConfigurationWriter().save_to_file(path)
+#         YAMLSettingsWriter().save_to_file(path)
 #         return True
 #     except Exception as e:
 #         raise click.ClickException(e)

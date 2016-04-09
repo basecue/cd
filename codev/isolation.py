@@ -1,8 +1,8 @@
 import re
 from .provider import BaseProvider
 from .performer import BaseRunner, BasePerformer, CommandError
-from .debug import DebugConfiguration
-from .configuration import YAMLConfigurationReader
+from .debug import DebugSettings
+from .settings import YAMLSettingsReader
 from logging import getLogger
 from .logging import logging_config
 
@@ -99,18 +99,18 @@ class BaseIsolation(BaseRunner, BasePerformer):
 
         with self.change_directory(current_installation.directory):
             with self.get_fo('.codev') as codev_file:
-                version = YAMLConfigurationReader().from_yaml(codev_file).version
+                version = YAMLSettingsReader().from_yaml(codev_file).version
 
         # install python3 pip
         self.install_packages('python3-pip')
         self.execute('pip3 install setuptools')
 
         # install proper version of codev
-        if not DebugConfiguration.configuration.distfile:
+        if not DebugSettings.configuration.distfile:
             logger.debug("Install codev version '{version}' to isolation.".format(version=version))
             self.execute('pip3 install --upgrade codev=={version}'.format(version=version))
         else:
-            distfile = DebugConfiguration.configuration.distfile.format(version=version)
+            distfile = DebugSettings.configuration.distfile.format(version=version)
             debug_logger.info('Install codev {distfile}'.format(distfile=distfile))
 
             from os.path import basename
@@ -122,11 +122,11 @@ class BaseIsolation(BaseRunner, BasePerformer):
 
         logger.info("Run 'codev {version}' in isolation.".format(version=version))
 
-        if DebugConfiguration.perform_configuration:
+        if DebugSettings.perform_configuration:
             perform_debug = ' '.join(
                 (
                     '--debug {key} {value}'.format(key=key, value=value)
-                    for key, value in DebugConfiguration.perform_configuration.data.items()
+                    for key, value in DebugSettings.perform_configuration.data.items()
                 )
             )
         else:

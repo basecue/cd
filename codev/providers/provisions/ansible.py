@@ -1,5 +1,5 @@
 from codev.provision import Provisioner, BaseProvisioner
-from codev.configuration import BaseConfiguration
+from codev.settings import BaseSettings
 # from os import environ
 import configparser
 
@@ -7,7 +7,7 @@ from logging import getLogger
 logger = getLogger(__name__)
 
 
-class AnsibleProvisionConfiguration(BaseConfiguration):
+class AnsibleProvisionSettings(BaseSettings):
     @property
     def playbook(self):
         return self.data.get('playbook', None)
@@ -26,7 +26,7 @@ class AnsibleProvisionConfiguration(BaseConfiguration):
 
 
 class AnsibleProvision(BaseProvisioner):
-    configuration_class = AnsibleProvisionConfiguration
+    configuration_class = AnsibleProvisionSettings
 
     def install(self):
         self.performer.install_packages('python-dev', 'python-pip')

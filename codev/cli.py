@@ -1,9 +1,9 @@
 import click
 from functools import wraps
 
-from .configuration import YAMLConfigurationReader
+from .settings import YAMLSettingsReader
 from .deployment import Deployment
-from .debug import DebugConfiguration
+from .debug import DebugSettings
 from .logging import logging_config
 from .info import VERSION
 from os import chdir
@@ -103,7 +103,7 @@ def nice_exception(func):
         try:
             return func(*args, **kwargs)
         except Exception as e:
-            if DebugConfiguration.configuration.show_client_exception:
+            if DebugSettings.configuration.show_client_exception:
                 raise
             if issubclass(type(e), click.ClickException) or issubclass(type(e), RuntimeError):
                 raise
@@ -115,7 +115,7 @@ def path_option(func):
     @wraps(func)
     def configuration_wrapper(path, *args, **kwargs):
         chdir(path)
-        configuration = YAMLConfigurationReader().from_file('.codev')
+        configuration = YAMLSettingsReader().from_file('.codev')
         return func(configuration, *args, **kwargs)
 
     return click.option('-p', '--path',
@@ -128,11 +128,11 @@ def debug_option(func):
     @wraps(func)
     def debug_wrapper(debug, debug_perform, **kwargs):
         if debug:
-            DebugConfiguration.configuration = DebugConfiguration(dict(debug))
-            logging_config(DebugConfiguration.configuration.loglevel)
+            DebugSettings.configuration = DebugSettings(dict(debug))
+            logging_config(DebugSettings.configuration.loglevel)
 
         if debug_perform:
-            DebugConfiguration.perform_configuration = DebugConfiguration(dict(debug_perform))
+            DebugSettings.perform_configuration = DebugSettings(dict(debug_perform))
 
         return func(**kwargs)
 

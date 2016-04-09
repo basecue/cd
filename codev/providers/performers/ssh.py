@@ -5,11 +5,11 @@ from paramiko.agent import AgentRequestHandler
 from logging import getLogger
 
 from codev.performer import Performer, BasePerformer, PerformerError, CommandError, OutputReader
-from codev.configuration import BaseConfiguration
+from codev.settings import BaseSettings
 from os.path import expanduser
 
 
-class SSHPerformerConfiguration(BaseConfiguration):
+class SSHPerformerSettings(BaseSettings):
     @property
     def hostname(self):
         return self.data.get('hostname', 'localhost')
@@ -28,7 +28,7 @@ class SSHPerformerConfiguration(BaseConfiguration):
 
 
 class SSHperformer(BasePerformer):
-    configuration_class = SSHPerformerConfiguration
+    configuration_class = SSHPerformerSettings
 
     def __init__(self, *args, **kwargs):
         super(SSHperformer, self).__init__(*args, **kwargs)
