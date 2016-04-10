@@ -119,10 +119,6 @@ class IsolationScriptsSettings(BaseSettings):
 
 class IsolationSettings(BaseSettings):
     @property
-    def provider(self):
-        return self.data.get('provider')
-
-    @property
     def connectivity(self):
         return ListDictSettings(self.data.get('connectivity', {}))
 
@@ -153,6 +149,10 @@ class EnvironmentSettings(BaseSettings):
     @property
     def performer(self):
         return ProviderSettings(self.data.get('performer', {}))
+
+    @property
+    def isolator(self):
+        return ProviderSettings(self.data.get('isolator', {}))
 
     @property
     def configurations(self):

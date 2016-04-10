@@ -40,7 +40,7 @@ def deployment_options(func):
             source,
             next_source,
             performer,
-            disable_isolation, **kwargs):
+            isolator, **kwargs):
         source_name, source_options = parse_source(source)
         next_source_name, next_source_options = parse_source(next_source)
 
@@ -54,7 +54,8 @@ def deployment_options(func):
             next_source_options=next_source_options,
             performer_provider=performer,
             performer_specific={},  # TODO
-            disable_isolation=disable_isolation
+            isolator_provider=isolator,
+            isolator_specific={},  # TODO
         )
         return func(deployment, **kwargs)
 
@@ -90,11 +91,11 @@ def performer_option(func):
                         help='Set performer')(func)
 
 
-def isolation_option(func):
-    return click.option('--disable-isolation',
-                        is_flag=True,
-                        default=False,
-                        help='Disable isolation')(func)
+def isolator_option(func):
+    return click.option('--isolator',
+                        default=None,
+                        metavar='<isolator>',
+                        help='Set isolator')(func)
 
 
 def nice_exception(func):
@@ -184,7 +185,7 @@ def command(confirmation=None, bool_exit=True, **kwargs):
         func = deployment_options(func)
         func = nice_exception(func)
         func = performer_option(func)
-        func = isolation_option(func)
+        func = isolator_option(func)
         func = path_option(func)
         func = debug_option(func)
         if bool_exit:

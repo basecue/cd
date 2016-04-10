@@ -1,2 +1,2 @@
-from .isolation import *
+from .isolator import *
 from .machines import *

@@ -35,7 +35,7 @@ class BaseProvisioner(ConfigurableProvider):
             self.install()
 
             self.logger.info('Creating machines...')
-            machines_groups = self.configuration.infrastructure(self.performer, create=True)
+            machines_groups = self.configuration.infrastructure(create=True)
 
             self.logger.info('Configuration...')
             self.run(machines_groups)

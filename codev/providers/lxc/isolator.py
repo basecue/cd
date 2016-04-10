@@ -1,14 +1,13 @@
-from codev.isolation import BaseIsolation, Isolation
+from codev.isolator import BaseIsolator, Isolator
 from logging import getLogger
 from .machines import LXCMachine
 from codev.performer import BackgroundRunner, PerformerError
 from contextlib import contextmanager
 
 
-class LXCIsolation(BaseIsolation):
+class LXCIsolator(BaseIsolator):
     def __init__(self, *args, **kwargs):
-
-        super(LXCIsolation, self).__init__(*args, **kwargs)
+        super(LXCIsolator, self).__init__(*args, **kwargs)
         self.machine = LXCMachine(self.performer, ident=self.ident)
         self.logger = getLogger(__name__)
 
@@ -190,4 +189,4 @@ class LXCIsolation(BaseIsolation):
             pass
 
 
-Isolation.register('lxc', LXCIsolation)
+Isolator.register('lxc', LXCIsolator)

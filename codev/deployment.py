@@ -3,6 +3,7 @@ from .source import Source
 from .logging import logging_config
 from .performer import CommandError, Performer
 from .provision import Provisioner
+from .isolator import Isolator
 
 from colorama import Fore as color, Style as style
 
@@ -28,7 +29,8 @@ class Deployment(object):
             next_source_options='',
             performer_provider=None,
             performer_specific={},
-            disable_isolation=False
+            isolator_provider='',
+            isolator_specific={},
     ):
         environment_settings = settings.environments[environment_name]
         self.environment = environment_name
@@ -61,10 +63,6 @@ class Deployment(object):
         else:
             self.next_source = None
 
-        # configuration
-        configuration_settings = environment_settings.configurations[configuration_name]
-        self.configuration = Configuration(configuration_name, configuration_settings)
-
         ident = '%s:%s:%s:%s' % (
             settings.project,
             environment_name,
@@ -85,40 +83,52 @@ class Deployment(object):
             settings_data=performer_specific
         )
 
+        # isolator
+        if not isolator_provider:
+            isolator_settings = environment_settings.isolator
+            isolator_provider = isolator_settings.provider
+            isolator_specific = isolator_settings.specific
+
+        # TODO move to LXC isolator
+        from hashlib import md5
+        ident = md5(ident.encode()).hexdigest()
+        #########
+
+        self.isolator = Isolator(isolator_provider, performer, settings_data=isolator_specific, ident=ident)
+
+        # configuration
+        configuration_settings = environment_settings.configurations[configuration_name]
+        self.configuration = Configuration(self.isolator, configuration_name, configuration_settings, self.source, self.next_source)
+
         self.current_source = self.source
 
-        if not disable_isolation:
-            self.performer = self._isolation = self.configuration.isolation(performer, self.source, self.next_source, ident)
-            if self.next_source and self._isolation.exists():
-                self.current_source = self.next_source
-        else:
-            self.performer = performer
-            self._isolation = None
-            self.current_source = None
-            # TODO change
-            logging_config(perform=True)
+        if self.next_source and self.isolator.exists():
+            self.current_source = self.next_source
+        # if performer == self.performer:
+        #     self.current_source = None
+        #     logging_config(perform=True)
 
         # provisioner
-        provision_settings = configuration_settings.provision
-        self.provisioner = Provisioner(
-            provision_settings.provider,
-            provision_settings.scripts,
-            self.performer,
-            self.configuration,
-            settings_data=provision_settings.specific
-        )
+        # provision_settings = configuration_settings.provision
+        # self.provisioner = Provisioner(
+        #     provision_settings.provider,
+        #     provision_settings.scripts,
+        #     self.isolator,
+        #     self.configuration,
+        #     settings_data=provision_settings.specific
+        # )
 
-    def isolation(self, create=False):
-        if self._isolation:
-            self.current_source = self._isolation.enter(create=create)
-            return self._isolation
-        else:
-            logger.error('Isolation is disabled.')
-            return False
+    # def isolation(self, create=False):
+    #     if self._isolation:
+    #         self.current_source = self.isolator.enter(create=create)
+    #         return self._isolation
+    #     else:
+    #         logger.error('Isolation is disabled.')
+    #         return False
 
-    def deploy(self):
-        with self.performer.change_directory(self.source.directory):
-            return self.provisioner.provision(self.deployment_info())
+    # def deploy(self):
+    #     with self.isolator.change_directory(self.source.directory):
+    #         return self.provisioner.provision(self.deployment_info())
 
     def source_transition(self):
         deployment_info = self.deployment_info(transition=False)
@@ -176,51 +186,51 @@ class Deployment(object):
         :return: True if installation is successfully realized
         :rtype: bool
         """
-        return self._isolation.install(self.environment)
+        return self.configuration.install(self.environment)
 
-    def run(self, command):
-        """
-        Run command in project context in isolation.
+    # def run(self, command):
+    #     """
+    #     Run command in project context in isolation.
+    #
+    #     :param command: Command to execute
+    #     :type command: str
+    #     :return: True if executed command returns 0
+    #     :rtype: bool
+    #     """
+    #     isolation = self.isolation()
+    #
+    #     logging_config(control_perform=True)
+    #     try:
+    #         # TODO refactorize into isolation
+    #         with isolation.change_directory(isolation.source.directory):
+    #             isolation.run_script(command, arguments=self.deployment_info(), logger=command_logger)
+    #     except CommandError as e:
+    #         logger.error(e)
+    #         return False
+    #     else:
+    #         return True
 
-        :param command: Command to execute
-        :type command: str
-        :return: True if executed command returns 0
-        :rtype: bool
-        """
-        isolation = self.isolation()
-
-        logging_config(control_perform=True)
-        try:
-            # TODO refactorize into isolation
-            with isolation.change_directory(isolation.source.directory):
-                isolation.run_script(command, arguments=self.deployment_info(), logger=command_logger)
-        except CommandError as e:
-            logger.error(e)
-            return False
-        else:
-            return True
-
-    def execute(self, command):
-        """
-        Create isolation if it does not exist and execute command in isolation.
-
-
-        :param command: Command to execute
-        :type command: str
-        :return: True if executed command returns 0
-        :rtype: bool
-        """
-        isolation = self.isolation(create=True)
-
-        logging_config(control_perform=True)
-        try:
-            isolation.execute(command, logger=command_logger)
-        except CommandError as e:
-            logger.error(e)
-            return False
-        else:
-            logger.info('Command finished.')
-            return True
+    # def execute(self, command):
+    #     """
+    #     Create isolation if it does not exist and execute command in isolation.
+    #
+    #
+    #     :param command: Command to execute
+    #     :type command: str
+    #     :return: True if executed command returns 0
+    #     :rtype: bool
+    #     """
+    #     isolation = self.isolation(create=True)
+    #
+    #     logging_config(control_perform=True)
+    #     try:
+    #         isolation.execute(command, logger=command_logger)
+    #     except CommandError as e:
+    #         logger.error(e)
+    #         return False
+    #     else:
+    #         logger.info('Command finished.')
+    #         return True
     #
     # def join(self):
     #     """
@@ -268,50 +278,50 @@ class Deployment(object):
     #         logger.error('No running command.')
     #         return False
 
-    def shell(self):
-        """
-        Create isolation if it does not exist and invoke 'shell' in isolation.
-
-        :return:
-        :rtype: bool
-        """
-        isolation = self.isolation(create=True)
-
-        logger.info('Entering isolation shell...')
-
-        #support for history
-        import readline
-        shell_logger = getLogger('shell')
-        SEND_FILE_SHELL_COMMAND = 'send'
-
-        while True:
-
-            command = input(
-                (color.GREEN +
-                 '{project} {environment} {configuration} {source_transition}' +
-                 color.RESET + ':' + color.BLUE + '~' + color.RESET + '$ ').format(
-                    **self.deployment_info()
-                )
-            )
-            if command in ('exit', 'quit', 'logout'):
-                return True
-            if command.startswith(SEND_FILE_SHELL_COMMAND):
-                try:
-                    source, target = command[len(SEND_FILE_SHELL_COMMAND):].split()
-                except ValueError:
-                    shell_logger.error('Command {command} needs exactly two arguments: <source> and <target>.'.format(
-                        command=SEND_FILE_SHELL_COMMAND
-                    ))
-                else:
-                    try:
-                        isolation.send_file(source, target)
-                    except CommandError as e:
-                        shell_logger.error(e.error)
-                continue
-            try:
-                isolation.execute(command, logger=shell_logger)
-            except CommandError as e:
-                shell_logger.error(e.error)
+    # def shell(self):
+    #     """
+    #     Create isolation if it does not exist and invoke 'shell' in isolation.
+    #
+    #     :return:
+    #     :rtype: bool
+    #     """
+    #     isolation = self.isolation(create=True)
+    #
+    #     logger.info('Entering isolation shell...')
+    #
+    #     #support for history
+    #     import readline
+    #     shell_logger = getLogger('shell')
+    #     SEND_FILE_SHELL_COMMAND = 'send'
+    #
+    #     while True:
+    #
+    #         command = input(
+    #             (color.GREEN +
+    #              '{project} {environment} {configuration} {source_transition}' +
+    #              color.RESET + ':' + color.BLUE + '~' + color.RESET + '$ ').format(
+    #                 **self.deployment_info()
+    #             )
+    #         )
+    #         if command in ('exit', 'quit', 'logout'):
+    #             return True
+    #         if command.startswith(SEND_FILE_SHELL_COMMAND):
+    #             try:
+    #                 source, target = command[len(SEND_FILE_SHELL_COMMAND):].split()
+    #             except ValueError:
+    #                 shell_logger.error('Command {command} needs exactly two arguments: <source> and <target>.'.format(
+    #                     command=SEND_FILE_SHELL_COMMAND
+    #                 ))
+    #             else:
+    #                 try:
+    #                     isolation.send_file(source, target)
+    #                 except CommandError as e:
+    #                     shell_logger.error(e.error)
+    #             continue
+    #         try:
+    #             isolation.execute(command, logger=shell_logger)
+    #         except CommandError as e:
+    #             shell_logger.error(e.error)
 
     def destroy(self):
         """
@@ -320,19 +330,19 @@ class Deployment(object):
         :return: True if isolation is destroyed
         :rtype: bool
         """
-        if self._isolation.destroy():
+        if self.isolator.destroy():
             logger.info('Isolation has been destroyed.')
             return True
         else:
             logger.info('There is no such isolation.')
             return False
 
-    def info(self):
-        isolation = self.isolation()
-
-        return dict(
-            isolation=isolation,
-            machines_groups=self.configuration.infrastructure(isolation),
-            connectivity=isolation.connectivity
-        )
+    # def info(self):
+    #     isolation = self.isolation()
+    #
+    #     return dict(
+    #         isolation=isolation,
+    #         machines_groups=self.configuration.infrastructure(),
+    #         connectivity=isolation.connectivity
+    #     )
 
