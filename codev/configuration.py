@@ -39,15 +39,15 @@ class Configuration(object):
 
     ###
 
-    def isolation(self, performer, installation, next_installation, ident):
+    def isolation(self, performer, source, next_source, ident):
         isolation_settings = self.settings.isolation
         return Isolation(
             isolation_settings.provider,
             isolation_settings.scripts,
             isolation_settings.connectivity,
             self,
-            installation,
-            next_installation,
+            source,
+            next_source,
             performer,
             ident=md5(ident.encode()).hexdigest()
         )

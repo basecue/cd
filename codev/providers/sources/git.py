@@ -1,8 +1,8 @@
-from codev.installation import Installation, BaseInstallation
+from codev.source import Source, BaseSource
 from git import Repo
 
 
-class GitInstallation(BaseInstallation):
+class GitSource(BaseSource):
     def __init__(self, *args, **kwargs):
         self.branch = None
         self.tag = None
@@ -78,4 +78,4 @@ class GitInstallation(BaseInstallation):
                 performer.execute('git reset --hard FETCH_HEAD')
 
 
-Installation.register('git', GitInstallation)
+Source.register('git', GitSource)

@@ -16,12 +16,12 @@ class IsolationError(Exception):
 
 
 class BaseIsolation(BaseRunner, BasePerformer):
-    def __init__(self, scripts, connectivity, configuration, installation, next_installation, *args, **kwargs):
+    def __init__(self, scripts, connectivity, configuration, source, next_source, *args, **kwargs):
         super(BaseIsolation, self).__init__(*args, **kwargs)
         self.connectivity = connectivity
         self.configuration = configuration
-        self.installation = installation
-        self.next_installation = next_installation
+        self.source = source
+        self.next_source = next_source
         self.scripts = scripts
 
     def exists(self):
@@ -67,37 +67,37 @@ class BaseIsolation(BaseRunner, BasePerformer):
                     self.execute('iptables -t nat -A OUTPUT --dst {target_ip} -p tcp --dport {target_port} -j DNAT --to-destination {source_ip}:{source_port}'.format(**redirection))
     
     def enter(self, create=False, next_install=False):
-        current_installation = self.installation
+        current_source = self.source
         if create:
             if not self.exists():
                 logger.info("Creating isolation...")
             if self.create():
                 logger.info("Install project to isolation.")
-                current_installation.install(self)
+                current_source.install(self)
 
                 # run oncreate scripts
-                with self.change_directory(current_installation.directory):
+                with self.change_directory(current_source.directory):
                     self.run_scripts(self.scripts.oncreate)
             else:
-                if next_install and self.next_installation:
-                    logger.info("Transition installation in isolation.")
-                    current_installation = self.next_installation
-                    current_installation.install(self)
+                if next_install and self.next_source:
+                    logger.info("Transition source in isolation.")
+                    current_source = self.next_source
+                    current_source.install(self)
         else:
             if not self.exists():
                 raise IsolationError('No such isolation found.')
 
         logger.info("Entering isolation...")
         # run onenter scripts
-        with self.change_directory(current_installation.directory):
+        with self.change_directory(current_source.directory):
             self.run_scripts(self.scripts.onenter)
-        return current_installation
+        return current_source
 
     def install(self, environment):
 
-        current_installation = self.enter(create=True, next_install=True)
+        current_source = self.enter(create=True, next_install=True)
 
-        with self.change_directory(current_installation.directory):
+        with self.change_directory(current_source.directory):
             with self.get_fo('.codev') as codev_file:
                 version = YAMLSettingsReader().from_yaml(codev_file).version
 
@@ -134,12 +134,12 @@ class BaseIsolation(BaseRunner, BasePerformer):
 
         logging_config(control_perform=True)
         try:
-            deployment_options = '-e {environment} -c {configuration} -s {current_installation.provider_name}:{current_installation.options}'.format(
-                current_installation=current_installation,
+            deployment_options = '-e {environment} -c {configuration} -s {current_source.provider_name}:{current_source.options}'.format(
+                current_source=current_source,
                 configuration=self.configuration.name,
                 environment=environment
             )
-            with self.change_directory(current_installation.directory):
+            with self.change_directory(current_source.directory):
                 self.execute('codev deploy {deployment_options} --performer=local --disable-isolation --force {perform_debug}'.format(
                     deployment_options=deployment_options,
                     perform_debug=perform_debug

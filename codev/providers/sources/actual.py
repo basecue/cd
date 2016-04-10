@@ -1,10 +1,10 @@
-from codev.installation import Installation, BaseInstallation
+from codev.source import Source, BaseSource
 import shutil
 from time import time
 from uuid import uuid1
 
 
-class ActualInstallation(BaseInstallation):
+class ActualSource(BaseSource):
     def install(self, performer):
         archive = shutil.make_archive('/tmp/{filename}'.format(filename=uuid1()), 'gztar')
 
@@ -29,4 +29,4 @@ class ActualInstallation(BaseInstallation):
     def id(self):
         return self.uid
 
-Installation.register('actual', ActualInstallation)
+Source.register('actual', ActualSource)

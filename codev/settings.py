@@ -146,9 +146,9 @@ class ConfigurationSettings(BaseSettings):
 
 
 class EnvironmentSettings(BaseSettings):
-    def __init__(self, data, default_installations):
+    def __init__(self, data, default_sources):
         super(EnvironmentSettings, self).__init__(data)
-        self.default_installations = default_installations
+        self.default_sources = default_sources
 
     @property
     def performer(self):
@@ -162,10 +162,10 @@ class EnvironmentSettings(BaseSettings):
         )
 
     @property
-    def installations(self):
+    def sources(self):
         return ListDictSettings(
-            self.data.get('installations', []),
-            intersect_default=self.default_installations
+            self.data.get('sources', []),
+            intersect_default=self.default_sources
         )
 
 
@@ -197,12 +197,12 @@ class Settings(BaseSettings):
         return DictSettings(
             EnvironmentSettings,
             self.data['environments'],
-            default_installations=self.installations
+            default_sources=self.sources
         )
 
     @property
-    def installations(self):
-        return ListDictSettings(self.data.get('installations', []))
+    def sources(self):
+        return ListDictSettings(self.data.get('sources', []))
 
 
 class YAMLSettingsReader(object):

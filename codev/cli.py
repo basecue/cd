@@ -24,7 +24,7 @@ def confirmation_message(message):
     return decorator
 
 
-def parse_installation(inp):
+def parse_source(inp):
     parsed = inp.split(':', 1)
     name = parsed[0]
     options = parsed[1] if len(parsed) == 2 else ''
@@ -37,21 +37,21 @@ def deployment_options(func):
             settings,
             environment,
             configuration,
-            installation,
-            next_installation,
+            source,
+            next_source,
             performer,
             disable_isolation, **kwargs):
-        installation_name, installation_options = parse_installation(installation)
-        next_installation_name, next_installation_options = parse_installation(next_installation)
+        source_name, source_options = parse_source(source)
+        next_source_name, next_source_options = parse_source(next_source)
 
         deployment = Deployment(
             settings,
             environment,
             configuration,
-            installation_name,
-            installation_options,
-            next_installation_name=next_installation_name,
-            next_installation_options=next_installation_options,
+            source_name,
+            source_options,
+            next_source_name=next_source_name,
+            next_source_options=next_source_options,
             performer_provider=performer,
             performer_specific={},  # TODO
             disable_isolation=disable_isolation
@@ -71,16 +71,16 @@ def deployment_options(func):
         help='configuration')(f)
 
     f = click.option(
-        '-s', '--installation',
+        '-s', '--source',
         metavar='<source installation>',
         required=True,
-        help='Source installation')(f)
+        help='Source')(f)
 
     return click.option(
-        '-n', '--next-installation',
+        '-t', '--next-source',
         default='',
-        metavar='<next installation>',
-        help='Next installation')(f)
+        metavar='<next source>',
+        help='Next source')(f)
 
 
 def performer_option(func):

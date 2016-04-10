@@ -55,7 +55,7 @@ class AnsibleProvision(BaseProvisioner):
             inventory.write(inventoryfile)
 
         template_vars = {
-            'installation_directory': self.performer.working_dir
+            'source_directory': self.performer.working_dir
         }
 
         if self.settings.extra_vars:

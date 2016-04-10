@@ -1,5 +1,5 @@
 from .configuration import Configuration
-from .installation import Installation
+from .source import Source
 from .logging import logging_config
 from .performer import CommandError, Performer
 from .provision import Provisioner
@@ -22,10 +22,10 @@ class Deployment(object):
             settings,
             environment_name,
             configuration_name,
-            installation_name,
-            installation_options,
-            next_installation_name='',
-            next_installation_options='',
+            source_name,
+            source_options,
+            next_source_name='',
+            next_source_options='',
             performer_provider=None,
             performer_specific={},
             disable_isolation=False
@@ -36,30 +36,30 @@ class Deployment(object):
 
         # installation
         try:
-            installation_settings = environment_settings.installations[installation_name]
+            source_settings = environment_settings.sources[source_name]
         except KeyError as e:
             raise ValueError(
-                "Installation '{installation_name}' is not allowed installation for environment '{environment_name}'.".format(
-                    installation_name=installation_name,
+                "Source '{source_name}' is not allowed source for environment '{environment_name}'.".format(
+                    source_name=source_name,
                     environment_name=environment_name,
                     project_name=self.project_name
                 )
             ) from e
-        self.installation = Installation(
-            installation_name,
-            installation_options,
-            settings_data=installation_settings
+        self.source = Source(
+            source_name,
+            source_options,
+            settings_data=source_settings
         )
 
-        # next installation
-        if next_installation_name:
-            self.next_installation = Installation(
-                next_installation_name,
-                next_installation_options,
-                settings_data=installation_settings
+        # next source
+        if next_source_name:
+            self.next_source = Source(
+                next_source_name,
+                next_source_options,
+                settings_data=source_settings
             )
         else:
-            self.next_installation = None
+            self.next_source = None
 
         # configuration
         configuration_settings = environment_settings.configurations[configuration_name]
@@ -69,10 +69,10 @@ class Deployment(object):
             settings.project,
             environment_name,
             configuration_name,
-            self.installation.ident,
+            self.source.ident,
         )
-        if self.next_installation:
-            ident = '%s:%s' % (ident, self.next_installation.ident)
+        if self.next_source:
+            ident = '%s:%s' % (ident, self.next_source.ident)
 
         # performer
         if not performer_provider:
@@ -85,16 +85,16 @@ class Deployment(object):
             settings_data=performer_specific
         )
 
-        self.current_installation = self.installation
+        self.current_source = self.source
 
         if not disable_isolation:
-            self.performer = self._isolation = self.configuration.isolation(performer, self.installation, self.next_installation, ident)
-            if self.next_installation and self._isolation.exists():
-                self.current_installation = self.next_installation
+            self.performer = self._isolation = self.configuration.isolation(performer, self.source, self.next_source, ident)
+            if self.next_source and self._isolation.exists():
+                self.current_source = self.next_source
         else:
             self.performer = performer
             self._isolation = None
-            self.current_installation = None
+            self.current_source = None
             # TODO change
             logging_config(perform=True)
 
@@ -110,49 +110,49 @@ class Deployment(object):
 
     def isolation(self, create=False):
         if self._isolation:
-            self.current_installation = self._isolation.enter(create=create)
+            self.current_source = self._isolation.enter(create=create)
             return self._isolation
         else:
             logger.error('Isolation is disabled.')
             return False
 
     def deploy(self):
-        with self.performer.change_directory(self.installation.directory):
+        with self.performer.change_directory(self.source.directory):
             return self.provisioner.provision(self.deployment_info())
 
-    def installation_transition(self):
+    def source_transition(self):
         deployment_info = self.deployment_info(transition=False)
 
         deployment_info.update(dict(
-            color_installation=color.GREEN,
+            color_source=color.GREEN,
             color_reset=color.RESET + style.RESET_ALL
         ))
 
-        if self.next_installation:
-            if not self.current_installation:
-                color_installation = color.GREEN
-                color_next_installation = color.GREEN
-            elif self.current_installation == self.installation:
-                color_installation = color.GREEN + style.BRIGHT
-                color_next_installation = color.GREEN
+        if self.next_source:
+            if not self.current_source:
+                color_source = color.GREEN
+                color_next_source = color.GREEN
+            elif self.current_source == self.source:
+                color_source = color.GREEN + style.BRIGHT
+                color_next_source = color.GREEN
             else:
-                color_installation = color.GREEN
-                color_next_installation = color.GREEN + style.BRIGHT
+                color_source = color.GREEN
+                color_next_source = color.GREEN + style.BRIGHT
 
             color_options = dict(
-                color_installation=color_installation,
-                color_next_installation=color_next_installation,
+                color_source=color_source,
+                color_next_source=color_next_source,
 
             )
 
             deployment_info.update(color_options)
-            transition = ' -> {color_next_installation}{next_installation}:{next_installation_options}{color_reset}'.format(
+            transition = ' -> {color_next_source}{next_source}:{next_source_options}{color_reset}'.format(
                 **deployment_info
             )
         else:
             transition = ''
 
-        return '{color_installation}{installation}:{installation_options}{color_reset}{transition}'.format(
+        return '{color_source}{source}:{source_options}{color_reset}{transition}'.format(
             transition=transition,
             **deployment_info
         )
@@ -162,11 +162,11 @@ class Deployment(object):
             project=self.project_name,
             environment=self.environment,
             configuration=self.configuration.name,
-            installation=self.installation.name,
-            installation_options=self.installation.options,
-            next_installation=self.next_installation.name if self.next_installation else '',
-            next_installation_options=self.next_installation.options if self.next_installation else '',
-            installation_transition=self.installation_transition() if transition else ''
+            source=self.source.name,
+            source_options=self.source.options,
+            next_source=self.next_source.name if self.next_source else '',
+            next_source_options=self.next_source.options if self.next_source else '',
+            source_transition=self.source_transition() if transition else ''
         )
 
     def install(self):
@@ -192,7 +192,7 @@ class Deployment(object):
         logging_config(control_perform=True)
         try:
             # TODO refactorize into isolation
-            with isolation.change_directory(isolation.installation.directory):
+            with isolation.change_directory(isolation.source.directory):
                 isolation.run_script(command, arguments=self.deployment_info(), logger=command_logger)
         except CommandError as e:
             logger.error(e)
@@ -288,7 +288,7 @@ class Deployment(object):
 
             command = input(
                 (color.GREEN +
-                 '{project} {environment} {configuration} {installation_transition}' +
+                 '{project} {environment} {configuration} {source_transition}' +
                  color.RESET + ':' + color.BLUE + '~' + color.RESET + '$ ').format(
                     **self.deployment_info()
                 )
