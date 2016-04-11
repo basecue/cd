@@ -20,7 +20,13 @@ class BaseIsolator(BaseRunner, BasePerformer):
         raise NotImplementedError()
 
     def run_script(self, script, arguments=None, logger=None):
-        codev_script = 'codev run {script} --performer=local --isolator=none'.format(script=script)
+        codev_script = 'codev run {script} -e {environment} -c {} -s {source}:{source_options} --performer=local --isolator=none'.format(
+            script=script,
+            environment=arguments['environment'],
+            configuration=arguments['configuration'],
+            source=arguments['source'],
+            source_options=arguments['source_options']
+        )
         super(BaseIsolator, self).run_script(codev_script, arguments=arguments, logger=logger)
 
     def redirect(self, machine, source_port, target_port):

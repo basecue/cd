@@ -16,7 +16,7 @@ debug_logger = getLogger('debug')
 class Provision(BaseRunner):
     def __init__(self, performer, settings):
         super(Provision, self).__init__(performer)
-        self.provisioner = Provisioner(settings.provider, performer, settings.specific)
+        self.provisioner = Provisioner(settings.provider, performer, settings_data=settings.specific)
         self.scripts = settings.scripts
 
     def _onerror(self, arguments, error):
@@ -30,7 +30,7 @@ class Provision(BaseRunner):
         )
         self.performer.run_scripts(self.scripts.onerror, arguments)
 
-    def deploy(self, deployment_info, infrastructure):
+    def deploy(self, infrastructure, deployment_info):
         self.performer.run_scripts(self.scripts.onstart, deployment_info)
         try:
             logger.info('Installing provisioner...')
@@ -65,8 +65,8 @@ class Configuration(object):
         self.isolation = Isolation(performer, self.settings.isolation, source, next_source)
         self.provision = Provision(performer, self.settings.provision)
 
-    def install(self, environment):
-        current_source = self.isolation.install()
+    def install(self, deployment_info):
+        current_source = self.isolation.install(deployment_info)
 
         version = self.performer.execute('pip3 show codev | grep Version | cut -d " " -f 2')
         logger.info("Run 'codev {version}' in isolation.".format(version=version))
@@ -86,7 +86,7 @@ class Configuration(object):
             deployment_options = '-e {environment} -c {configuration} -s {current_source.provider_name}:{current_source.options}'.format(
                 current_source=current_source,
                 configuration=self.name,
-                environment=environment
+                environment=deployment_info['environment']
             )
             with self.performer.change_directory(current_source.directory):
                 self.performer.execute('codev deploy {deployment_options} --performer=local --isolator=none --force {perform_debug}'.format(
@@ -104,4 +104,4 @@ class Configuration(object):
             return True
 
     def deploy(self, deployment_info):
-        self.provision.deploy(deployment_info, self.infrastructure)
+        self.provision.deploy(self.infrastructure, deployment_info)

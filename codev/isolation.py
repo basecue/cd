@@ -56,7 +56,7 @@ class Isolation(object):
             self.isolator.send_file(distfile, remote_distfile)
             self.isolator.execute('pip3 install --upgrade {distfile}'.format(distfile=remote_distfile))
 
-    def install(self):
+    def install(self, deployment_info):
         created = self.isolator.create()
 
         current_source = self.source
@@ -65,7 +65,7 @@ class Isolation(object):
             current_source.install(self.isolator)
             self.install_codev(current_source)
             with self.isolator.change_directory(current_source.directory):
-                self.isolator.run_scripts(self.scripts.oncreate)
+                self.isolator.run_scripts(self.scripts.oncreate, common_arguments=deployment_info)
         else:
             if self.next_source:
                 logger.info("Transition source in isolation.")
@@ -73,5 +73,5 @@ class Isolation(object):
                 current_source.install(self.isolator)
                 self.install_codev(current_source)
         with self.isolator.change_directory(current_source.directory):
-            self.isolator.run_scripts(self.scripts.onenter)
+            self.isolator.run_scripts(self.scripts.onenter, common_arguments=deployment_info)
         return current_source
