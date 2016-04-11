@@ -175,6 +175,9 @@ class BaseRunner(BaseExecutor):
         self.performer = performer
         super(BaseRunner, self).__init__(*args, **kwargs)
 
+    def execute(self, command, logger=None, writein=None):
+        return self.performer.execute(command, logger=logger, writein=writein)
+
 
 class BackgroundRunner(BaseRunner):
 

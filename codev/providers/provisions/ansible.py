@@ -38,11 +38,9 @@ class AnsibleProvision(BaseProvisioner):
             version_add = '==%s' % self.settings.version
         self.performer.execute('pip install --upgrade ansible%s' % version_add)
 
-    def run(self, machines_groups):
-        playbook = self.settings.playbook.format(configuration=self.configuration.name)
-
+    def run(self, infrastructure):
         inventory = configparser.ConfigParser(allow_no_value=True, delimiters=('',))
-        for name, machines in machines_groups.items():
+        for name, machines in infrastructure.machines_groups.items():
             inventory.add_section(name)
             for machine in machines:
                 # ansible node additional requirements
@@ -72,10 +70,6 @@ class AnsibleProvision(BaseProvisioner):
         else:
             extra_vars = ''
 
-        # env = {}
-        # env.update(environ)
-        # env.update(self.settings.env_vars)
-
         if self.settings.env_vars:
             env_vars = '{joined_env_vars} '.format(
                 joined_env_vars=' '.join(
@@ -92,16 +86,11 @@ class AnsibleProvision(BaseProvisioner):
 
         self.performer.execute('{env_vars}ansible-playbook -i {inventory} {playbook}{extra_vars}'.format(
             inventory=inventory_filepath,
-            playbook=playbook,
+            playbook=self.settings.playbook,
             extra_vars=extra_vars,
             env_vars=env_vars
         ))
-        # self.performer.execute('{env_vars}ansible all -m ping -i {inventory}{extra_vars}'.format(
-        #     inventory=inventory_filepath,
-        #     playbook=playbook,
-        #     extra_vars=extra_vars,
-        #     env_vars=env_vars
-        # ))
+
         return True
 
 

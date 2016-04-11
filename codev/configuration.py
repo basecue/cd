@@ -1,128 +1,59 @@
-from logging import getLogger
-from .machines import MachinesProvider
-from hashlib import md5
-from .isolator import Isolator
-
-logger = getLogger(__name__)
-
-
-class Infrastructure(object):
-    def __init__(self, performer, settings):
-        self.performer = performer
-        self.settings = settings
-        self.machines_groups = {}
-
-    def create(self):
-        pub_key = '%s\n' % self.performer.execute('ssh-add -L')
-        for machines_name, machines_settings in self.settings.items():
-            machines_provider = MachinesProvider(
-                machines_settings.provider,
-                machines_name, self.performer, settings_data=machines_settings.specific
-            )
-            self.machines_groups[machines_name] = machines_provider.machines(create=True, pub_key=pub_key)
-
-    def machines(self):
-        for machine_group_name, machines in self.machines_groups:
-            for machine in machines:
-                yield machine
-
-    def machines_info(self):
-        return {
-            'machine_{ident}'.format(ident=machine.ident): machine.ip for machine in self.machines()
-        }
-
-####################
-
-import re
-from .isolator import IsolatorError
-
-
-class Isolation(object):
-    def __init__(self, isolator, settings, source, next_source):
-        self.isolator = isolator
-        self.connectivity = settings.connectivity
-        self.scripts = settings.scripts
-        self.source = source
-        self.next_source = next_source
-
-    def connect(self, infrastructure):
-        """
-        :param isolation:
-        :return:
-        """
-        for machine_str, connectivity_conf in self.connectivity.items():
-            r = re.match('^(?P<machine_group>[^\[]+)_(?P<machine_index>\d+)$', machine_str)
-            if r:
-                machines_groups = infrastructure.machines_groups
-                machine_group = r.group('machine_group')
-                machine_index = int(r.group('machine_index')) - 1
-                machine = machines_groups[machine_group][machine_index]
-
-                for source_port, target_port in connectivity_conf.items():
-                    # TODO move to isolator
-                    redirection = dict(
-                        source_port=source_port,
-                        target_port=target_port,
-                        source_ip=machine.ip,
-                        target_ip=self.isolator.ip
-                    )
-
-                    self.isolator.execute('iptables -t nat -A PREROUTING --dst {target_ip} -p tcp --dport {target_port} -j DNAT --to-destination {source_ip}:{source_port}'.format(**redirection))
-                    self.isolator.execute('iptables -t nat -A POSTROUTING -p tcp --dst {source_ip} --dport {source_port} -j SNAT --to-source {target_ip}'.format(**redirection))
-                    self.isolator.execute('iptables -t nat -A OUTPUT --dst {target_ip} -p tcp --dport {target_port} -j DNAT --to-destination {source_ip}:{source_port}'.format(**redirection))
-
-    def install_codev(self, source):
-        with self.isolator.change_directory(source.directory):
-            with self.isolator.get_fo('.codev') as codev_file:
-                version = YAMLSettingsReader().from_yaml(codev_file).version
-
-        # install python3 pip
-        self.isolator.install_packages('python3-pip')
-        self.isolator.execute('pip3 install setuptools')
-
-        # install proper version of codev
-        if not DebugSettings.settings.distfile:
-            logger.debug("Install codev version '{version}' to isolation.".format(version=version))
-            self.isolator.execute('pip3 install --upgrade codev=={version}'.format(version=version))
-        else:
-            distfile = DebugSettings.settings.distfile.format(version=version)
-            debug_logger.info('Install codev {distfile}'.format(distfile=distfile))
-
-            from os.path import basename
-            remote_distfile = '/tmp/{distfile}'.format(distfile=basename(distfile))
-
-            self.isolator.send_file(distfile, remote_distfile)
-            self.isolator.execute('pip3 install --upgrade {distfile}'.format(distfile=remote_distfile))
-
-    def install(self):
-        created = self.isolator.create()
-
-        current_source = self.source
-        if created:
-            logger.info("Install project to isolation.")
-            current_source.install(self.isolator)
-            self.install_codev(current_source)
-            # TODO run oncreate scripts
-        else:
-            if self.next_source:
-                logger.info("Transition source in isolation.")
-                current_source = self.next_source
-                current_source.install(self.isolator)
-                self.install_codev(current_source)
-
-        #TODO run onenter scripts
-        return current_source
-
-
-#
 from .debug import DebugSettings
-from .settings import YAMLSettingsReader
-from logging import getLogger
-from .logging import logging_config
-from .performer import CommandError
 
+from .infrastructure import Infrastructure
+from .isolation import Isolation
+
+from .logging import logging_config
+from .performer import CommandError, BaseRunner
+from .provision import Provisioner
+
+from logging import getLogger
+logger = getLogger(__name__)
 command_logger = getLogger('command')
 debug_logger = getLogger('debug')
+
+
+class Provision(BaseRunner):
+    def __init__(self, performer, settings):
+        super(Provision, self).__init__(performer)
+        self.provisioner = Provisioner(settings.provider, performer, settings.specific)
+        self.scripts = settings.scripts
+
+    def _onerror(self, arguments, error):
+        logger.error(error)
+        arguments.update(
+            dict(
+                command=error.command,
+                exit_code=error.exit_code,
+                error=error.error
+            )
+        )
+        self.performer.run_scripts(self.scripts.onerror, arguments)
+
+    def deploy(self, deployment_info, infrastructure):
+        self.performer.run_scripts(self.scripts.onstart, deployment_info)
+        try:
+            logger.info('Installing provisioner...')
+            self.provisioner.install()
+
+            logger.info('Creating machines...')
+            infrastructure.create()
+
+            logger.info('Configuration...')
+            self.provisioner.run(infrastructure)
+        except CommandError as e:
+            self._onerror(deployment_info, e)
+            return False
+        else:
+            try:
+                arguments = {}
+                arguments.update(deployment_info)
+                arguments.update(infrastructure.machines_info())
+                self.performer.run_scripts(self.scripts.onsuccess, arguments)
+                return True
+            except CommandError as e:
+                self._onerror(deployment_info, e)
+                return False
 
 
 class Configuration(object):
@@ -130,13 +61,9 @@ class Configuration(object):
         self.name = name
         self.settings = settings
         self.performer = performer
-        self._infrastructure = Infrastructure(performer, self.settings.infrastructure)
+        self.infrastructure = Infrastructure(performer, self.settings.infrastructure)
         self.isolation = Isolation(performer, self.settings.isolation, source, next_source)
-
-    def infrastructure(self, create=False):
-        if create:
-            self._infrastructure.create()
-        return self._infrastructure.machines_groups
+        self.provision = Provision(performer, self.settings.provision)
 
     def install(self, environment):
         current_source = self.isolation.install()
@@ -175,3 +102,6 @@ class Configuration(object):
             self.performer.connect()
             logger.info("Installation has been successfully completed.")
             return True
+
+    def deploy(self, deployment_info):
+        self.provision.deploy(deployment_info, self.infrastructure)

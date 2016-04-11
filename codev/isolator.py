@@ -1,18 +1,5 @@
-import re
 from .provider import BaseProvider
-from .performer import BaseRunner, BasePerformer, CommandError
-from .debug import DebugSettings
-from .settings import YAMLSettingsReader
-from logging import getLogger
-from .logging import logging_config
-
-logger = getLogger(__name__)
-command_logger = getLogger('command')
-debug_logger = getLogger('debug')
-
-
-class IsolatorError(Exception):
-    pass
+from .performer import BaseRunner, BasePerformer
 
 
 class BaseIsolator(BaseRunner, BasePerformer):
@@ -26,12 +13,27 @@ class BaseIsolator(BaseRunner, BasePerformer):
         raise NotImplementedError()
 
     def make_link(self, source, target):
-        # experimental
         raise NotImplementedError()
 
     @property
     def ip(self):
         raise NotImplementedError()
+
+    def run_script(self, script, arguments=None, logger=None):
+        codev_script = 'codev run {script} --performer=local --isolator=none'.format(script=script)
+        super(BaseIsolator, self).run_script(codev_script, arguments=arguments, logger=logger)
+
+    def redirect(self, machine, source_port, target_port):
+        redirection = dict(
+            source_port=source_port,
+            target_port=target_port,
+            source_ip=machine.ip,
+            target_ip=self.ip
+        )
+
+        self.execute('iptables -t nat -A PREROUTING --dst {target_ip} -p tcp --dport {target_port} -j DNAT --to-destination {source_ip}:{source_port}'.format(**redirection))
+        self.execute('iptables -t nat -A POSTROUTING -p tcp --dst {source_ip} --dport {source_port} -j SNAT --to-source {target_ip}'.format(**redirection))
+        self.execute('iptables -t nat -A OUTPUT --dst {target_ip} -p tcp --dport {target_port} -j DNAT --to-destination {source_ip}:{source_port}'.format(**redirection))
 
 
 class Isolator(BaseProvider):

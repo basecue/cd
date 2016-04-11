@@ -126,9 +126,8 @@ class Deployment(object):
     #         logger.error('Isolation is disabled.')
     #         return False
 
-    # def deploy(self):
-    #     with self.isolator.change_directory(self.source.directory):
-    #         return self.provisioner.provision(self.deployment_info())
+    def deploy(self):
+        return self.configuration.deploy(self.deployment_info())
 
     def source_transition(self):
         deployment_info = self.deployment_info(transition=False)
@@ -188,27 +187,25 @@ class Deployment(object):
         """
         return self.configuration.install(self.environment)
 
-    # def run(self, command):
-    #     """
-    #     Run command in project context in isolation.
-    #
-    #     :param command: Command to execute
-    #     :type command: str
-    #     :return: True if executed command returns 0
-    #     :rtype: bool
-    #     """
-    #     isolation = self.isolation()
-    #
-    #     logging_config(control_perform=True)
-    #     try:
-    #         # TODO refactorize into isolation
-    #         with isolation.change_directory(isolation.source.directory):
-    #             isolation.run_script(command, arguments=self.deployment_info(), logger=command_logger)
-    #     except CommandError as e:
-    #         logger.error(e)
-    #         return False
-    #     else:
-    #         return True
+    def run(self, command):
+        """
+        Run command in project context in isolation.
+
+        :param command: Command to execute
+        :type command: str
+        :return: True if executed command returns 0
+        :rtype: bool
+        """
+
+        logging_config(control_perform=True)
+        try:
+            with self.isolator.change_directory(self.current_source.directory):
+                self.isolator.run_script(command, arguments=self.deployment_info(), logger=command_logger)
+        except CommandError as e:
+            logger.error(e)
+            return False
+        else:
+            return True
 
     # def execute(self, command):
     #     """
