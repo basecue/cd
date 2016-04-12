@@ -2,6 +2,8 @@ from codev.isolator import BaseIsolator, Isolator
 
 
 class NoneIsolator(BaseIsolator):
-    pass
+    def exists(self):
+        return True
+
 
 Isolator.register('none', NoneIsolator)

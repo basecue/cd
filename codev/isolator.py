@@ -20,7 +20,7 @@ class BaseIsolator(BaseRunner, BasePerformer):
         raise NotImplementedError()
 
     def run_script(self, script, arguments=None, logger=None):
-        codev_script = 'codev run {script} -e {environment} -c {} -s {source}:{source_options} --performer=local --isolator=none'.format(
+        codev_script = 'codev run {script} -e {environment} -c {configuration} -s {source}:{source_options} --performer=local --isolator=none'.format(
             script=script,
             environment=arguments['environment'],
             configuration=arguments['configuration'],

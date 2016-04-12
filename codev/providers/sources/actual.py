@@ -8,8 +8,7 @@ class ActualSource(BaseSource):
     def install(self, performer):
         archive = shutil.make_archive('/tmp/{filename}'.format(filename=uuid1()), 'gztar')
 
-        # dont use tmp dir, sometimes during the boot tmp is cleaned
-        remote_archive = '{filename}.tar.gz'
+        remote_archive = '/tmp/{filename}.tar.gz'
         performer.send_file(archive, remote_archive)
 
         # install gunzip

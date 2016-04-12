@@ -185,7 +185,7 @@ class Deployment(object):
         :return: True if installation is successfully realized
         :rtype: bool
         """
-        return self.configuration.install(self.environment)
+        return self.configuration.install(self.deployment_info())
 
     def run(self, command):
         """

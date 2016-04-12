@@ -34,7 +34,10 @@ class LXCMachine(BaseMachine):
             raise ValueError('o:%s:o' % output)
 
         if state == 'RUNNING':
-            return True
+            if self.ip and self.check_execute('runlevel'):
+                return True
+            else:
+                return False
         elif state == 'STOPPED':
             return False
         else:
@@ -158,7 +161,7 @@ class LXCMachine(BaseMachine):
                 container_name=self.ident,
             ))
 
-            while not self.ip:
+            while not self.is_started():
                 sleep(0.5)
 
             return True
