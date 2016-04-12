@@ -79,11 +79,8 @@ class Isolation(BaseProxyPerformer):
         super(Isolation, self).run_script(codev_script, arguments=arguments, logger=logger)
 
     def install(self, source, next_source):
-        if not self.isolator.exists():
-            logger.info("Creating isolation...")
-            created = self.isolator.create()
-        else:
-            created = False
+        logger.info("Creating isolation...")
+        created = self.isolator.create()
 
         current_source = source
         if created:
@@ -98,6 +95,7 @@ class Isolation(BaseProxyPerformer):
                 current_source = next_source
                 current_source.install(self.performer)
                 self.install_codev(current_source)
+        logger.info("Entering isolation...")
         with self.change_directory(current_source.directory):
             self.run_scripts(self.scripts.onenter, self.deployment_info, logger=command_logger)
         return current_source
