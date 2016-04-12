@@ -169,16 +169,35 @@ PID_FILE = 'codev.pid'
 TEMP_FILE = 'codev.temp'
 
 
-class BaseRunner(BaseExecutor):
-    def __init__(self, performer, *args, **kwargs):
-        self.performer = performer
-        super(BaseRunner, self).__init__(*args, **kwargs)
+class BaseProxyExecutor(BaseExecutor):
+    def __init__(self, executor, *args, **kwargs):
+        self.executor = executor
+        super(BaseProxyExecutor, self).__init__(*args, **kwargs)
+
+    @contextmanager
+    def change_directory(self, directory):
+        with self.executor.change_directory(directory):
+            yield
 
     def execute(self, command, logger=None, writein=None):
-        return self.performer.execute(command, logger=logger, writein=writein)
+        return self.executor.execute(command, logger=logger, writein=writein)
 
 
-class BackgroundRunner(BaseRunner):
+class BaseProxyPerformer(BaseProxyExecutor, BasePerformer):
+    def __init__(self, *args, **kwargs):
+        super(BaseProxyPerformer, self).__init__(*args, **kwargs)
+        self.performer = self.executor
+
+    def send_file(self, source, target):
+        return self.performer.send_file(source, target)
+
+    @contextmanager
+    def get_fo(self, remote_path):
+        with self.performer.get_fo(remote_path) as fo:
+            yield fo
+
+
+class BackgroundRunner(BaseProxyExecutor):
 
     def __init__(self, *args, **kwargs):
         super(BackgroundRunner, self).__init__(*args, **kwargs)

@@ -7,7 +7,7 @@ from logging import getLogger
 logger = getLogger(__name__)
 
 
-class AnsibleProvisionSettings(BaseSettings):
+class AnsibleProvisionerSettings(BaseSettings):
     @property
     def playbook(self):
         return self.data.get('playbook', None)
@@ -25,18 +25,18 @@ class AnsibleProvisionSettings(BaseSettings):
         return self.data.get('env_vars', {})
 
 
-class AnsibleProvision(BaseProvisioner):
-    settings_class = AnsibleProvisionSettings
+class AnsibleProvisioner(BaseProvisioner):
+    settings_class = AnsibleProvisionerSettings
 
     def install(self):
-        self.performer.install_packages('python-dev', 'python-pip')
-        self.performer.execute('pip install setuptools')
-        self.performer.execute('pip install --upgrade markupsafe paramiko PyYAML Jinja2 httplib2 six ecdsa==0.11')
+        self.install_packages('python-dev', 'python-pip')
+        self.execute('pip install setuptools')
+        self.execute('pip install --upgrade markupsafe paramiko PyYAML Jinja2 httplib2 six ecdsa==0.11')
 
         version_add = ''
         if self.settings.version:
             version_add = '==%s' % self.settings.version
-        self.performer.execute('pip install --upgrade ansible%s' % version_add)
+        self.execute('pip install --upgrade ansible%s' % version_add)
 
     def run(self, infrastructure):
         inventory = configparser.ConfigParser(allow_no_value=True, delimiters=('',))
@@ -53,7 +53,7 @@ class AnsibleProvision(BaseProvisioner):
             inventory.write(inventoryfile)
 
         template_vars = {
-            'source_directory': self.performer.working_dir
+            'source_directory': self.working_dir
         }
 
         if self.settings.extra_vars:
@@ -84,7 +84,7 @@ class AnsibleProvision(BaseProvisioner):
         else:
             env_vars = ''
 
-        self.performer.execute('{env_vars}ansible-playbook -i {inventory} {playbook}{extra_vars}'.format(
+        self.execute('{env_vars}ansible-playbook -i {inventory} {playbook}{extra_vars}'.format(
             inventory=inventory_filepath,
             playbook=self.settings.playbook,
             extra_vars=extra_vars,
@@ -94,4 +94,4 @@ class AnsibleProvision(BaseProvisioner):
         return True
 
 
-Provisioner.register('ansible', AnsibleProvision)
+Provisioner.register('ansible', AnsibleProvisioner)

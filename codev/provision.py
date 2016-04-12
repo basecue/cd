@@ -1,8 +1,8 @@
 from .provider import BaseProvider, ConfigurableProvider
-from .performer import BaseRunner
+from .performer import BaseProxyPerformer
 
 
-class BaseProvisioner(BaseRunner, ConfigurableProvider):
+class BaseProvisioner(BaseProxyPerformer, ConfigurableProvider):
 
     def install(self):
         raise NotImplementedError()

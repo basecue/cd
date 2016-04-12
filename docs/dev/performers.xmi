@@ -50,7 +50,7 @@
        </UML:Classifier.feature>
       </UML:Class>
       <UML:Generalization discriminator="" visibility="public" isSpecification="false" namespace="Logical View" child="VS3uePY1W3Q6" xmi.id="t3082x2XN3P1" parent="N9VQaYNZ6uBL" name=""/>
-      <UML:Class visibility="public" isSpecification="false" namespace="Logical View" isAbstract="false" isLeaf="false" isRoot="false" xmi.id="aB6xFVxfRyaP" name="BaseRunner">
+      <UML:Class visibility="public" isSpecification="false" namespace="Logical View" isAbstract="false" isLeaf="false" isRoot="false" xmi.id="aB6xFVxfRyaP" name="BaseProxyExecutor">
        <UML:GeneralizableElement.generalization>
         <UML:Generalization xmi.idref="VfIu4usd955q"/>
        </UML:GeneralizableElement.generalization>

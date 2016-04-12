@@ -4,7 +4,7 @@ from .infrastructure import Infrastructure
 from .isolation import Isolation
 
 from .logging import logging_config
-from .performer import CommandError, BaseRunner
+from .performer import CommandError, BaseProxyExecutor
 from .provision import Provisioner
 
 from logging import getLogger
@@ -13,7 +13,7 @@ command_logger = getLogger('command')
 debug_logger = getLogger('debug')
 
 
-class Provision(BaseRunner):
+class Provision(BaseProxyExecutor):
     def __init__(self, performer, settings):
         super(Provision, self).__init__(performer)
         self.provisioner = Provisioner(settings.provider, performer, settings_data=settings.specific)
@@ -28,10 +28,10 @@ class Provision(BaseRunner):
                 error=error.error
             )
         )
-        self.performer.run_scripts(self.scripts.onerror, arguments)
+        self.run_scripts(self.scripts.onerror, arguments)
 
     def deploy(self, infrastructure, deployment_info):
-        self.performer.run_scripts(self.scripts.onstart, deployment_info)
+        self.run_scripts(self.scripts.onstart, deployment_info)
         try:
             logger.info('Installing provisioner...')
             self.provisioner.install()
@@ -49,7 +49,7 @@ class Provision(BaseRunner):
                 arguments = {}
                 arguments.update(deployment_info)
                 arguments.update(infrastructure.machines_info())
-                self.performer.run_scripts(self.scripts.onsuccess, arguments)
+                self.run_scripts(self.scripts.onsuccess, arguments)
                 return True
             except CommandError as e:
                 self._onerror(deployment_info, e)
@@ -61,12 +61,14 @@ class Configuration(object):
         self.name = name
         self.settings = settings
         self.performer = performer
+        self.source = source
+        self.next_source = next_source
         self.infrastructure = Infrastructure(performer, self.settings.infrastructure)
-        self.isolation = Isolation(performer, self.settings.isolation, source, next_source)
         self.provision = Provision(performer, self.settings.provision)
 
     def install(self, deployment_info):
-        current_source = self.isolation.install(deployment_info)
+        isolation = Isolation(self.performer, self.settings.isolation, self.source, self.next_source, deployment_info)
+        current_source = isolation.install()
 
         version = self.performer.execute('pip3 show codev | grep Version | cut -d " " -f 2')
         logger.info("Run 'codev {version}' in isolation.".format(version=version))

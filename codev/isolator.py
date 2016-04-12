@@ -1,8 +1,8 @@
 from .provider import BaseProvider
-from .performer import BaseRunner, BasePerformer
+from .performer import BaseProxyPerformer
 
 
-class BaseIsolator(BaseRunner, BasePerformer):
+class BaseIsolator(BaseProxyPerformer):
     def exists(self):
         raise NotImplementedError()
 
@@ -18,16 +18,6 @@ class BaseIsolator(BaseRunner, BasePerformer):
     @property
     def ip(self):
         raise NotImplementedError()
-
-    def run_script(self, script, arguments=None, logger=None):
-        codev_script = 'codev run {script} -e {environment} -c {configuration} -s {source}:{source_options} --performer=local --isolator=none'.format(
-            script=script,
-            environment=arguments['environment'],
-            configuration=arguments['configuration'],
-            source=arguments['source'],
-            source_options=arguments['source_options']
-        )
-        super(BaseIsolator, self).run_script(codev_script, arguments=arguments, logger=logger)
 
     def redirect(self, machine, source_port, target_port):
         redirection = dict(
