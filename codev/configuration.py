@@ -104,4 +104,5 @@ class Configuration(object):
             return True
 
     def deploy(self, deployment_info):
+        logger.info("Deploying project.")
         self.provision.deploy(self.infrastructure, deployment_info)

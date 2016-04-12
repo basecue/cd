@@ -61,17 +61,17 @@ def send_message(message, color, url, channel, username, project, environment, c
 
 if __name__ == "__main__":
 
-    stdin = parse_qs(sys.stdin.read())
-    project = stdin.get('project', [''])[0]
-    environment = stdin.get('environment', [''])[0]
-    configuration = stdin.get('configuration', [''])[0]
-    source = stdin.get('source_transition', [''])[0]
+    arguments = json.loads(sys.stdin.read())
+    project = arguments.get('project', '')
+    environment = arguments.get('environment', '')
+    configuration = arguments.get('configuration', '')
+    source = arguments.get('source_transition', '')
 
-    url = stdin.get('url', [''])[0]
-    channel = stdin.get('channel', [''])[0]
-    username = stdin.get('username', ['{project} bot'])[0]
-    message = stdin.get('message', [''])[0]
-    icon = stdin.get('icon', [':ghost:'])[0]
-    color = stdin.get('color', ['good'])[0]
+    url = arguments.get('url', '')
+    channel = arguments.get('channel', '')
+    username = arguments.get('username', '{project} bot')
+    message = arguments.get('message', '')
+    icon = arguments.get('icon', ':ghost:')
+    color = arguments.get('color', 'good')
 
     send_message(message, color, url, channel, username, project, environment, configuration, source, icon)

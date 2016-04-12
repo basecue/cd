@@ -21,6 +21,8 @@ codev run [script] [environment] [configuration] [version]
 import click
 
 from codev.cli import command, main
+from json import loads
+import sys
 
 # import os.path
 #
@@ -106,7 +108,8 @@ def run(deployment, command):
     :return:
     :rtype: bool
     """
-    return deployment.run(' '.join(command))
+    arguments = loads(sys.stdin.read())
+    return deployment.run(' '.join(command), arguments)
 
 
 @command(help='Execute command in isolation.')
@@ -145,15 +148,15 @@ def execute(deployment, command):
 #     return deployment.kill()
 
 
-@command(help='Invoke an isolation shell.')
-def shell(deployment):
-    """
-    :param deployment:
-    :type deployment: codev.deployment.Deployment
-    :return:
-    :rtype: bool
-    """
-    return deployment.shell()
+# @command(help='Invoke an isolation shell.')
+# def shell(deployment):
+#     """
+#     :param deployment:
+#     :type deployment: codev.deployment.Deployment
+#     :return:
+#     :rtype: bool
+#     """
+#     return deployment.shell()
 
 
 @command(

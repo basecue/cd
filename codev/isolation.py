@@ -1,6 +1,7 @@
 import re
-from .settings import YAMLSettingsReader
 from logging import getLogger
+
+from .settings import YAMLSettingsReader
 from .debug import DebugSettings
 from .performer import BaseProxyPerformer
 
@@ -57,30 +58,46 @@ class Isolation(BaseProxyPerformer):
             self.execute('pip3 install --upgrade {distfile}'.format(distfile=remote_distfile))
 
     def run_script(self, script, arguments=None, logger=None):
-        codev_script = 'codev run {script} -e {environment} -c {configuration} -s {source}:{source_options} --performer=local --isolator=none'.format(
+        if DebugSettings.perform_settings:
+            perform_debug = ' '.join(
+                (
+                    '--debug {key} {value}'.format(key=key, value=value)
+                    for key, value in DebugSettings.perform_settings.data.items()
+                )
+            )
+        else:
+            perform_debug = ''
+
+        codev_script = 'codev run -e {environment} -c {configuration} -s {source}:{source_options} --performer=local --isolator=none {perform_debug} -- {script}'.format(
             script=script,
             environment=self.deployment_info['environment'],
             configuration=self.deployment_info['configuration'],
             source=self.deployment_info['source'],
-            source_options=self.deployment_info['source_options']
+            source_options=self.deployment_info['source_options'],
+            perform_debug=perform_debug
         )
         super(Isolation, self).run_script(codev_script, arguments=arguments, logger=logger)
 
     def install(self, source, next_source):
-        created = self.isolator.create()
+        if not self.isolator.exists():
+            logger.info("Creating isolation...")
+            created = self.isolator.create()
+        else:
+            created = False
 
         current_source = source
         if created:
-            logger.info("Install project to isolation.")
+            logger.info("Install project to isolation...")
             current_source.install(self.performer)
             self.install_codev(current_source)
             with self.change_directory(current_source.directory):
-                self.run_scripts(self.scripts.oncreate, current_source)
+                self.run_scripts(self.scripts.oncreate, self.deployment_info, logger=command_logger)
         else:
             if next_source:
-                logger.info("Transition source in isolation.")
+                logger.info("Transition source in isolation...")
                 current_source = next_source
                 current_source.install(self.performer)
                 self.install_codev(current_source)
-        self.run_scripts(self.scripts.onenter, current_source)
+        with self.change_directory(current_source.directory):
+            self.run_scripts(self.scripts.onenter, self.deployment_info, logger=command_logger)
         return current_source

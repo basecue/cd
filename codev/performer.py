@@ -2,9 +2,10 @@ from .provider import BaseProvider, ConfigurableProvider
 from contextlib import contextmanager
 from os import path
 from time import time
-from urllib.parse import urlencode
+from json import dumps
 from codev.scripts import COMMON_SCRIPTS
 
+# TODO - codev/ -> common/ ?
 COMMON_SCRIPTS_PREFIX = 'codev/'
 COMMON_SCRIPTS_PATH = '{directory}/scripts'.format(directory=path.dirname(__file__))
 
@@ -24,7 +25,7 @@ class BaseExecutor(object):
         except CommandError:
             return False
 
-    def execute(self, command, logger=None, writein=None):
+    def execute(self, command, logger=None, writein=None, max_lines=None):
         raise NotImplementedError()
 
     def run_script(self, script, arguments=None, logger=None):
@@ -44,15 +45,15 @@ class BaseExecutor(object):
                 )
                 script = script.replace(script_ident, script_replace, 1)
                 break
-        
-        return self.execute(script.format(**arguments), writein=urlencode(arguments), logger=logger)
 
-    def run_scripts(self, scripts, common_arguments=None):
+        return self.execute(script.format(**arguments), writein=dumps(arguments), logger=logger)
+
+    def run_scripts(self, scripts, common_arguments=None, logger=None):
         if common_arguments is None:
             common_arguments = {}
         for script, arguments in scripts.items():
             arguments.update(common_arguments)
-            self.run_script(script, arguments)
+            self.run_script(script, arguments, logger=logger)
 
     @contextmanager
     def change_directory(self, directory):
@@ -194,8 +195,8 @@ class BaseProxyExecutor(BaseExecutor):
             with self.executor.change_directory(directory):
                 yield
 
-    def execute(self, command, logger=None, writein=None):
-        return self.executor.execute(command, logger=logger, writein=writein)
+    def execute(self, command, logger=None, writein=None, max_lines=None):
+        return self.executor.execute(command, logger=logger, writein=writein, max_lines=max_lines)
 
 
 class BaseProxyPerformer(BaseProxyExecutor, BasePerformer):
