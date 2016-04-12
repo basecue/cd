@@ -10,13 +10,11 @@ debug_logger = getLogger('debug')
 
 
 class Isolation(BaseProxyPerformer):
-    def __init__(self, *args, settings, source, next_source, deployment_info, **kwargs):
+    def __init__(self, settings, deployment_info, *args, **kwargs):
         super(Isolation, self).__init__(*args, **kwargs)
         self.isolator = self.performer
         self.connectivity = settings.connectivity
         self.scripts = settings.scripts
-        self.source = source
-        self.next_source = next_source
         self.deployment_info = deployment_info
 
     def connect(self, infrastructure):
@@ -68,10 +66,10 @@ class Isolation(BaseProxyPerformer):
         )
         super(Isolation, self).run_script(codev_script, arguments=arguments, logger=logger)
 
-    def install(self):
+    def install(self, source, next_source):
         created = self.isolator.create()
 
-        current_source = self.source
+        current_source = source
         if created:
             logger.info("Install project to isolation.")
             current_source.install(self.performer)
@@ -79,9 +77,9 @@ class Isolation(BaseProxyPerformer):
             with self.change_directory(current_source.directory):
                 self.run_scripts(self.scripts.oncreate, current_source)
         else:
-            if self.next_source:
+            if next_source:
                 logger.info("Transition source in isolation.")
-                current_source = self.next_source
+                current_source = next_source
                 current_source.install(self.performer)
                 self.install_codev(current_source)
         self.run_scripts(self.scripts.onenter, current_source)

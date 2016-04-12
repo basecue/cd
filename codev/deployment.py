@@ -98,7 +98,7 @@ class Deployment(object):
 
         # configuration
         configuration_settings = environment_settings.configurations[configuration_name]
-        self.configuration = Configuration(self.isolator, configuration_name, configuration_settings, self.source, self.next_source)
+        self.configuration = Configuration(self.isolator, configuration_name, configuration_settings)
 
         self.current_source = self.source
 
@@ -185,7 +185,7 @@ class Deployment(object):
         :return: True if installation is successfully realized
         :rtype: bool
         """
-        return self.configuration.install(self.deployment_info())
+        return self.configuration.install(self.source, self.next_source, self.deployment_info())
 
     def run(self, command):
         """

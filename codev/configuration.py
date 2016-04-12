@@ -57,18 +57,16 @@ class Provision(BaseProxyExecutor):
 
 
 class Configuration(object):
-    def __init__(self, performer, name, settings, source, next_source):
+    def __init__(self, performer, name, settings):
         self.name = name
         self.settings = settings
         self.performer = performer
-        self.source = source
-        self.next_source = next_source
         self.infrastructure = Infrastructure(performer, self.settings.infrastructure)
         self.provision = Provision(performer, self.settings.provision)
 
-    def install(self, deployment_info):
-        isolation = Isolation(self.performer, self.settings.isolation, self.source, self.next_source, deployment_info)
-        current_source = isolation.install()
+    def install(self, source, next_source, deployment_info):
+        isolation = Isolation(self.settings.isolation, deployment_info, self.performer)
+        current_source = isolation.install(source, next_source)
 
         version = self.performer.execute('pip3 show codev | grep Version | cut -d " " -f 2')
         logger.info("Run 'codev {version}' in isolation.".format(version=version))

@@ -191,20 +191,6 @@ class LXCMachine(BaseMachine):
 
         return None
 
-    def _sanitize_path(self, path):
-        if path.startswith('~/'):
-            path = '{base_dir}/{path}'.format(
-                base_dir=self.base_dir,
-                path=path[2:]
-            )
-
-        if not path.startswith('/'):
-            path = '{working_dir}/{path}'.format(
-                working_dir=self.working_dir,
-                path=path
-            )
-        return path
-
     @property
     def _gateway(self):
         if not self.__gateway:

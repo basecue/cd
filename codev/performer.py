@@ -138,6 +138,20 @@ class BasePerformer(BaseExecutor, ConfigurableProvider):
         except CommandError:
             return False
 
+    def _sanitize_path(self, path):
+        if path.startswith('~/'):
+            path = '{base_dir}/{path}'.format(
+                base_dir=self.base_dir,
+                path=path[2:]
+            )
+
+        if not path.startswith('/'):
+            path = '{working_dir}/{path}'.format(
+                working_dir=self.working_dir,
+                path=path
+            )
+        return path
+
     def send_file(self, source, target):
         raise NotImplementedError()
 
@@ -176,8 +190,9 @@ class BaseProxyExecutor(BaseExecutor):
 
     @contextmanager
     def change_directory(self, directory):
-        with self.executor.change_directory(directory):
-            yield
+        with super(BaseProxyExecutor, self).change_directory(directory):
+            with self.executor.change_directory(directory):
+                yield
 
     def execute(self, command, logger=None, writein=None):
         return self.executor.execute(command, logger=logger, writein=writein)
@@ -197,10 +212,10 @@ class BaseProxyPerformer(BaseProxyExecutor, BasePerformer):
             yield fo
 
 
-class BackgroundRunner(BaseProxyExecutor):
+class BackgroundExecutor(BaseProxyExecutor):
 
     def __init__(self, *args, **kwargs):
-        super(BackgroundRunner, self).__init__(*args, **kwargs)
+        super(BackgroundExecutor, self).__init__(*args, **kwargs)
         self._isolation_cache = None
         self.__isolation_directory = None
         self.logger = getLogger(__name__)
@@ -209,7 +224,7 @@ class BackgroundRunner(BaseProxyExecutor):
     def _isolation_directory(self):
         if not self.__isolation_directory:
             if not self.ident:
-                ssh_info = self.performer.execute('echo $SSH_CLIENT')
+                ssh_info = self.executor.execute('echo $SSH_CLIENT')
                 ip, remote_port, local_port = ssh_info.split()
                 self.ident = 'control_{ip}_{remote_port}_{local_port}'.format(
                     ip=ip, remote_port=remote_port, local_port=local_port
@@ -222,7 +237,7 @@ class BackgroundRunner(BaseProxyExecutor):
         return self.__isolation_directory
 
     def _create_isolation(self):
-        self.performer.execute('mkdir -p %s' % self._isolation_directory)
+        self.executor.execute('mkdir -p %s' % self._isolation_directory)
 
         output_file, error_file, exitcode_file, command_file, pid_file, temp_file = map(
             lambda f: '%s/%s' % (self._isolation_directory, f),
@@ -245,16 +260,16 @@ class BackgroundRunner(BaseProxyExecutor):
         return self._isolation_cache
 
     def _clean(self):
-        self.performer.execute('rm -rf %s' % self._isolation_directory)
+        self.executor.execute('rm -rf %s' % self._isolation_directory)
 
     def _file_exists(self, filepath):
-        return self.performer.check_execute('[ -f %s ]' % filepath)
+        return self.executor.check_execute('[ -f %s ]' % filepath)
 
     def _bg_check(self, pid):
-        return self.performer.check_execute('ps -p %s -o pid=' % pid)
+        return self.executor.check_execute('ps -p %s -o pid=' % pid)
 
     def _bg_log(self, logger, skip_lines):
-        output = self.performer.execute('tail {output_file} -n+{skip_lines}'.format(
+        output = self.executor.execute('tail {output_file} -n+{skip_lines}'.format(
             output_file=self._isolation.output_file,
             skip_lines=skip_lines)
         )
@@ -275,7 +290,7 @@ class BackgroundRunner(BaseProxyExecutor):
         self._clean()
 
     def _bg_signal(self, pid, signal=None):
-        return self.performer.execute(
+        return self.executor.execute(
             'kill {signal}-{pid}'.format(
                 pid=pid,
                 signal='-%s ' % signal if signal else ''
@@ -298,7 +313,7 @@ class BackgroundRunner(BaseProxyExecutor):
         self._bg_log(logger, skip_lines)
 
     def _cat_file(self, catfile):
-        return self.performer.execute('cat %s' % catfile)
+        return self.executor.execute('cat %s' % catfile)
 
     def _get_bg_running_pid(self):
         return self._cat_file(self._isolation.pid_file)
@@ -313,11 +328,11 @@ class BackgroundRunner(BaseProxyExecutor):
                 if pid and self._bg_check(pid):
                     raise PerformerError('Another process is running.')
 
-        self.performer.execute('echo "" > {output_file} > {error_file} > {exitcode_file} > {pid_file}'.format(
+        self.executor.execute('echo "" > {output_file} > {error_file} > {exitcode_file} > {pid_file}'.format(
             **isolation._asdict()
         ))
 
-        self.performer.execute(
+        self.executor.execute(
             'tee {command_file} > /dev/null && chmod +x {command_file}'.format(
                 **isolation._asdict()
             ),
@@ -332,7 +347,7 @@ class BackgroundRunner(BaseProxyExecutor):
         )
 
         # max lines against readline hang
-        pid = self.performer.execute(bg_command, writein=writein, max_lines=1)
+        pid = self.executor.execute(bg_command, writein=writein, max_lines=1)
 
         if not pid.isdigit():
             raise ValueError('not a pid %s' % pid)

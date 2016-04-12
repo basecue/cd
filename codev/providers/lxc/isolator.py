@@ -1,7 +1,7 @@
 from codev.isolator import BaseIsolator, Isolator
 from logging import getLogger
 from .machines import LXCMachine
-from codev.performer import BackgroundRunner, PerformerError
+from codev.performer import BackgroundExecutor, PerformerError
 from contextlib import contextmanager
 
 
@@ -90,8 +90,8 @@ class LXCIsolator(BaseIsolator):
                 ssh_auth_sock_local=ssh_auth_sock_local
             )
         ):
-            performer_background_runner = BackgroundRunner(self.performer)
-            machine_background_runner = BackgroundRunner(self.machine)
+            performer_background_runner = BackgroundExecutor(self.performer)
+            machine_background_runner = BackgroundExecutor(self.machine)
 
             ssh_auth_sock_remote = '/tmp/{ident}-ssh-agent-sock'.format(ident=machine_background_runner.ident)
 
@@ -129,7 +129,7 @@ class LXCIsolator(BaseIsolator):
 
     def make_link(self, source, target):
         # experimental
-        performer_background_runner = BackgroundRunner(
+        performer_background_runner = BackgroundExecutor(
             self.performer, ident='{share_directory}/{target}'.format(
                 share_directory=self.machine.share_directory,
                 target=target
@@ -158,7 +158,7 @@ class LXCIsolator(BaseIsolator):
         except PerformerError:
             pass
 
-        machine_background_runner = BackgroundRunner(
+        machine_background_runner = BackgroundExecutor(
             self.machine, ident=self.ident
         )
 
