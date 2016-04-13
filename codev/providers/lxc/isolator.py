@@ -1,13 +1,17 @@
-from codev.isolator import BaseIsolator, Isolator
-from logging import getLogger
-from .machines import LXCMachine
-from codev.performer import BackgroundExecutor, PerformerError
+from hashlib import md5
 from contextlib import contextmanager
+from logging import getLogger
+
+from codev.isolator import BaseIsolator, Isolator
+from codev.performer import BackgroundExecutor, PerformerError
+
+from .machines import LXCMachine
 
 
 class LXCIsolator(BaseIsolator):
     def __init__(self, *args, **kwargs):
         super(LXCIsolator, self).__init__(*args, **kwargs)
+        self.ident = md5(self.ident.encode()).hexdigest()
         self.machine = LXCMachine(self.performer, ident=self.ident)
         self.logger = getLogger(__name__)
 

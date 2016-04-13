@@ -78,7 +78,7 @@ class Isolation(BaseProxyPerformer):
         )
         super(Isolation, self).run_script(codev_script, arguments=arguments, logger=logger)
 
-    def install(self, source, next_source):
+    def create(self, source, next_source):
         logger.info("Creating isolation...")
         created = self.isolator.create()
 

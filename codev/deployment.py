@@ -2,10 +2,7 @@ from .configuration import Configuration
 from .source import Source
 from .logging import logging_config
 from .performer import CommandError, Performer
-from .provision import Provisioner
 from .isolator import Isolator
-
-from colorama import Fore as color, Style as style
 
 from logging import getLogger
 
@@ -47,7 +44,7 @@ class Deployment(object):
                     project_name=self.project_name
                 )
             ) from e
-        self.source = Source(
+        source = Source(
             source_name,
             source_options,
             settings_data=source_settings
@@ -55,22 +52,22 @@ class Deployment(object):
 
         # next source
         if next_source_name:
-            self.next_source = Source(
+            next_source = Source(
                 next_source_name,
                 next_source_options,
                 settings_data=source_settings
             )
         else:
-            self.next_source = None
+            next_source = None
 
-        ident = '%s:%s:%s:%s' % (
-            settings.project,
-            environment_name,
-            configuration_name,
-            self.source.ident,
+        # TODO version?
+        ident = '{project}:{environment}:{configuration}:{source_ident}:{next_source_ident}'.format(
+            project=settings.project,
+            environment=environment_name,
+            configuration=configuration_name,
+            source_ident=source.ident,
+            next_source_ident=next_source.ident if next_source else ''
         )
-        if self.next_source:
-            ident = '%s:%s' % (ident, self.next_source.ident)
 
         # performer
         if not performer_provider:
@@ -89,103 +86,22 @@ class Deployment(object):
             isolator_provider = isolator_settings.provider
             isolator_specific = isolator_settings.specific
 
-        # TODO move to LXC isolator
-        from hashlib import md5
-        ident = md5(ident.encode()).hexdigest()
-        #########
-
         self.isolator = Isolator(isolator_provider, performer, settings_data=isolator_specific, ident=ident)
 
         # configuration
         configuration_settings = environment_settings.configurations[configuration_name]
-        self.configuration = Configuration(self.isolator, configuration_name, configuration_settings)
-
-        self.current_source = self.source
-
-        if self.next_source and self.isolator.exists():
-            self.current_source = self.next_source
+        self.configuration = Configuration(
+            self.isolator,
+            settings.project, environment_name, configuration_name,
+            configuration_settings, source, next_source
+        )
 
         # TODO
         if isolator_provider == 'none':
             logging_config(perform=True)
 
-        # provisioner
-        # provision_settings = configuration_settings.provision
-        # self.provisioner = Provisioner(
-        #     provision_settings.provider,
-        #     provision_settings.scripts,
-        #     self.isolator,
-        #     self.configuration,
-        #     settings_data=provision_settings.specific
-        # )
-
-    # def isolation(self, create=False):
-    #     if self._isolation:
-    #         self.current_source = self.isolator.enter(create=create)
-    #         return self._isolation
-    #     else:
-    #         logger.error('Isolation is disabled.')
-    #         return False
-
     def deploy(self):
-        return self.configuration.deploy(self.deployment_info(colorize=False))
-
-    def source_transition(self, colorize=True):
-        deployment_info = self.deployment_info(transition=False)
-
-        if colorize:
-            color_options = dict(
-                color_source=color.GREEN,
-                color_reset=color.RESET + style.RESET_ALL
-            )
-        else:
-            color_options = dict(
-                color_source='',
-                color_reset='',
-                color_next_source='',
-            )
-
-        if self.next_source:
-            if colorize:
-                if not self.current_source:
-                    color_source = color.GREEN
-                    color_next_source = color.GREEN
-                elif self.current_source == self.source:
-                    color_source = color.GREEN + style.BRIGHT
-                    color_next_source = color.GREEN
-                else:
-                    color_source = color.GREEN
-                    color_next_source = color.GREEN + style.BRIGHT
-
-                color_options.update(dict(
-                    color_source=color_source,
-                    color_next_source=color_next_source,
-                ))
-
-            deployment_info.update(color_options)
-            transition = ' -> {color_next_source}{next_source}:{next_source_options}{color_reset}'.format(
-                **deployment_info
-            )
-        else:
-            transition = ''
-
-        deployment_info.update(color_options)
-        return '{color_source}{source}:{source_options}{color_reset}{transition}'.format(
-            transition=transition,
-            **deployment_info
-        )
-
-    def deployment_info(self, transition=True, colorize=True):
-        return dict(
-            project=self.project_name,
-            environment=self.environment,
-            configuration=self.configuration.name,
-            source=self.source.name,
-            source_options=self.source.options,
-            next_source=self.next_source.name if self.next_source else '',
-            next_source_options=self.next_source.options if self.next_source else '',
-            source_transition=self.source_transition(colorize) if transition else ''
-        )
+        return self.configuration.deploy()
 
     def install(self):
         """
@@ -194,9 +110,9 @@ class Deployment(object):
         :return: True if installation is successfully realized
         :rtype: bool
         """
-        return self.configuration.install(self.source, self.next_source, self.deployment_info(colorize=False))
+        return self.configuration.install()
 
-    def run(self, command, arguments=None):
+    def run(self, script, arguments=None):
         """
         Run command in project context in isolation.
 
@@ -207,12 +123,8 @@ class Deployment(object):
         """
 
         logging_config(control_perform=True)
-        if arguments is None:
-            arguments = {}
-        arguments.update(self.deployment_info(colorize=False))
         try:
-            with self.isolator.change_directory(self.current_source.directory):
-                self.isolator.run_script(command, arguments=arguments, logger=command_logger)
+            self.configuration.run_script(script, arguments)
         except CommandError as e:
             logger.error(e)
             return False
