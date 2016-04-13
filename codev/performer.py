@@ -164,25 +164,6 @@ class BasePerformer(BaseExecutor, ConfigurableProvider):
 class Performer(BaseProvider):
     provider_class = BasePerformer
 
-"""
-background runner
-"""
-
-from collections import namedtuple
-from time import sleep
-from logging import getLogger
-
-Isolation = namedtuple(
-    'Isolation', ['output_file', 'error_file', 'exitcode_file', 'command_file', 'pid_file', 'temp_file']
-)
-
-OUTPUT_FILE = 'codev.out'
-ERROR_FILE = 'codev.err'
-EXITCODE_FILE = 'codev.exit'
-COMMAND_FILE = 'codev.command'
-PID_FILE = 'codev.pid'
-TEMP_FILE = 'codev.temp'
-
 
 class BaseProxyExecutor(BaseExecutor):
     def __init__(self, executor, *args, **kwargs):
@@ -211,6 +192,26 @@ class BaseProxyPerformer(BaseProxyExecutor, BasePerformer):
     def get_fo(self, remote_path):
         with self.performer.get_fo(remote_path) as fo:
             yield fo
+
+
+"""
+background runner
+"""
+
+from collections import namedtuple
+from time import sleep
+from logging import getLogger
+
+Isolation = namedtuple(
+    'Isolation', ['output_file', 'error_file', 'exitcode_file', 'command_file', 'pid_file', 'temp_file']
+)
+
+OUTPUT_FILE = 'codev.out'
+ERROR_FILE = 'codev.err'
+EXITCODE_FILE = 'codev.exit'
+COMMAND_FILE = 'codev.command'
+PID_FILE = 'codev.pid'
+TEMP_FILE = 'codev.temp'
 
 
 class BackgroundExecutor(BaseProxyExecutor):
@@ -292,18 +293,11 @@ class BackgroundExecutor(BaseProxyExecutor):
 
     def _bg_signal(self, pid, signal=None):
         return self.executor.execute(
-            'kill {signal}-{pid}'.format(
+            'pkill {signal}-P {pid}'.format(
                 pid=pid,
                 signal='-%s ' % signal if signal else ''
             )
         )
-        # pgid = self.performer.execute('ps -p %s -o pgid=' % pid)
-        # return self.performer.execute(
-        #     'kill {signal}-{pgid}'.format(
-        #         pgid=pgid,
-        #         signal='-%s ' % signal if signal else ''
-        #     )
-        # )
 
     def _bg_wait(self, pid, logger=None):
         skip_lines = 1
@@ -343,7 +337,7 @@ class BackgroundExecutor(BaseProxyExecutor):
             )
         )
 
-        bg_command = 'nohup {command_file} > {output_file} 2> {error_file} & echo $! | tee {pid_file}'.format(
+        bg_command = 'bash -c "nohup {command_file} > {output_file} 2> {error_file} & echo \$! | tee {pid_file}"'.format(
             **isolation._asdict()
         )
 

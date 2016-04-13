@@ -249,7 +249,7 @@ class LXCMachine(BaseMachine):
         return self.performer.execute('lxc-attach {env} -n {container_name} -- bash -c "cd {working_dir} && {command}"'.format(
             working_dir=self.working_dir,
             container_name=self.ident,
-            command=command.replace('$', '\$').replace('"', '\\"'),
+            command=command.replace('\\', '\\\\').replace('$', '\$').replace('"', '\\"'),
             env=' '.join('-v {var}={value}'.format(var=var, value=value) for var, value in env.items())
         ), logger=logger, writein=writein, max_lines=max_lines)
 
