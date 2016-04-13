@@ -15,7 +15,7 @@ def confirmation_message(message):
         @wraps(f)
         def confirmation_wrapper(deployment, force, **kwargs):
             if not force:
-                if not click.confirm(message.format(**deployment.deployment_info())):
+                if not click.confirm(message.format(**deployment.info())):
                     raise click.Abort()
             return f(deployment, **kwargs)
 

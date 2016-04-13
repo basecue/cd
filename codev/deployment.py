@@ -131,6 +131,9 @@ class Deployment(object):
         else:
             return True
 
+    def info(self, colorize=True):
+        return self.configuration.deployment_info(colorize=colorize)
+
     # def execute(self, command):
     #     """
     #     Create isolation if it does not exist and execute command in isolation.

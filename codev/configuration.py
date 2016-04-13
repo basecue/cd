@@ -125,7 +125,7 @@ class Configuration(object):
 
     @property
     def current_source(self):
-        # isolator
+        # TODO isolator (performer does not have method exists)
         if self.next_source and self.performer.exists():
             return self.next_source
         else:
