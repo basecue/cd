@@ -23,6 +23,7 @@ import click
 from codev.cli import command, main
 from json import loads
 import sys
+import select
 
 # import os.path
 #
@@ -108,7 +109,11 @@ def run(deployment, command):
     :return:
     :rtype: bool
     """
-    arguments = loads(sys.stdin.read())
+
+    if select.select([sys.stdin,],[],[],0.0)[0]:
+        arguments = loads(sys.stdin.read())
+    else:
+        arguments = {}
     return deployment.run(' '.join(command), arguments)
 
 
