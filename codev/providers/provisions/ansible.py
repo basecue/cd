@@ -29,14 +29,14 @@ class AnsibleProvisioner(BaseProvisioner):
     settings_class = AnsibleProvisionerSettings
 
     def install(self):
-        self.install_packages('python-dev', 'python-pip')
-        self.execute('pip install setuptools')
-        self.execute('pip install --upgrade markupsafe paramiko PyYAML Jinja2 httplib2 six ecdsa==0.11')
+        self.performer.install_packages('python-dev', 'python-pip')
+        self.performer.execute('pip install setuptools')
+        self.performer.execute('pip install --upgrade markupsafe paramiko PyYAML Jinja2 httplib2 six ecdsa==0.11')
 
         version_add = ''
         if self.settings.version:
             version_add = '==%s' % self.settings.version
-        self.execute('pip install --upgrade ansible%s' % version_add)
+        self.performer.execute('pip install --upgrade ansible%s' % version_add)
 
     def run(self, infrastructure):
         inventory = configparser.ConfigParser(allow_no_value=True, delimiters=('',))
@@ -53,7 +53,7 @@ class AnsibleProvisioner(BaseProvisioner):
             inventory.write(inventoryfile)
 
         template_vars = {
-            'source_directory': self.working_dir
+            'source_directory': self.performer.execute('pwd')
         }
 
         if self.settings.extra_vars:
@@ -84,7 +84,7 @@ class AnsibleProvisioner(BaseProvisioner):
         else:
             env_vars = ''
 
-        self.execute('{env_vars}ansible-playbook -i {inventory} {playbook}{extra_vars}'.format(
+        self.performer.execute('{env_vars}ansible-playbook -i {inventory} {playbook}{extra_vars}'.format(
             inventory=inventory_filepath,
             playbook=self.settings.playbook,
             extra_vars=extra_vars,

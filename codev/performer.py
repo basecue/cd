@@ -12,7 +12,7 @@ COMMON_SCRIPTS_PATH = '{directory}/scripts'.format(directory=path.dirname(__file
 
 class BaseExecutor(object):
     def __init__(self, *args, ident=None, **kwargs):
-        self.base_dir = '~'
+        self.base_dir = ''
         self.working_dir = self.base_dir
         self.ident = ident or str(time())
         self.output_logger = getLogger('command_output')

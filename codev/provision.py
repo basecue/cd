@@ -2,7 +2,10 @@ from .provider import BaseProvider, ConfigurableProvider
 from .performer import BaseProxyPerformer
 
 
-class BaseProvisioner(BaseProxyPerformer, ConfigurableProvider):
+class BaseProvisioner(ConfigurableProvider):
+    def __init__(self, performer, *args, **kwargs):
+        super(BaseProvisioner, self).__init__(*args, **kwargs)
+        self.performer = BaseProxyPerformer(performer)
 
     def install(self):
         raise NotImplementedError()
