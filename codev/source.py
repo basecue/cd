@@ -1,11 +1,11 @@
-from .provider import BaseProvider, ConfigurableProvider
+from .provider import Provider, ConfigurableProvider
 
 
-class BaseSource(ConfigurableProvider):
+class Source(Provider, ConfigurableProvider):
     def __init__(self, options, *args, **kwargs):
         self.process_options(options)
         self.options = options
-        super(BaseSource, self).__init__(*args, **kwargs)
+        super(Source, self).__init__(*args, **kwargs)
 
     @property
     def name(self):
@@ -31,7 +31,3 @@ class BaseSource(ConfigurableProvider):
     @property
     def directory(self):
         return 'repository'
-
-
-class Source(BaseProvider):
-    provider_class = BaseSource

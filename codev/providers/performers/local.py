@@ -1,12 +1,14 @@
 from contextlib import contextmanager
 from subprocess import Popen, PIPE, call
 
-from codev.performer import CommandError, BasePerformer, Performer, OutputReader
+from codev.performer import CommandError, Performer, OutputReader
 
 from logging import getLogger
 
 
-class LocalPerformer(BasePerformer):
+class LocalPerformer(Performer):
+    provider_name = 'local'
+
     def __init__(self, *args, **kwargs):
         super(LocalPerformer, self).__init__(*args, **kwargs)
         self.logger = getLogger(__name__)
@@ -42,6 +44,3 @@ class LocalPerformer(BasePerformer):
     def get_fo(self, remote_path):
         with open(remote_path) as fo:
             yield fo
-
-
-Performer.register('local', LocalPerformer)

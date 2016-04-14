@@ -1,8 +1,8 @@
-from .provider import BaseProvider
+from .provider import Provider, ConfigurableProvider
 from .performer import BaseProxyPerformer
 
 
-class BaseIsolator(BaseProxyPerformer):
+class Isolator(Provider, BaseProxyPerformer, ConfigurableProvider):
     def exists(self):
         raise NotImplementedError()
 
@@ -30,7 +30,3 @@ class BaseIsolator(BaseProxyPerformer):
         self.execute('iptables -t nat -A PREROUTING --dst {target_ip} -p tcp --dport {target_port} -j DNAT --to-destination {source_ip}:{source_port}'.format(**redirection))
         self.execute('iptables -t nat -A POSTROUTING -p tcp --dst {source_ip} --dport {source_port} -j SNAT --to-source {target_ip}'.format(**redirection))
         self.execute('iptables -t nat -A OUTPUT --dst {target_ip} -p tcp --dport {target_port} -j DNAT --to-destination {source_ip}:{source_port}'.format(**redirection))
-
-
-class Isolator(BaseProvider):
-    provider_class = BaseIsolator

@@ -1,4 +1,4 @@
-from .provider import BaseProvider, ConfigurableProvider
+from .provider import Provider, ConfigurableProvider
 from contextlib import contextmanager
 from os import path
 from time import time
@@ -161,8 +161,8 @@ class BasePerformer(BaseExecutor, ConfigurableProvider):
         yield NotImplementedError()
 
 
-class Performer(BaseProvider):
-    provider_class = BasePerformer
+class Performer(Provider, BasePerformer, ConfigurableProvider):
+    pass
 
 
 class BaseProxyExecutor(BaseExecutor):

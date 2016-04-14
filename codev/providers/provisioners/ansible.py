@@ -1,4 +1,4 @@
-from codev.provision import Provisioner, BaseProvisioner
+from codev.provisioner import Provisioner
 from codev.settings import BaseSettings
 # from os import environ
 import configparser
@@ -25,7 +25,8 @@ class AnsibleProvisionerSettings(BaseSettings):
         return self.data.get('env_vars', {})
 
 
-class AnsibleProvisioner(BaseProvisioner):
+class AnsibleProvisioner(Provisioner):
+    provider_name = 'ansible'
     settings_class = AnsibleProvisionerSettings
 
     def install(self):
@@ -92,6 +93,3 @@ class AnsibleProvisioner(BaseProvisioner):
         ))
 
         return True
-
-
-Provisioner.register('ansible', AnsibleProvisioner)

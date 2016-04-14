@@ -1,4 +1,4 @@
-from .provider import BaseProvider, ConfigurableProvider
+from .provider import Provider, ConfigurableProvider
 from .performer import BaseProxyPerformer
 
 
@@ -7,12 +7,8 @@ class BaseMachine(BaseProxyPerformer):
         super(BaseMachine, self).__init__(*args, **kwargs)
 
 
-class BaseMachinesProvider(ConfigurableProvider):
+class MachinesProvider(Provider, ConfigurableProvider):
     def __init__(self, machines_name, performer, *args, **kwargs):
         self.machines_name = machines_name
         self.performer = performer
-        super(BaseMachinesProvider, self).__init__(*args, **kwargs)
-
-
-class MachinesProvider(BaseProvider):
-    provider_class = BaseMachinesProvider
+        super(MachinesProvider, self).__init__(*args, **kwargs)

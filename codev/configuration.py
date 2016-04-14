@@ -7,7 +7,7 @@ from .isolation import Isolation
 
 from .logging import logging_config
 from .performer import CommandError, BaseProxyExecutor
-from .provision import Provisioner
+from .provisioner import Provisioner
 
 
 logger = getLogger(__name__)

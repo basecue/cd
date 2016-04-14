@@ -4,7 +4,7 @@ from paramiko.agent import AgentRequestHandler
 
 from logging import getLogger
 
-from codev.performer import Performer, BasePerformer, PerformerError, CommandError, OutputReader
+from codev.performer import Performer, PerformerError, CommandError, OutputReader
 from codev.settings import BaseSettings
 from os.path import expanduser
 
@@ -27,7 +27,8 @@ class SSHPerformerSettings(BaseSettings):
         return self.data.get('password', None)
 
 
-class SSHperformer(BasePerformer):
+class SSHperformer(Performer):
+    provider_name = 'ssh'
     settings_class = SSHPerformerSettings
 
     def __init__(self, *args, **kwargs):
@@ -116,6 +117,3 @@ class SSHperformer(BasePerformer):
                 yield fo
         finally:
             sftp.close()
-
-
-Performer.register('ssh', SSHperformer)

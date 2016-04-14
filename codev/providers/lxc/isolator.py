@@ -2,13 +2,15 @@ from hashlib import md5
 from contextlib import contextmanager
 from logging import getLogger
 
-from codev.isolator import BaseIsolator, Isolator
+from codev.isolator import Isolator
 from codev.performer import BackgroundExecutor, PerformerError
 
 from .machines import LXCMachine
 
 
-class LXCIsolator(BaseIsolator):
+class LXCIsolator(Isolator):
+    provider_name = 'lxc'
+
     def __init__(self, *args, **kwargs):
         super(LXCIsolator, self).__init__(*args, **kwargs)
         self.ident = md5(self.ident.encode()).hexdigest()
@@ -191,6 +193,3 @@ class LXCIsolator(BaseIsolator):
             )
         except PerformerError:
             pass
-
-
-Isolator.register('lxc', LXCIsolator)

@@ -1,8 +1,10 @@
-from codev.source import Source, BaseSource
+from codev.source import Source
 from git import Repo
 
 
-class GitSource(BaseSource):
+class GitSource(Source):
+    provider_name = 'git'
+
     def __init__(self, *args, **kwargs):
         self.branch = None
         self.tag = None
@@ -76,6 +78,3 @@ class GitSource(BaseSource):
                 performer.execute('git remote add origin {url}'.format(url=self.repository_url))
                 performer.execute('git fetch origin {commit}'.format(commit=self.commit))
                 performer.execute('git reset --hard FETCH_HEAD')
-
-
-Source.register('git', GitSource)

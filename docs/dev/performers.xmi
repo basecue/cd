@@ -59,7 +59,7 @@
        </UML:Classifier.feature>
       </UML:Class>
       <UML:Generalization discriminator="" visibility="public" isSpecification="false" namespace="Logical View" child="aB6xFVxfRyaP" xmi.id="VfIu4usd955q" parent="N9VQaYNZ6uBL" name=""/>
-      <UML:Class visibility="public" isSpecification="false" namespace="Logical View" isAbstract="false" isLeaf="false" isRoot="false" xmi.id="9g2dlkBjLMr0" name="BaseIsolator">
+      <UML:Class visibility="public" isSpecification="false" namespace="Logical View" isAbstract="false" isLeaf="false" isRoot="false" xmi.id="9g2dlkBjLMr0" name="Isolator">
        <UML:GeneralizableElement.generalization>
         <UML:Generalization xmi.idref="NPG8gAIopIRa"/>
         <UML:Generalization xmi.idref="C60zPPZS1qox"/>

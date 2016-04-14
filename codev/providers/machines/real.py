@@ -1,5 +1,5 @@
 from codev.settings import BaseSettings
-from codev.machines import MachinesProvider, BaseMachinesProvider, BaseMachine
+from codev.machines import MachinesProvider, BaseMachine
 
 
 class RealMachine(BaseMachine):
@@ -13,7 +13,8 @@ class RealMachinesSettings(BaseSettings):
         return self.data.get('hosts')
 
 
-class RealMachinesProvider(BaseMachinesProvider):
+class RealMachinesProvider(MachinesProvider):
+    provider_name = 'real'
     settings_class = RealMachinesSettings
 
     def machines(self, create=False, pub_key=None):
@@ -21,6 +22,3 @@ class RealMachinesProvider(BaseMachinesProvider):
         for host in self.settings.hosts:
             machines.append(RealMachine(host))
         return machines
-
-
-MachinesProvider.register('real', RealMachinesProvider)

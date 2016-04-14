@@ -1,9 +1,8 @@
-from codev.isolator import BaseIsolator, Isolator
+from codev.isolator import Isolator
 
 
-class NoneIsolator(BaseIsolator):
+class NoneIsolator(Isolator):
+    provider_name = 'none'
+
     def exists(self):
         return True
-
-
-Isolator.register('none', NoneIsolator)
