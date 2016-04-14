@@ -1,226 +1,163 @@
-from .info import VERSION
-from os import path
-import yaml
+from logging import getLogger
 
-from collections import OrderedDict
+from .debug import DebugSettings
 
-"""
-YAML OrderedDict mapping
-http://stackoverflow.com/questions/5121931/in-python-how-can-you-load-yaml-mappings-as-ordereddicts
-"""
-_mapping_tag = yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG
+from .infrastructure import Infrastructure
+from .isolation import Isolation
 
-
-def dict_representer(dumper, data):
-    return dumper.represent_dict(data.items())
+from .logging import logging_config
+from .performer import CommandError, BaseProxyExecutor
+from .provision import Provisioner
 
 
-def dict_constructor(loader, node):
-    return OrderedDict(loader.construct_pairs(node))
+logger = getLogger(__name__)
+command_logger = getLogger('command')
+debug_logger = getLogger('debug')
 
 
-yaml.add_representer(OrderedDict, dict_representer)
-yaml.add_constructor(_mapping_tag, dict_constructor)
-"""
-"""
+class Provision(BaseProxyExecutor):
+    def __init__(self, performer, settings):
+        super(Provision, self).__init__(performer)
+        self.provisioner = Provisioner(settings.provider, performer, settings_data=settings.specific)
+        self.scripts = settings.scripts
 
+    def _onerror(self, arguments, error):
+        logger.error(error)
+        arguments.update(
+            dict(
+                command=error.command,
+                exit_code=error.exit_code,
+                error=error.error
+            )
+        )
+        self.run_scripts(self.scripts.onerror, arguments)
 
-class BaseConfiguration(object):
-    def __init__(self, data=None):
-        if data is None:
-            data = {}
-        self.data = data
+    def deploy(self, infrastructure, script_info):
+        self.run_scripts(self.scripts.onstart, script_info)
+        try:
+            logger.info('Installing provisioner...')
+            self.provisioner.install()
 
-    def __bool__(self):
-        return bool(self.data)
+            logger.info('Creating machines...')
+            infrastructure.create()
 
-
-class ProviderConfiguration(BaseConfiguration):
-    @property
-    def provider(self):
-        return self.data.get('provider')
-
-    @property
-    def specific(self):
-        return self.data.get('specific', {})
-
-
-class DictConfiguration(OrderedDict):
-    def __init__(self, cls, data, *args, **kwargs):
-        super(DictConfiguration, self).__init__()
-        for name, itemdata in data.items():
-            self[name] = cls(itemdata, *args, **kwargs)
-
-
-class ListDictConfiguration(OrderedDict):
-
-    @staticmethod
-    def _intersect_default_value(intersect_default, key, value):
-        ret_val = intersect_default.get(key, {})
-        ret_val.update(value)
-        return ret_val
-
-    def __init__(self, data, intersect_default=None):
-        if intersect_default is None:
-            intersect_default = {}
-        super(ListDictConfiguration, self).__init__()
-
-        if isinstance(data, dict) or isinstance(data, OrderedDict):
-            for key, value in data.items():
-                if not (isinstance(value, dict) or isinstance(value, OrderedDict)):
-                    raise ValueError('Object {value} must be dictionary.'.format(value=value))
-                self[key] = self.__class__._intersect_default_value(intersect_default, key, value)
-
-        elif isinstance(data, list):
-            for obj in data:
-                if isinstance(obj, OrderedDict):
-                    if len(obj) == 1:
-                        key = list(obj.keys())[0]
-                        value = obj[key]
-                    else:
-                        raise ValueError('Object {obj} must have length equal to 1.'.format(obj))
-                else:
-                    key = obj
-                    value = {}
-                self[key] = self.__class__._intersect_default_value(intersect_default, key, value)
+            logger.info('Configuration...')
+            self.provisioner.run(infrastructure)
+        except CommandError as e:
+            self._onerror(script_info, e)
+            return False
         else:
-            raise ValueError('Object {data} must be list or dictionary.'.format(data=data))
+            try:
+                arguments = {}
+                arguments.update(script_info)
+                arguments.update(infrastructure.machines_info())
+                self.run_scripts(self.scripts.onsuccess, arguments)
+                return True
+            except CommandError as e:
+                self._onerror(script_info, e)
+                return False
 
 
-class ProvisionScriptsConfiguration(BaseConfiguration):
+class Configuration(object):
+    def __init__(self, performer,
+                 project_name, environment_name, name, settings,
+                 source, next_source=None, disable_isolation=False):
+        self.name = name
+        self.project_name = project_name
+        self.environment_name = environment_name
+        self.settings = settings
+        self.performer = performer
+        self.source = source
+        self.next_source = next_source
+        self.isolation = None
+
+        if disable_isolation:
+            if next_source:
+                raise ValueError('Next source is not allowed with disabled isolation.')
+            self.isolation = None
+        else:
+            self.isolation = Isolation(self.settings.isolation, self.source, self.next_source, self.performer)
+
+        self.infrastructure = Infrastructure(performer, self.settings.infrastructure)
+        self.provision = Provision(performer, self.settings.provision)
+
+    def install(self, script_info):
+        if self.isolation:
+            script_info.update(self.info)
+            current_source = self.isolation.create(script_info)
+        else:
+            current_source = self.source
+
+        version = self.performer.execute('pip3 show codev | grep Version | cut -d " " -f 2')
+        logger.info("Run 'codev {version}' in isolation.".format(version=version))
+
+        if DebugSettings.perform_settings:
+            perform_debug = ' '.join(
+                (
+                    '--debug {key} {value}'.format(key=key, value=value)
+                    for key, value in DebugSettings.perform_settings.data.items()
+                )
+            )
+        else:
+            perform_debug = ''
+
+        logging_config(control_perform=True)
+        try:
+            deployment_options = '-e {environment} -c {configuration} -s {current_source.provider_name}:{current_source.options}'.format(
+                current_source=current_source,
+                configuration=self.name,
+                environment=self.environment_name
+            )
+            with self.performer.change_directory(current_source.directory):
+                self.performer.execute('codev deploy {deployment_options} --performer=local --disable-isolation --force {perform_debug}'.format(
+                    deployment_options=deployment_options,
+                    perform_debug=perform_debug
+                ), logger=command_logger)
+        except CommandError as e:
+            command_logger.error(e.error)
+            logger.error("Installation failed.")
+            return False
+        else:
+            if self.isolation:
+                logger.info("Setting up connectivity.")
+                self.isolation.connect()
+            logger.info("Installation has been successfully completed.")
+            return True
+
+    def deploy(self, info):
+        logger.info("Deploying project.")
+        info.update(self.info)
+        self.provision.deploy(self.infrastructure, info)
+
+    def run_script(self, script, arguments=None):
+        executor = self.isolation or self.performer
+
+        if arguments is None:
+            arguments = {}
+        arguments.update(self.info)
+        executor.run_script(script, arguments=arguments, logger=command_logger)
+
     @property
-    def onstart(self):
-        return ListDictConfiguration(self.data.get('onstart', []))
-
-    @property
-    def onsuccess(self):
-        return ListDictConfiguration(self.data.get('onsuccess', []))
-
-    @property
-    def onerror(self):
-        return ListDictConfiguration(self.data.get('onerror', []))
-
-
-class ProvisionConfiguration(ProviderConfiguration):
-    @property
-    def scripts(self):
-        return ProvisionScriptsConfiguration(self.data.get('scripts', {}))
-
-
-class IsolationScriptsConfiguration(BaseConfiguration):
-    @property
-    def oncreate(self):
-        return ListDictConfiguration(self.data.get('oncreate', []))
-
-    @property
-    def onenter(self):
-        return ListDictConfiguration(self.data.get('onenter', []))
-
-
-class IsolationConfigurartion(BaseConfiguration):
-    @property
-    def provider(self):
-        return self.data.get('provider')
-
-    @property
-    def connectivity(self):
-        return ListDictConfiguration(self.data.get('connectivity', {}))
-
-    @property
-    def scripts(self):
-        return IsolationScriptsConfiguration(self.data.get('scripts', {}))
-
-
-class InfrastructureConfiguration(BaseConfiguration):
-    @property
-    def machines(self):
-        return DictConfiguration(ProviderConfiguration, self.data.get('machines', {}))
-
-    @property
-    def provision(self):
-        return ProvisionConfiguration(self.data.get('provision', {}))
-
-    @property
-    def isolation(self):
-        return IsolationConfigurartion(self.data.get('isolation', {}))
-
-
-class EnvironmentConfiguration(BaseConfiguration):
-    def __init__(self, data, default_installations):
-        super(EnvironmentConfiguration, self).__init__(data)
-        self.default_installations = default_installations
-
-    @property
-    def performer(self):
-        return ProviderConfiguration(self.data.get('performer', {}))
-
-    @property
-    def infrastructures(self):
-        return DictConfiguration(
-            InfrastructureConfiguration,
-            self.data.get('infrastructures', {}),
+    def info(self):
+        return dict(
+            source=self.source.name,
+            source_options=self.source.options,
+            source_ident=self.source.ident,
+            next_source=self.next_source.name if self.next_source else '',
+            next_source_options=self.next_source.options if self.next_source else '',
+            next_source_ident=self.next_source.ident if self.next_source else ''
         )
 
-    @property
-    def installations(self):
-        return ListDictConfiguration(
-            self.data.get('installations', []),
-            intersect_default=self.default_installations
-        )
+    def deployment_info(self, deployment_info):
+        deployment_info.update(self.info)
+        if self.isolation:
+            deployment_info.update(self.isolation.info)
+        return deployment_info
 
-
-class Configuration(BaseConfiguration):
-
-    def __init__(self, data=None):
-        super(Configuration, self).__init__(self.default_data)
-        if data:
-            self.data.update(data)
-
-    @property
-    def default_data(self):
-        return OrderedDict((
-            ('version', VERSION),
-            ('project', path.basename(path.abspath(path.curdir))),
-            ('environments', {})
-        ))
-
-    @property
-    def version(self):
-        return self.data['version']
-
-    @property
-    def project(self):
-        return self.data['project']
-
-    @property
-    def environments(self):
-        return DictConfiguration(
-            EnvironmentConfiguration,
-            self.data['environments'],
-            default_installations=self.installations
-        )
-
-    @property
-    def installations(self):
-        return ListDictConfiguration(self.data.get('installations', []))
-
-
-class YAMLConfigurationReader(object):
-    def __init__(self, configuration_class=Configuration):
-        self.configuration_class = configuration_class
-
-    def from_file(self, filepath, *args, **kwargs):
-        return self.from_yaml(open(filepath), *args, **kwargs)
-
-    def from_yaml(self, yamldata, *args, **kwargs):
-        return self.configuration_class(yaml.load(yamldata), *args, **kwargs)
-
-
-class YAMLConfigurationWriter(object):
-    def __init__(self, configuration=None):
-        if configuration is None:
-            configuration = Configuration()
-        self.configuration = configuration
-
-    def save_to_file(self, filepath):
-        yaml.dump(self.configuration.data, open(filepath, 'w+'))
+    def destroy_isolation(self):
+        if self.isolation and self.isolation.destroy():
+            logger.info('Isolation has been destroyed.')
+            return True
+        else:
+            logger.info('There is no such isolation.')
+            return False

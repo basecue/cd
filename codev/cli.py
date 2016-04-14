@@ -1,13 +1,57 @@
 import click
+from colorama import Fore as color, Style as style
 from functools import wraps
 
-from .configuration import YAMLConfigurationReader
+from .settings import YAMLSettingsReader
 from .deployment import Deployment
-from .debug import DebugConfiguration
+from .debug import DebugSettings
 from .logging import logging_config
 from .info import VERSION
 from os import chdir
 import sys
+
+
+def source_transition(deployment_info):
+        next_source_ident = deployment_info['next_source_ident']
+        source_ident = deployment_info['source_ident']
+        current_source_ident = deployment_info['current_source_ident']
+
+        color_options = dict(
+            color_source=color.GREEN,
+            color_reset=color.RESET + style.RESET_ALL
+        )
+
+        if next_source_ident:
+            if current_source_ident == source_ident:
+                color_source = color.GREEN + style.BRIGHT
+                color_next_source = color.GREEN
+            else:
+                color_source = color.GREEN
+                color_next_source = color.GREEN + style.BRIGHT
+
+            color_options.update(dict(
+                color_source=color_source,
+                color_next_source=color_next_source,
+            ))
+
+            final = {}
+            final.update(deployment_info)
+            final.update(color_options)
+            # TODO in python 3.5 use **deployment_info, **color_options
+            transition = ' -> {color_next_source}{next_source}:{next_source_options}{color_reset}'.format(
+                **final
+            )
+        else:
+            transition = ''
+
+        final2 = {}
+        final2.update(deployment_info)
+        final2.update(color_options)
+        # TODO in python 3.5 use **deployment_info, **color_options
+        return '{color_source}{source}:{source_options}{color_reset}{transition}'.format(
+            transition=transition,
+            **final2
+        )
 
 
 def confirmation_message(message):
@@ -15,7 +59,8 @@ def confirmation_message(message):
         @wraps(f)
         def confirmation_wrapper(deployment, force, **kwargs):
             if not force:
-                if not click.confirm(message.format(**deployment.deployment_info())):
+                deployment_info = deployment.deployment_info
+                if not click.confirm(message.format(source_transition=source_transition(deployment_info), **deployment_info)):
                     raise click.Abort()
             return f(deployment, **kwargs)
 
@@ -24,7 +69,7 @@ def confirmation_message(message):
     return decorator
 
 
-def parse_installation(inp):
+def parse_source(inp):
     parsed = inp.split(':', 1)
     name = parsed[0]
     options = parsed[1] if len(parsed) == 2 else ''
@@ -34,24 +79,24 @@ def parse_installation(inp):
 def deployment_options(func):
     @wraps(func)
     def deployment_wrapper(
-            configuration,
+            settings,
             environment,
-            infrastructure,
-            installation,
-            next_installation,
+            configuration,
+            source,
+            next_source,
             performer,
             disable_isolation, **kwargs):
-        installation_name, installation_options = parse_installation(installation)
-        next_installation_name, next_installation_options = parse_installation(next_installation)
+        source_name, source_options = parse_source(source)
+        next_source_name, next_source_options = parse_source(next_source)
 
         deployment = Deployment(
-            configuration,
+            settings,
             environment,
-            infrastructure,
-            installation_name,
-            installation_options,
-            next_installation_name=next_installation_name,
-            next_installation_options=next_installation_options,
+            configuration,
+            source_name,
+            source_options,
+            next_source_name=next_source_name,
+            next_source_options=next_source_options,
             performer_provider=performer,
             performer_specific={},  # TODO
             disable_isolation=disable_isolation
@@ -65,22 +110,22 @@ def deployment_options(func):
         help='environment')(deployment_wrapper)
 
     f = click.option(
-        '-i', '--infrastructure',
-        metavar='<infrastructure>',
+        '-c', '--configuration',
+        metavar='<configuration>',
         required=True,
-        help='infrastructure')(f)
+        help='configuration')(f)
 
     f = click.option(
-        '-s', '--installation',
+        '-s', '--source',
         metavar='<source installation>',
         required=True,
-        help='Source installation')(f)
+        help='Source')(f)
 
     return click.option(
-        '-n', '--next-installation',
+        '-t', '--next-source',
         default='',
-        metavar='<next installation>',
-        help='Next installation')(f)
+        metavar='<next source>',
+        help='Next source')(f)
 
 
 def performer_option(func):
@@ -90,7 +135,7 @@ def performer_option(func):
                         help='Set performer')(func)
 
 
-def isolation_option(func):
+def disable_isolation_option(func):
     return click.option('--disable-isolation',
                         is_flag=True,
                         default=False,
@@ -103,7 +148,7 @@ def nice_exception(func):
         try:
             return func(*args, **kwargs)
         except Exception as e:
-            if DebugConfiguration.configuration.show_client_exception:
+            if DebugSettings.settings.show_client_exception:
                 raise
             if issubclass(type(e), click.ClickException) or issubclass(type(e), RuntimeError):
                 raise
@@ -113,26 +158,26 @@ def nice_exception(func):
 
 def path_option(func):
     @wraps(func)
-    def configuration_wrapper(path, *args, **kwargs):
+    def settings_wrapper(path, *args, **kwargs):
         chdir(path)
-        configuration = YAMLConfigurationReader().from_file('.codev')
-        return func(configuration, *args, **kwargs)
+        settings = YAMLSettingsReader().from_file('.codev')
+        return func(settings, *args, **kwargs)
 
     return click.option('-p', '--path',
                         default='./',
                         metavar='<path to repository>',
-                        help='path to repository')(configuration_wrapper)
+                        help='path to repository')(settings_wrapper)
 
 
 def debug_option(func):
     @wraps(func)
     def debug_wrapper(debug, debug_perform, **kwargs):
         if debug:
-            DebugConfiguration.configuration = DebugConfiguration(dict(debug))
-            logging_config(DebugConfiguration.configuration.loglevel)
+            DebugSettings.settings = DebugSettings(dict(debug))
+            logging_config(DebugSettings.settings.loglevel)
 
         if debug_perform:
-            DebugConfiguration.perform_configuration = DebugConfiguration(dict(debug_perform))
+            DebugSettings.perform_settings = DebugSettings(dict(debug_perform))
 
         return func(**kwargs)
 
@@ -184,7 +229,7 @@ def command(confirmation=None, bool_exit=True, **kwargs):
         func = deployment_options(func)
         func = nice_exception(func)
         func = performer_option(func)
-        func = isolation_option(func)
+        func = disable_isolation_option(func)
         func = path_option(func)
         func = debug_option(func)
         if bool_exit:

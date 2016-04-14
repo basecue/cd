@@ -1,8 +1,8 @@
 from .provider import BaseProvider, ConfigurableProvider
-from .performer import BaseRunner, BasePerformer, CommandError
+from .performer import BaseProxyPerformer
 
 
-class BaseMachine(BaseRunner, BasePerformer):
+class BaseMachine(BaseProxyPerformer):
     def __init__(self, *args, **kwargs):
         super(BaseMachine, self).__init__(*args, **kwargs)
 

@@ -8,12 +8,12 @@ from urllib.request import urlopen
 from urllib.parse import parse_qs, urlencode
 
 
-def send_message(message, color, url, channel, username, project, environment, infrastructure, installation, icon):
+def send_message(message, color, url, channel, username, project, environment, configuration, source, icon):
     format_vars = dict(
         project=project,
         environment=environment,
-        infrastructure=infrastructure,
-        installation=installation
+        configuration=configuration,
+        source=source
     )
     data = {
         'channel': channel.format(**format_vars),
@@ -35,13 +35,13 @@ def send_message(message, color, url, channel, username, project, environment, i
                         "short": True
                     },
                     {
-                        "title": "Infrastructure",
-                        "value": infrastructure,
+                        "title": "Configuration",
+                        "value": configuration,
                         "short": True
                     },
                     {
-                        "title": "Installation",
-                        "value": installation,
+                        "title": "Source",
+                        "value": source,
                         "short": True
                     },
                 ],
@@ -61,17 +61,17 @@ def send_message(message, color, url, channel, username, project, environment, i
 
 if __name__ == "__main__":
 
-    stdin = parse_qs(sys.stdin.read())
-    project = stdin.get('project', [''])[0]
-    environment = stdin.get('environment', [''])[0]
-    infrastructure = stdin.get('infrastructure', [''])[0]
-    installation = stdin.get('installation_transition', [''])[0]
+    arguments = json.loads(sys.stdin.read())
+    project = arguments.get('project', '')
+    environment = arguments.get('environment', '')
+    configuration = arguments.get('configuration', '')
+    current_source = arguments.get('current_source', arguments.get('source', ''))
 
-    url = stdin.get('url', [''])[0]
-    channel = stdin.get('channel', [''])[0]
-    username = stdin.get('username', ['{project} bot'])[0]
-    message = stdin.get('message', [''])[0]
-    icon = stdin.get('icon', [':ghost:'])[0]
-    color = stdin.get('color', ['good'])[0]
+    url = arguments.get('url', '')
+    channel = arguments.get('channel', '')
+    username = arguments.get('username', '{project} bot')
+    message = arguments.get('message', '')
+    icon = arguments.get('icon', ':ghost:')
+    color = arguments.get('color', 'good')
 
-    send_message(message, color, url, channel, username, project, environment, infrastructure, installation, icon)
+    send_message(message, color, url, channel, username, project, environment, configuration, current_source, icon)

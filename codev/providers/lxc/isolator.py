@@ -1,14 +1,17 @@
-from codev.isolation import BaseIsolation, Isolation
-from logging import getLogger
-from .machines import LXCMachine
-from codev.performer import BackgroundRunner, PerformerError
+from hashlib import md5
 from contextlib import contextmanager
+from logging import getLogger
+
+from codev.isolator import BaseIsolator, Isolator
+from codev.performer import BackgroundExecutor, PerformerError
+
+from .machines import LXCMachine
 
 
-class LXCIsolation(BaseIsolation):
+class LXCIsolator(BaseIsolator):
     def __init__(self, *args, **kwargs):
-
-        super(LXCIsolation, self).__init__(*args, **kwargs)
+        super(LXCIsolator, self).__init__(*args, **kwargs)
+        self.ident = md5(self.ident.encode()).hexdigest()
         self.machine = LXCMachine(self.performer, ident=self.ident)
         self.logger = getLogger(__name__)
 
@@ -91,8 +94,8 @@ class LXCIsolation(BaseIsolation):
                 ssh_auth_sock_local=ssh_auth_sock_local
             )
         ):
-            performer_background_runner = BackgroundRunner(self.performer)
-            machine_background_runner = BackgroundRunner(self.machine)
+            performer_background_runner = BackgroundExecutor(self.performer)
+            machine_background_runner = BackgroundExecutor(self.machine)
 
             ssh_auth_sock_remote = '/tmp/{ident}-ssh-agent-sock'.format(ident=machine_background_runner.ident)
 
@@ -130,7 +133,7 @@ class LXCIsolation(BaseIsolation):
 
     def make_link(self, source, target):
         # experimental
-        performer_background_runner = BackgroundRunner(
+        performer_background_runner = BackgroundExecutor(
             self.performer, ident='{share_directory}/{target}'.format(
                 share_directory=self.machine.share_directory,
                 target=target
@@ -159,7 +162,7 @@ class LXCIsolation(BaseIsolation):
         except PerformerError:
             pass
 
-        machine_background_runner = BackgroundRunner(
+        machine_background_runner = BackgroundExecutor(
             self.machine, ident=self.ident
         )
 
@@ -190,4 +193,4 @@ class LXCIsolation(BaseIsolation):
             pass
 
 
-Isolation.register('lxc', LXCIsolation)
+Isolator.register('lxc', LXCIsolator)

@@ -1,5 +1,5 @@
 from codev.provision import Provisioner, BaseProvisioner
-from codev.configuration import BaseConfiguration
+from codev.settings import BaseSettings
 # from os import environ
 import configparser
 
@@ -7,7 +7,7 @@ from logging import getLogger
 logger = getLogger(__name__)
 
 
-class AnsibleProvisionConfiguration(BaseConfiguration):
+class AnsibleProvisionerSettings(BaseSettings):
     @property
     def playbook(self):
         return self.data.get('playbook', None)
@@ -25,8 +25,8 @@ class AnsibleProvisionConfiguration(BaseConfiguration):
         return self.data.get('env_vars', {})
 
 
-class AnsibleProvision(BaseProvisioner):
-    configuration_class = AnsibleProvisionConfiguration
+class AnsibleProvisioner(BaseProvisioner):
+    settings_class = AnsibleProvisionerSettings
 
     def install(self):
         self.performer.install_packages('python-dev', 'python-pip')
@@ -34,15 +34,13 @@ class AnsibleProvision(BaseProvisioner):
         self.performer.execute('pip install --upgrade markupsafe paramiko PyYAML Jinja2 httplib2 six ecdsa==0.11')
 
         version_add = ''
-        if self.configuration.version:
-            version_add = '==%s' % self.configuration.version
+        if self.settings.version:
+            version_add = '==%s' % self.settings.version
         self.performer.execute('pip install --upgrade ansible%s' % version_add)
 
-    def run(self, machines_groups):
-        playbook = self.configuration.playbook.format(infrastructure=self.infrastructure.name)
-
+    def run(self, infrastructure):
         inventory = configparser.ConfigParser(allow_no_value=True, delimiters=('',))
-        for name, machines in machines_groups.items():
+        for name, machines in infrastructure.machines_groups.items():
             inventory.add_section(name)
             for machine in machines:
                 # ansible node additional requirements
@@ -55,35 +53,31 @@ class AnsibleProvision(BaseProvisioner):
             inventory.write(inventoryfile)
 
         template_vars = {
-            'installation_directory': self.performer.working_dir
+            'source_directory': self.performer.execute('pwd')
         }
 
-        if self.configuration.extra_vars:
+        if self.settings.extra_vars:
             extra_vars = ' --extra-vars "{joined_extra_vars}"'.format(
                 joined_extra_vars=' '.join(
                     [
                         '{key}={value}'.format(
                             key=key,
                             value=value.format(**template_vars) if isinstance(value, str) else value
-                        ) for key, value in self.configuration.extra_vars.items()
+                        ) for key, value in self.settings.extra_vars.items()
                     ]
                 )
             )
         else:
             extra_vars = ''
 
-        # env = {}
-        # env.update(environ)
-        # env.update(self.configuration.env_vars)
-
-        if self.configuration.env_vars:
+        if self.settings.env_vars:
             env_vars = '{joined_env_vars} '.format(
                 joined_env_vars=' '.join(
                     [
                         '{key}="{value}"'.format(
                             key=key,
                             value=value.format(**template_vars) if isinstance(value, str) else value
-                        ) for key, value in self.configuration.env_vars.items()
+                        ) for key, value in self.settings.env_vars.items()
                     ]
                 )
             )
@@ -92,17 +86,12 @@ class AnsibleProvision(BaseProvisioner):
 
         self.performer.execute('{env_vars}ansible-playbook -i {inventory} {playbook}{extra_vars}'.format(
             inventory=inventory_filepath,
-            playbook=playbook,
+            playbook=self.settings.playbook,
             extra_vars=extra_vars,
             env_vars=env_vars
         ))
-        # self.performer.execute('{env_vars}ansible all -m ping -i {inventory}{extra_vars}'.format(
-        #     inventory=inventory_filepath,
-        #     playbook=playbook,
-        #     extra_vars=extra_vars,
-        #     env_vars=env_vars
-        # ))
+
         return True
 
 
-Provisioner.register('ansible', AnsibleProvision)
+Provisioner.register('ansible', AnsibleProvisioner)

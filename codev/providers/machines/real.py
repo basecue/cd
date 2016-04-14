@@ -1,4 +1,4 @@
-from codev.configuration import BaseConfiguration
+from codev.settings import BaseSettings
 from codev.machines import MachinesProvider, BaseMachinesProvider, BaseMachine
 
 
@@ -7,18 +7,18 @@ class RealMachine(BaseMachine):
         self.host = host
 
 
-class RealMachinesConfiguration(BaseConfiguration):
+class RealMachinesSettings(BaseSettings):
     @property
     def hosts(self):
         return self.data.get('hosts')
 
 
 class RealMachinesProvider(BaseMachinesProvider):
-    configuration_class = RealMachinesConfiguration
+    settings_class = RealMachinesSettings
 
     def machines(self, create=False, pub_key=None):
         machines = []
-        for host in self.configuration.hosts:
+        for host in self.settings.hosts:
             machines.append(RealMachine(host))
         return machines
 

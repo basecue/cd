@@ -1,7 +1,7 @@
 import re
 
 from time import sleep
-from codev.configuration import BaseConfiguration
+from codev.settings import BaseSettings
 from codev.machines import MachinesProvider, BaseMachinesProvider, BaseMachine
 from contextlib import contextmanager
 from logging import getLogger
@@ -34,7 +34,10 @@ class LXCMachine(BaseMachine):
             raise ValueError('o:%s:o' % output)
 
         if state == 'RUNNING':
-            return True
+            if self.ip and self.check_execute('runlevel'):
+                return True
+            else:
+                return False
         elif state == 'STOPPED':
             return False
         else:
@@ -158,7 +161,7 @@ class LXCMachine(BaseMachine):
                 container_name=self.ident,
             ))
 
-            while not self.ip:
+            while not self.is_started():
                 sleep(0.5)
 
             return True
@@ -187,20 +190,6 @@ class LXCMachine(BaseMachine):
                 return r.group(1)
 
         return None
-
-    def _sanitize_path(self, path):
-        if path.startswith('~/'):
-            path = '{base_dir}/{path}'.format(
-                base_dir=self.base_dir,
-                path=path[2:]
-            )
-
-        if not path.startswith('/'):
-            path = '{working_dir}/{path}'.format(
-                working_dir=self.working_dir,
-                path=path
-            )
-        return path
 
     @property
     def _gateway(self):
@@ -260,12 +249,12 @@ class LXCMachine(BaseMachine):
         return self.performer.execute('lxc-attach {env} -n {container_name} -- bash -c "cd {working_dir} && {command}"'.format(
             working_dir=self.working_dir,
             container_name=self.ident,
-            command=command.replace('$', '\$').replace('"', '\\"'),
+            command=command.replace('\\', '\\\\').replace('$', '\$').replace('"', '\\"'),
             env=' '.join('-v {var}={value}'.format(var=var, value=value) for var, value in env.items())
         ), logger=logger, writein=writein, max_lines=max_lines)
 
 
-class LXCMachinesConfiguration(BaseConfiguration):
+class LXCMachinesSettings(BaseSettings):
     @property
     def distribution(self):
         return self.data.get('distribution')
@@ -293,13 +282,13 @@ class LXCMachinesConfiguration(BaseConfiguration):
 
 
 class LXCMachinesProvider(BaseMachinesProvider):
-    configuration_class = LXCMachinesConfiguration
+    settings_class = LXCMachinesSettings
     ip_counter = 0
 
     def _machine(self, ident, create=False, pub_key=None, ip=None, gateway=None):
         machine = LXCMachine(self.performer, ident=ident)
         created = create and machine.create(
-            self.configuration.distribution, self.configuration.release, ip=ip, gateway=gateway
+            self.settings.distribution, self.settings.release, ip=ip, gateway=gateway
         )
 
         machine.start()
@@ -321,18 +310,18 @@ class LXCMachinesProvider(BaseMachinesProvider):
         ip_nums = None
         gateway = None
 
-        if self.configuration.static_network:
+        if self.settings.static_network:
             for line in self.performer.execute('cat /etc/default/lxc-net').splitlines():
                 r = re.match('^LXC_ADDR=\"([\w\.]+)\"$', line)
                 if r:
                     gateway = r.group(1)
                     ip_nums = list(map(int, gateway.split('.')))
 
-        for i in range(1, self.configuration.number + 1):
+        for i in range(1, self.settings.number + 1):
             ident = '%s_%000d' % (self.machines_name, i)
             if create:
-                if self.configuration.network_ip_start:
-                    ip = '.'.join(map(str, ip_nums[:3] + [self.configuration.network_ip_start + i - 1]))
+                if self.settings.network_ip_start:
+                    ip = '.'.join(map(str, ip_nums[:3] + [self.settings.network_ip_start + i - 1]))
                 elif ip_nums:
                     ip = '.'.join(map(str, ip_nums[:3] + [ip_nums[3] + self.__class__.ip_counter + 1]))
                     self.__class__.ip_counter += 1

@@ -1,49 +1,27 @@
-from logging import getLogger
 from .machines import MachinesProvider
-from hashlib import md5
-from .isolation import Isolation
-
-logger = getLogger(__name__)
 
 
 class Infrastructure(object):
-    def __init__(self, infrastructure_name, configuration):
-        self.name = infrastructure_name
-        self.configuration = configuration
+    def __init__(self, performer, settings):
+        self.performer = performer
+        self.settings = settings
+        self.machines_groups = {}
 
-    def machines_groups(self, performer, create=False):
-        machines_groups = {}
-        if create:
-            pub_key = '%s\n' % performer.execute('ssh-add -L')
-        else:
-            pub_key = None
-        for machines_name, machines_configuration in self.configuration.machines.items():
+    def create(self):
+        pub_key = '%s\n' % self.performer.execute('ssh-add -L')
+        for machines_name, machines_settings in self.settings.items():
             machines_provider = MachinesProvider(
-                machines_configuration.provider,
-                machines_name, performer, configuration_data=machines_configuration.specific
+                machines_settings.provider,
+                machines_name, self.performer, settings_data=machines_settings.specific
             )
-            machines_groups[machines_name] = machines_provider.machines(create=create, pub_key=pub_key)
-        return machines_groups
+            self.machines_groups[machines_name] = machines_provider.machines(create=True, pub_key=pub_key)
 
-    def machines(self, performer):
-        for machine_group_name, machines in self.machines_groups(performer).items():
+    def machines(self):
+        for machine_group_name, machines in self.machines_groups:
             for machine in machines:
                 yield machine
 
-    def machines_info(self, performer):
+    def machines_info(self):
         return {
-            'machine_{ident}'.format(ident=machine.ident): machine.ip for machine in self.machines(performer)
+            'machine_{ident}'.format(ident=machine.ident): machine.ip for machine in self.machines()
         }
-
-    def isolation(self, performer, installation, next_installation, ident):
-        isolation_configuration = self.configuration.isolation
-        return Isolation(
-            isolation_configuration.provider,
-            isolation_configuration.scripts,
-            isolation_configuration.connectivity,
-            self,
-            installation,
-            next_installation,
-            performer,
-            ident=md5(ident.encode()).hexdigest()
-        )

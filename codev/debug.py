@@ -1,10 +1,10 @@
-from .configuration import BaseConfiguration
+from .settings import BaseSettings
 from ast import literal_eval
 
 
-class DebugConfiguration(BaseConfiguration):
-    configuration = None
-    perform_configuration = None
+class DebugSettings(BaseSettings):
+    settings = None
+    perform_settings = None
 
     @property
     def loglevel(self):
@@ -19,5 +19,5 @@ class DebugConfiguration(BaseConfiguration):
         return literal_eval(self.data.get('show_client_exception', 'False'))
 
 
-DebugConfiguration.configuration = DebugConfiguration()
-DebugConfiguration.perform_configuration = DebugConfiguration()
+DebugSettings.settings = DebugSettings()
+DebugSettings.perform_settings = DebugSettings()
