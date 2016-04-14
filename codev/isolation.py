@@ -11,12 +11,14 @@ debug_logger = getLogger('debug')
 
 
 class Isolation(BaseProxyPerformer):
-    def __init__(self, settings, deployment_info, *args, **kwargs):
+    def __init__(self, settings, source, next_source, *args, **kwargs):
         super(Isolation, self).__init__(*args, **kwargs)
         self.isolator = self.performer
         self.connectivity = settings.connectivity
         self.scripts = settings.scripts
-        self.deployment_info = deployment_info
+        self.source = source
+        self.next_source = next_source
+        self.current_source = self.next_source if self.next_source and self.exists() else self.source
 
     def connect(self, infrastructure):
         """
@@ -34,8 +36,8 @@ class Isolation(BaseProxyPerformer):
                 for source_port, target_port in connectivity_conf.items():
                     self.isolator.redirect(machine, source_port, target_port)
 
-    def install_codev(self, source):
-        with self.change_directory(source.directory):
+    def install_codev(self):
+        with self.change_directory(self.current_source.directory):
             with self.get_fo('.codev') as codev_file:
                 version = YAMLSettingsReader().from_yaml(codev_file).version
 
@@ -67,35 +69,48 @@ class Isolation(BaseProxyPerformer):
             )
         else:
             perform_debug = ''
-
-        codev_script = 'codev run -e {environment} -c {configuration} -s {source}:{source_options} --performer=local --isolator=none {perform_debug} -- {script}'.format(
+        arguments.update(self.info)
+        codev_script = 'codev run -e {environment} -c {configuration} -s {source}:{source_options} --performer=local --disable-isolation {perform_debug} -- {script}'.format(
             script=script,
-            environment=self.deployment_info['environment'],
-            configuration=self.deployment_info['configuration'],
-            source=self.deployment_info['source'],
-            source_options=self.deployment_info['source_options'],
+            environment=arguments['environment'],
+            configuration=arguments['configuration'],
+            source=arguments['source'],
+            source_options=arguments['source_options'],
             perform_debug=perform_debug
         )
-        super(Isolation, self).run_script(codev_script, arguments=arguments, logger=logger)
+        with self.change_directory(self.current_source.directory):
+            super(Isolation, self).run_script(codev_script, arguments=arguments, logger=logger)
 
-    def create(self, source, next_source):
+    def create(self, script_info):
         logger.info("Creating isolation...")
         created = self.isolator.create()
 
-        current_source = source
+        self.current_source = self.source
         if created:
             logger.info("Install project to isolation...")
-            current_source.install(self.performer)
-            self.install_codev(current_source)
-            with self.change_directory(current_source.directory):
-                self.run_scripts(self.scripts.oncreate, self.deployment_info, logger=command_logger)
+            self.current_source.install(self.performer)
+            self.install_codev()
+            self.run_scripts(self.scripts.oncreate, script_info, logger=command_logger)
         else:
-            if next_source:
+            if self.next_source:
                 logger.info("Transition source in isolation...")
-                current_source = next_source
-                current_source.install(self.performer)
-                self.install_codev(current_source)
+                self.current_source = self.next_source
+                self.current_source.install(self.performer)
+                self.install_codev()
         logger.info("Entering isolation...")
-        with self.change_directory(current_source.directory):
-            self.run_scripts(self.scripts.onenter, self.deployment_info, logger=command_logger)
-        return current_source
+        self.run_scripts(self.scripts.onenter, script_info, logger=command_logger)
+        return self.current_source
+
+    def exists(self):
+        return self.isolator.exists()
+
+    def destroy(self):
+        return self.isolator.destroy()
+
+    @property
+    def info(self):
+        return dict(
+            current_source=self.current_source.name,
+            current_source_options=self.current_source.options,
+            current_source_ident=self.current_source.ident
+        )

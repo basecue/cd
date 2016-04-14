@@ -65,7 +65,7 @@ if __name__ == "__main__":
     project = arguments.get('project', '')
     environment = arguments.get('environment', '')
     configuration = arguments.get('configuration', '')
-    source = arguments.get('source_transition', '')
+    current_source = arguments.get('current_source', arguments.get('source', ''))
 
     url = arguments.get('url', '')
     channel = arguments.get('channel', '')
@@ -74,4 +74,4 @@ if __name__ == "__main__":
     icon = arguments.get('icon', ':ghost:')
     color = arguments.get('color', 'good')
 
-    send_message(message, color, url, channel, username, project, environment, configuration, source, icon)
+    send_message(message, color, url, channel, username, project, environment, configuration, current_source, icon)

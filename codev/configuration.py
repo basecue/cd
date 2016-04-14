@@ -1,4 +1,3 @@
-from colorama import Fore as color, Style as style
 from logging import getLogger
 
 from .debug import DebugSettings
@@ -33,8 +32,8 @@ class Provision(BaseProxyExecutor):
         )
         self.run_scripts(self.scripts.onerror, arguments)
 
-    def deploy(self, infrastructure, deployment_info):
-        self.run_scripts(self.scripts.onstart, deployment_info)
+    def deploy(self, infrastructure, script_info):
+        self.run_scripts(self.scripts.onstart, script_info)
         try:
             logger.info('Installing provisioner...')
             self.provisioner.install()
@@ -45,22 +44,24 @@ class Provision(BaseProxyExecutor):
             logger.info('Configuration...')
             self.provisioner.run(infrastructure)
         except CommandError as e:
-            self._onerror(deployment_info, e)
+            self._onerror(script_info, e)
             return False
         else:
             try:
                 arguments = {}
-                arguments.update(deployment_info)
+                arguments.update(script_info)
                 arguments.update(infrastructure.machines_info())
                 self.run_scripts(self.scripts.onsuccess, arguments)
                 return True
             except CommandError as e:
-                self._onerror(deployment_info, e)
+                self._onerror(script_info, e)
                 return False
 
 
 class Configuration(object):
-    def __init__(self, performer, project_name, environment_name, name, settings, source, next_source):
+    def __init__(self, performer,
+                 project_name, environment_name, name, settings,
+                 source, next_source=None, disable_isolation=False):
         self.name = name
         self.project_name = project_name
         self.environment_name = environment_name
@@ -68,12 +69,24 @@ class Configuration(object):
         self.performer = performer
         self.source = source
         self.next_source = next_source
+        self.isolation = None
+
+        if disable_isolation:
+            if next_source:
+                raise ValueError('Next source is not allowed with disabled isolation.')
+            self.isolation = None
+        else:
+            self.isolation = Isolation(self.settings.isolation, self.source, self.next_source, self.performer)
+
         self.infrastructure = Infrastructure(performer, self.settings.infrastructure)
         self.provision = Provision(performer, self.settings.provision)
 
-    def install(self):
-        isolation = Isolation(self.settings.isolation, self.deployment_info(colorize=False), self.performer)
-        current_source = isolation.create(self.source, self.next_source)
+    def install(self, script_info):
+        if self.isolation:
+            script_info.update(self.info)
+            current_source = self.isolation.create(script_info)
+        else:
+            current_source = self.source
 
         version = self.performer.execute('pip3 show codev | grep Version | cut -d " " -f 2')
         logger.info("Run 'codev {version}' in isolation.".format(version=version))
@@ -93,10 +106,10 @@ class Configuration(object):
             deployment_options = '-e {environment} -c {configuration} -s {current_source.provider_name}:{current_source.options}'.format(
                 current_source=current_source,
                 configuration=self.name,
-                environment=self.deployment_info()['environment']
+                environment=self.environment_name
             )
             with self.performer.change_directory(current_source.directory):
-                self.performer.execute('codev deploy {deployment_options} --performer=local --isolator=none --force {perform_debug}'.format(
+                self.performer.execute('codev deploy {deployment_options} --performer=local --disable-isolation --force {perform_debug}'.format(
                     deployment_options=deployment_options,
                     perform_debug=perform_debug
                 ), logger=command_logger)
@@ -105,85 +118,46 @@ class Configuration(object):
             logger.error("Installation failed.")
             return False
         else:
-            logger.info("Setting up connectivity.")
-            self.performer.connect()
+            if self.isolation:
+                logger.info("Setting up connectivity.")
+                self.isolation.connect()
             logger.info("Installation has been successfully completed.")
             return True
 
-    def deploy(self):
+    def deploy(self, info):
         logger.info("Deploying project.")
-        self.provision.deploy(self.infrastructure, self.deployment_info(colorize=False))
+        info.update(self.info)
+        self.provision.deploy(self.infrastructure, info)
 
     def run_script(self, script, arguments=None):
-        isolation = Isolation(self.settings.isolation, self.deployment_info(), self.performer)
+        executor = self.isolation or self.performer
 
         if arguments is None:
             arguments = {}
-        arguments.update(self.deployment_info(colorize=False))
-        with isolation.change_directory(self.current_source.directory):
-            isolation.run_script(script, arguments=arguments, logger=command_logger)
+        arguments.update(self.info)
+        executor.run_script(script, arguments=arguments, logger=command_logger)
 
     @property
-    def current_source(self):
-        # TODO isolator (performer does not have method exists)
-        if self.next_source and self.performer.exists():
-            return self.next_source
-        else:
-            return self.source
-
-    def source_transition(self, colorize=True):
-        deployment_info = self.deployment_info(transition=False)
-
-        if colorize:
-            color_options = dict(
-                color_source=color.GREEN,
-                color_reset=color.RESET + style.RESET_ALL
-            )
-        else:
-            color_options = dict(
-                color_source='',
-                color_reset='',
-                color_next_source='',
-            )
-
-        if self.next_source:
-            if colorize:
-                if not self.current_source:
-                    color_source = color.GREEN
-                    color_next_source = color.GREEN
-                elif self.current_source == self.source:
-                    color_source = color.GREEN + style.BRIGHT
-                    color_next_source = color.GREEN
-                else:
-                    color_source = color.GREEN
-                    color_next_source = color.GREEN + style.BRIGHT
-
-                color_options.update(dict(
-                    color_source=color_source,
-                    color_next_source=color_next_source,
-                ))
-
-            deployment_info.update(color_options)
-            transition = ' -> {color_next_source}{next_source}:{next_source_options}{color_reset}'.format(
-                **deployment_info
-            )
-        else:
-            transition = ''
-
-        deployment_info.update(color_options)
-        return '{color_source}{source}:{source_options}{color_reset}{transition}'.format(
-            transition=transition,
-            **deployment_info
-        )
-
-    def deployment_info(self, transition=True, colorize=True):
+    def info(self):
         return dict(
-            project=self.project_name,
-            environment=self.environment_name,
-            configuration=self.name,
             source=self.source.name,
             source_options=self.source.options,
+            source_ident=self.source.ident,
             next_source=self.next_source.name if self.next_source else '',
             next_source_options=self.next_source.options if self.next_source else '',
-            source_transition=self.source_transition(colorize) if transition else ''
+            next_source_ident=self.next_source.ident if self.next_source else ''
         )
+
+    def deployment_info(self, deployment_info):
+        deployment_info.update(self.info)
+        if self.isolation:
+            deployment_info.update(self.isolation.info)
+        return deployment_info
+
+    def destroy_isolation(self):
+        if self.isolation and self.isolation.destroy():
+            logger.info('Isolation has been destroyed.')
+            return True
+        else:
+            logger.info('There is no such isolation.')
+            return False

@@ -1,4 +1,5 @@
 import click
+from colorama import Fore as color, Style as style
 from functools import wraps
 
 from .settings import YAMLSettingsReader
@@ -10,12 +11,56 @@ from os import chdir
 import sys
 
 
+def source_transition(deployment_info):
+        next_source_ident = deployment_info['next_source_ident']
+        source_ident = deployment_info['source_ident']
+        current_source_ident = deployment_info['current_source_ident']
+
+        color_options = dict(
+            color_source=color.GREEN,
+            color_reset=color.RESET + style.RESET_ALL
+        )
+
+        if next_source_ident:
+            if current_source_ident == source_ident:
+                color_source = color.GREEN + style.BRIGHT
+                color_next_source = color.GREEN
+            else:
+                color_source = color.GREEN
+                color_next_source = color.GREEN + style.BRIGHT
+
+            color_options.update(dict(
+                color_source=color_source,
+                color_next_source=color_next_source,
+            ))
+
+            final = {}
+            final.update(deployment_info)
+            final.update(color_options)
+            # TODO in python 3.5 use **deployment_info, **color_options
+            transition = ' -> {color_next_source}{next_source}:{next_source_options}{color_reset}'.format(
+                **final
+            )
+        else:
+            transition = ''
+
+        final2 = {}
+        final2.update(deployment_info)
+        final2.update(color_options)
+        # TODO in python 3.5 use **deployment_info, **color_options
+        return '{color_source}{source}:{source_options}{color_reset}{transition}'.format(
+            transition=transition,
+            **final2
+        )
+
+
 def confirmation_message(message):
     def decorator(f):
         @wraps(f)
         def confirmation_wrapper(deployment, force, **kwargs):
             if not force:
-                if not click.confirm(message.format(**deployment.info())):
+                deployment_info = deployment.deployment_info
+                if not click.confirm(message.format(source_transition=source_transition(deployment_info), **deployment_info)):
                     raise click.Abort()
             return f(deployment, **kwargs)
 
@@ -40,7 +85,7 @@ def deployment_options(func):
             source,
             next_source,
             performer,
-            isolator, **kwargs):
+            disable_isolation, **kwargs):
         source_name, source_options = parse_source(source)
         next_source_name, next_source_options = parse_source(next_source)
 
@@ -54,8 +99,7 @@ def deployment_options(func):
             next_source_options=next_source_options,
             performer_provider=performer,
             performer_specific={},  # TODO
-            isolator_provider=isolator,
-            isolator_specific={},  # TODO
+            disable_isolation=disable_isolation
         )
         return func(deployment, **kwargs)
 
@@ -91,11 +135,11 @@ def performer_option(func):
                         help='Set performer')(func)
 
 
-def isolator_option(func):
-    return click.option('--isolator',
-                        default=None,
-                        metavar='<isolator>',
-                        help='Set isolator')(func)
+def disable_isolation_option(func):
+    return click.option('--disable-isolation',
+                        is_flag=True,
+                        default=False,
+                        help='Disable isolation')(func)
 
 
 def nice_exception(func):
@@ -185,7 +229,7 @@ def command(confirmation=None, bool_exit=True, **kwargs):
         func = deployment_options(func)
         func = nice_exception(func)
         func = performer_option(func)
-        func = isolator_option(func)
+        func = disable_isolation_option(func)
         func = path_option(func)
         func = debug_option(func)
         if bool_exit:

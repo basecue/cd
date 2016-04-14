@@ -26,8 +26,7 @@ class Deployment(object):
             next_source_options='',
             performer_provider=None,
             performer_specific={},
-            isolator_provider='',
-            isolator_specific={},
+            disable_isolation=False
     ):
         environment_settings = settings.environments[environment_name]
         self.environment = environment_name
@@ -60,7 +59,7 @@ class Deployment(object):
         else:
             next_source = None
 
-        # TODO version?
+        # TODO add codev version?
         ident = '{project}:{environment}:{configuration}:{source_ident}:{next_source_ident}'.format(
             project=settings.project,
             environment=environment_name,
@@ -81,27 +80,26 @@ class Deployment(object):
         )
 
         # isolator
-        if not isolator_provider:
+        if not disable_isolation:
             isolator_settings = environment_settings.isolator
             isolator_provider = isolator_settings.provider
             isolator_specific = isolator_settings.specific
 
-        self.isolator = Isolator(isolator_provider, performer, settings_data=isolator_specific, ident=ident)
+            self.performer = Isolator(isolator_provider, performer, settings_data=isolator_specific, ident=ident)
+        else:
+            logging_config(perform=True)
+            self.performer = performer
 
         # configuration
         configuration_settings = environment_settings.configurations[configuration_name]
         self.configuration = Configuration(
-            self.isolator,
+            self.performer,
             settings.project, environment_name, configuration_name,
-            configuration_settings, source, next_source
+            configuration_settings, source, next_source, disable_isolation
         )
 
-        # TODO
-        if isolator_provider == 'none':
-            logging_config(perform=True)
-
     def deploy(self):
-        return self.configuration.deploy()
+        return self.configuration.deploy(self.info)
 
     def install(self):
         """
@@ -110,7 +108,7 @@ class Deployment(object):
         :return: True if installation is successfully realized
         :rtype: bool
         """
-        return self.configuration.install()
+        return self.configuration.install(self.info)
 
     def run(self, script, arguments=None):
         """
@@ -131,8 +129,26 @@ class Deployment(object):
         else:
             return True
 
-    def info(self, colorize=True):
-        return self.configuration.deployment_info(colorize=colorize)
+    def destroy(self):
+        """
+        Destroy the isolation.
+
+        :return: True if isolation is destroyed
+        :rtype: bool
+        """
+        return self.configuration.destroy_isolation()
+
+    @property
+    def info(self):
+        return dict(
+            project=self.project_name,
+            environment=self.environment,
+            configuration=self.configuration.name,
+        )
+
+    @property
+    def deployment_info(self):
+        return self.configuration.deployment_info(self.info)
 
     # def execute(self, command):
     #     """
@@ -247,19 +263,6 @@ class Deployment(object):
     #         except CommandError as e:
     #             shell_logger.error(e.error)
 
-    def destroy(self):
-        """
-        Destroy the isolation.
-
-        :return: True if isolation is destroyed
-        :rtype: bool
-        """
-        if self.isolator.destroy():
-            logger.info('Isolation has been destroyed.')
-            return True
-        else:
-            logger.info('There is no such isolation.')
-            return False
 
     # def info(self):
     #     isolation = self.isolation()
