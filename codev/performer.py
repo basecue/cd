@@ -16,7 +16,7 @@ class BaseExecutor(object):
         self.working_dir = self.base_dir
         self.ident = ident or str(time())
         self.output_logger = getLogger('command_output')
-        super(BaseExecutor, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def check_execute(self, command):
         try:
@@ -71,7 +71,7 @@ class CommandError(PerformerError):
         self.command = command
         self.exit_code = exit_code
         self.error = error
-        super(CommandError, self).__init__(
+        super().__init__(
             "Command '{command}' failed with exit code '{exit_code}' with error '{error}'".format(
                 command=command, exit_code=exit_code, error=error
             )
@@ -110,9 +110,9 @@ class OutputReader(object):
         return '\n'.join(self._output_lines)
 
 
-class BasePerformer(BaseExecutor, ConfigurableProvider):
+class BasePerformer(BaseExecutor):
     def __init__(self, *args, **kwargs):
-        super(BasePerformer, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.__cache_packages = False
 
     def install_packages(self, *packages):
@@ -168,11 +168,11 @@ class Performer(Provider, BasePerformer, ConfigurableProvider):
 class BaseProxyExecutor(BaseExecutor):
     def __init__(self, executor, *args, **kwargs):
         self.executor = executor
-        super(BaseProxyExecutor, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     @contextmanager
     def change_directory(self, directory):
-        with super(BaseProxyExecutor, self).change_directory(directory):
+        with super().change_directory(directory):
             with self.executor.change_directory(directory):
                 yield
 
@@ -182,7 +182,7 @@ class BaseProxyExecutor(BaseExecutor):
 
 class BaseProxyPerformer(BaseProxyExecutor, BasePerformer):
     def __init__(self, *args, **kwargs):
-        super(BaseProxyPerformer, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.performer = self.executor
 
     def send_file(self, source, target):
@@ -217,7 +217,7 @@ TEMP_FILE = 'codev.temp'
 class BackgroundExecutor(BaseProxyExecutor):
 
     def __init__(self, *args, **kwargs):
-        super(BackgroundExecutor, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self._isolation_cache = None
         self.__isolation_directory = None
         self.logger = getLogger(__name__)
