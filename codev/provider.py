@@ -29,6 +29,24 @@ class ProviderMetaClass(type):
             else:
                 raise ImportError("Attribute 'provider_name' has to be defined in provider class '{name}'.".format(name=name))
 
+    def __call__(cls, *args, **kwargs):
+        if cls == cls.provider_class:
+            args_list = list(args)
+            provider_name = args_list.pop(0)
+
+            try:
+                provider = cls.providers[provider_name]
+            except KeyError as e:
+                raise ValueError(
+                    "Provider '{provider}' does not exist for class '{cls}'.".format(
+                        provider=provider_name,
+                        cls=cls.__name__
+                    )
+                )
+            return provider(*args_list, **kwargs)
+        else:
+            return super().__call__(*args, **kwargs)
+
 
 class Provider(object, metaclass=ProviderMetaClass):
     @classmethod
@@ -44,23 +62,6 @@ class Provider(object, metaclass=ProviderMetaClass):
             )
         else:
             cls.provider_class.providers[provider_name] = provider_cls
-
-    def __new__(cls, *args, **kwargs):
-        if cls == cls.provider_class:
-            args_list = list(args)
-            provider_name = args_list.pop(0)
-            try:
-                provider = cls.providers[provider_name]
-            except KeyError as e:
-                raise ValueError(
-                    "Provider '{provider}' does not exist for class '{cls}'.".format(
-                        provider=provider_name,
-                        cls=cls.__name__
-                    )
-                )
-            return provider(*args_list, **kwargs)
-        else:
-            return super().__new__(cls)
 
 
 class ConfigurableProvider(object):
