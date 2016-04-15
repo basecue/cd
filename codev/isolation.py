@@ -12,7 +12,7 @@ debug_logger = getLogger('debug')
 
 class Isolation(BaseProxyPerformer):
     def __init__(self, settings, source, next_source, *args, **kwargs):
-        super(Isolation, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.isolator = self.performer
         self.connectivity = settings.connectivity
         self.scripts = settings.scripts
@@ -79,7 +79,7 @@ class Isolation(BaseProxyPerformer):
             perform_debug=perform_debug
         )
         with self.change_directory(self.current_source.directory):
-            super(Isolation, self).run_script(codev_script, arguments=arguments, logger=logger)
+            super().run_script(codev_script, arguments=arguments, logger=logger)
 
     def create(self, script_info):
         logger.info("Creating isolation...")

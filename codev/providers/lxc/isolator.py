@@ -12,7 +12,7 @@ class LXCIsolator(Isolator):
     provider_name = 'lxc'
 
     def __init__(self, *args, **kwargs):
-        super(LXCIsolator, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.ident = md5(self.ident.encode()).hexdigest()
         self.machine = LXCMachine(self.performer, ident=self.ident)
         self.logger = getLogger(__name__)

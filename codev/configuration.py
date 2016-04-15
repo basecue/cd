@@ -17,7 +17,7 @@ debug_logger = getLogger('debug')
 
 class Provision(BaseProxyExecutor):
     def __init__(self, performer, settings):
-        super(Provision, self).__init__(performer)
+        super().__init__(performer)
         self.provisioner = Provisioner(settings.provider, performer, settings_data=settings.specific)
         self.scripts = settings.scripts
 

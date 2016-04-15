@@ -5,7 +5,7 @@ class Source(Provider, ConfigurableProvider):
     def __init__(self, options, *args, **kwargs):
         self.process_options(options)
         self.options = options
-        super(Source, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     @property
     def name(self):

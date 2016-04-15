@@ -32,7 +32,7 @@ class SSHperformer(Performer):
     settings_class = SSHPerformerSettings
 
     def __init__(self, *args, **kwargs):
-        super(SSHperformer, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.client = None
         self.logger = getLogger(__name__)
 

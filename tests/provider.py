@@ -31,7 +31,7 @@ class ProviderTestCase(unittest.TestCase):
             provider_name = 'bar'
 
             def test(self):
-                return super(BarTestProvider, self).test()
+                return super().test()
 
         cls.BarTestProvider = BarTestProvider
 
@@ -39,7 +39,7 @@ class ProviderTestCase(unittest.TestCase):
             provider_name = 'super_bar_foo'
 
             def test(self):
-                return super(SuperBarFooTestProvider, self).test()
+                return super().test()
 
         cls.SuperBarFooTestProvider = SuperBarFooTestProvider
 

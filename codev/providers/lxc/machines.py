@@ -12,7 +12,7 @@ logger = getLogger(__name__)
 
 class LXCMachine(BaseMachine):
     def __init__(self, *args, **kwargs):
-        super(LXCMachine, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.__container_directory = None
         self.__share_directory = None
         self.base_dir = self.working_dir = '/root'

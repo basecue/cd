@@ -10,7 +10,7 @@ class LocalPerformer(Performer):
     provider_name = 'local'
 
     def __init__(self, *args, **kwargs):
-        super(LocalPerformer, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.logger = getLogger(__name__)
 
     def execute(self, command, logger=None, writein=None, max_lines=None):

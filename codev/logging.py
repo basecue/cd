@@ -13,7 +13,7 @@ actual_loglevel = 'info'
 class LoglevelFilter(logging.Filter):
     def __init__(self, loglevel):
         self.loglevel = loglevel
-        super(LoglevelFilter, self).__init__()
+        super().__init__()
 
     def filter(self, record):
         if record.levelno == self.loglevel:

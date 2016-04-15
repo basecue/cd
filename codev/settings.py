@@ -47,7 +47,7 @@ class ProviderSettings(BaseSettings):
 
 class DictSettings(OrderedDict):
     def __init__(self, cls, data, *args, **kwargs):
-        super(DictSettings, self).__init__()
+        super().__init__()
         for name, itemdata in data.items():
             self[name] = cls(itemdata, *args, **kwargs)
 
@@ -63,7 +63,7 @@ class ListDictSettings(OrderedDict):
     def __init__(self, data, intersect_default=None):
         if intersect_default is None:
             intersect_default = {}
-        super(ListDictSettings, self).__init__()
+        super().__init__()
 
         if isinstance(data, dict) or isinstance(data, OrderedDict):
             for key, value in data.items():
@@ -143,7 +143,7 @@ class ConfigurationSettings(BaseSettings):
 
 class EnvironmentSettings(BaseSettings):
     def __init__(self, data, default_sources):
-        super(EnvironmentSettings, self).__init__(data)
+        super().__init__(data)
         self.default_sources = default_sources
 
     @property
@@ -172,7 +172,7 @@ class EnvironmentSettings(BaseSettings):
 class Settings(BaseSettings):
 
     def __init__(self, data=None):
-        super(Settings, self).__init__(self.default_data)
+        super().__init__(self.default_data)
         if data:
             self.data.update(data)
 
