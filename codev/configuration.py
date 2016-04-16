@@ -92,6 +92,11 @@ class Configuration(object):
 
     @property
     def info(self):
+        """
+        Information about configuration (and isolation if exists)
+        :return: configuration info
+        :rtype: dict
+        """
         info = dict(
             source=self.source.name,
             source_options=self.source.options,

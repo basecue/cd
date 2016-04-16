@@ -25,35 +25,6 @@ from json import loads
 import sys
 import select
 
-# import os.path
-#
-# from codev.settings import YAMLSettingsWriter
-# @main.command(
-#     help='Create .codev file with basic settings in current directory or in given file path.',
-#     short_help='Create .codev file with basic settings.'
-#               )
-# # TODO ?Merge with settings option?
-# @click.option('-p', '--path', default='.codev', help='Path to settings file.')
-# def init(path):
-#     """
-#     :param path:
-#     :type path: str
-#     :return:
-#     :rtype: bool
-#     """
-#     if os.path.isdir(path):
-#         path = os.path.join(path, '.codev')
-#
-#     if os.path.exists(path):
-#         if not click.confirm("A file '%(filepath)s' already exists. Overwrite?" % {'filepath': path}):
-#             raise click.Abort()
-#
-#     try:
-#         YAMLSettingsWriter().save_to_file(path)
-#         return True
-#     except Exception as e:
-#         raise click.ClickException(e)
-
 
 @command(
     help='Install project.',
@@ -186,22 +157,25 @@ def info(installation):
     :return:
     :rtype: bool
     """
-    info = installation.info()
+    info = installation.info
     click.echo(
-        'Isolation:\n'
-        '    ident: {isolation.ident}\n'
-        '    ip: {isolation.ip}\n'.format(
-            isolation=info['isolation']
-        )
+        str(info)
     )
-    click.echo('Configuration:')
-    for machine_group_name, machines in info['infrastructure'].items():
-        click.echo('    Machines group: {name}'.format(name=machine_group_name))
-        for machine in machines:
-            machine_connectivity = info['connectivity'].get(machine.ident, {})
-            click.echo('        {machine.ip} {machine.ident}'.format(machine=machine))
-            for source, target in machine_connectivity.items():
-                click.echo('                {source} -> {target}'.format(source=source, target=target))
+    # click.echo(
+    #     'Isolation:\n'
+    #     '    ident: {isolation.ident}\n'
+    #     '    ip: {isolation.ip}\n'.format(
+    #         isolation=info['isolation']
+    #     )
+    # )
+    # click.echo('Configuration:')
+    # for machine_group_name, machines in info['infrastructure'].items():
+    #     click.echo('    Machines group: {name}'.format(name=machine_group_name))
+    #     for machine in machines:
+    #         machine_connectivity = info['connectivity'].get(machine.ident, {})
+    #         click.echo('        {machine.ip} {machine.ident}'.format(machine=machine))
+    #         for source, target in machine_connectivity.items():
+    #             click.echo('                {source} -> {target}'.format(source=source, target=target))
     return True
     # click.echo(
     #     '{project} {environment} {configuration} {source_transition}'.format(**installation.installation_info())

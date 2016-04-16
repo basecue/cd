@@ -171,7 +171,10 @@ class Installation(object):
     @property
     def info(self):
         """
+        Info about installation
+
         :return: installation info
+        :rtype: dict
         """
         info = dict(
             project=self.project_name,

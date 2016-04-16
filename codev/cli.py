@@ -60,11 +60,21 @@ def confirmation_message(message):
         def confirmation_wrapper(installation, force, **kwargs):
             if not force:
                 installation_info = installation.info
-                if not click.confirm(message.format(source_transition=source_transition(installation_info), **installation_info)):
+                if not click.confirm(
+                        message.format(
+                            source_transition=source_transition(installation_info),
+                            **installation_info
+                        )
+                ):
                     raise click.Abort()
             return f(installation, **kwargs)
 
-        return click.option('-f', '--force', is_flag=True,  help='Force to run the command. Avoid the confirmation.')(confirmation_wrapper)
+        return click.option(
+            '-f',
+            '--force',
+            is_flag=True,
+            help='Force to run the command. Avoid the confirmation.'
+        )(confirmation_wrapper)
 
     return decorator
 
