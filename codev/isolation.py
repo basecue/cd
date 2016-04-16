@@ -81,7 +81,7 @@ class Isolation(BaseProxyPerformer):
         with self.change_directory(self.current_source.directory):
             super().run_script(codev_script, arguments=arguments, logger=logger)
 
-    def create(self, script_info):
+    def create(self, info):
         logger.info("Creating isolation...")
         created = self.isolator.create()
 
@@ -90,7 +90,7 @@ class Isolation(BaseProxyPerformer):
             logger.info("Install project to isolation...")
             self.current_source.install(self.performer)
             self.install_codev()
-            self.run_scripts(self.scripts.oncreate, script_info, logger=command_logger)
+            self.run_scripts(self.scripts.oncreate, info, logger=command_logger)
         else:
             if self.next_source:
                 logger.info("Transition source in isolation...")
@@ -98,7 +98,7 @@ class Isolation(BaseProxyPerformer):
                 self.current_source.install(self.performer)
                 self.install_codev()
         logger.info("Entering isolation...")
-        self.run_scripts(self.scripts.onenter, script_info, logger=command_logger)
+        self.run_scripts(self.scripts.onenter, info, logger=command_logger)
         return self.current_source
 
     def exists(self):

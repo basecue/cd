@@ -59,51 +59,51 @@ import select
     help='Install project.',
     confirmation="Install project '{project}' to environment '{environment}' in configuration '{configuration}' at source '{source_transition}'?"
 )
-def install(deployment):
+def install(installation):
     """
     Install project
 
-    :param deployment:
-    :type deployment: codev.deployment.Deployment
+    :param installation:
+    :type installation: codev.installation.Installation
     :return:
     :rtype: bool
     """
-    return deployment.install()
+    return installation.install()
 
 
 @command(
     help='Deploy project.',
     confirmation="Deploy project '{project}' to environment '{environment}' in configuration '{configuration}' at source '{source_transition}'?"
 )
-def deploy(deployment):
+def deploy(installation):
     """
     Install project
 
-    :param deployment:
-    :type deployment: codev.deployment.Deployment
+    :param installation:
+    :type installation: codev.installation.Installation
     :return:
     :rtype: bool
     """
-    return deployment.deploy()
+    return installation.deploy()
 
 #
 # @command(help='Join the running command in isolation.')
-# def join(deployment):
+# def join(installation):
 #     """
-#     :param deployment:
-#     :type deployment: codev.deployment.Deployment
+#     :param installation:
+#     :type installation: codev.installation.Installation
 #     :return:
 #     :rtype: bool
 #     """
-#     return deployment.join()
+#     return installation.join()
 
 
 @command(help='Run command in project context in isolation.')
 @click.argument('command', nargs=-1)
-def run(deployment, command):
+def run(installation, command):
     """
-    :param deployment:
-    :type deployment: codev.deployment.Deployment
+    :param installation:
+    :type installation: codev.installation.Installation
     :param command:
     :type command: str
     :return:
@@ -114,79 +114,79 @@ def run(deployment, command):
         arguments = loads(sys.stdin.read())
     else:
         arguments = {}
-    return deployment.run(' '.join(command), arguments)
+    return installation.run(' '.join(command), arguments)
 
 
 @command(help='Execute command in isolation.')
 @click.argument('command', nargs=-1)
-def execute(deployment, command):
+def execute(installation, command):
     """
-    :param deployment:
-    :type deployment: codev.deployment.Deployment
+    :param installation:
+    :type installation: codev.installation.Installation
     :param command:
     :type command: str
     :return:
     :rtype: bool
     """
-    return deployment.execute(' '.join(command))
+    return installation.execute(' '.join(command))
 
 
 # @command(help='Stop the running command in isolation.')
-# def stop(deployment):
+# def stop(installation):
 #     """
-#     :param deployment:
-#     :type deployment: codev.deployment.Deployment
+#     :param installation:
+#     :type installation: codev.installation.Installation
 #     :return:
 #     :rtype: bool
 #     """
-#     return deployment.stop()
+#     return installation.stop()
 #
 #
 # @command(help='Kill the running command in isolation.')
-# def kill(deployment):
+# def kill(installation):
 #     """
-#     :param deployment:
-#     :type deployment: codev.deployment.Deployment
+#     :param installation:
+#     :type installation: codev.installation.Installation
 #     :return:
 #     :rtype: bool
 #     """
-#     return deployment.kill()
+#     return installation.kill()
 
 
 # @command(help='Invoke an isolation shell.')
-# def shell(deployment):
+# def shell(installation):
 #     """
-#     :param deployment:
-#     :type deployment: codev.deployment.Deployment
+#     :param installation:
+#     :type installation: codev.installation.Installation
 #     :return:
 #     :rtype: bool
 #     """
-#     return deployment.shell()
+#     return installation.shell()
 
 
 @command(
     help='Destroy isolation.',
     confirmation="Destroy isolation of project '{project}' in environment '{environment}' in configuration '{configuration}' at source '{source_transition}'?"
 )
-def destroy(deployment):
+def destroy(installation):
     """
-    :param deployment:
-    :type deployment: codev.deployment.Deployment
+    :param installation:
+    :type installation: codev.installation.Installation
     :return:
     :rtype: bool
     """
-    return deployment.destroy()
+    return installation.destroy()
 
 
-@command(help='Show info about the deployment.')
-def info(deployment):
+@command(help='Show info about the installation.')
+def info(installation):
     """
-    :param deployment:
-    :type deployment: codev.deployment.Deployment
+    :param installation:
+    :type installation: codev.installation.Installation
     :return:
     :rtype: bool
     """
-    info = deployment.info()
+    info = installation.info()
     click.echo(
         'Isolation:\n'
         '    ident: {isolation.ident}\n'
@@ -204,7 +204,7 @@ def info(deployment):
                 click.echo('                {source} -> {target}'.format(source=source, target=target))
     return True
     # click.echo(
-    #     '{project} {environment} {configuration} {source_transition}'.format(**deployment.deployment_info())
+    #     '{project} {environment} {configuration} {source_transition}'.format(**installation.installation_info())
     # )
 
 

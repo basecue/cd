@@ -3,7 +3,7 @@ from colorama import Fore as color, Style as style
 from functools import wraps
 
 from .settings import YAMLSettingsReader
-from .deployment import Deployment
+from .installation import Installation
 from .debug import DebugSettings
 from .logging import logging_config
 from .info import VERSION
@@ -11,10 +11,10 @@ from os import chdir
 import sys
 
 
-def source_transition(deployment_info):
-        next_source_ident = deployment_info['next_source_ident']
-        source_ident = deployment_info['source_ident']
-        current_source_ident = deployment_info['current_source_ident']
+def source_transition(installation_info):
+        next_source_ident = installation_info['next_source_ident']
+        source_ident = installation_info['source_ident']
+        current_source_ident = installation_info['current_source_ident']
 
         color_options = dict(
             color_source=color.GREEN,
@@ -35,9 +35,9 @@ def source_transition(deployment_info):
             ))
 
             final = {}
-            final.update(deployment_info)
+            final.update(installation_info)
             final.update(color_options)
-            # TODO in python 3.5 use **deployment_info, **color_options
+            # TODO in python 3.5 use **installation_info, **color_options
             transition = ' -> {color_next_source}{next_source}:{next_source_options}{color_reset}'.format(
                 **final
             )
@@ -45,9 +45,9 @@ def source_transition(deployment_info):
             transition = ''
 
         final2 = {}
-        final2.update(deployment_info)
+        final2.update(installation_info)
         final2.update(color_options)
-        # TODO in python 3.5 use **deployment_info, **color_options
+        # TODO in python 3.5 use **installation_info, **color_options
         return '{color_source}{source}:{source_options}{color_reset}{transition}'.format(
             transition=transition,
             **final2
@@ -57,12 +57,12 @@ def source_transition(deployment_info):
 def confirmation_message(message):
     def decorator(f):
         @wraps(f)
-        def confirmation_wrapper(deployment, force, **kwargs):
+        def confirmation_wrapper(installation, force, **kwargs):
             if not force:
-                deployment_info = deployment.deployment_info
-                if not click.confirm(message.format(source_transition=source_transition(deployment_info), **deployment_info)):
+                installation_info = installation.info
+                if not click.confirm(message.format(source_transition=source_transition(installation_info), **installation_info)):
                     raise click.Abort()
-            return f(deployment, **kwargs)
+            return f(installation, **kwargs)
 
         return click.option('-f', '--force', is_flag=True,  help='Force to run the command. Avoid the confirmation.')(confirmation_wrapper)
 
@@ -76,9 +76,9 @@ def parse_source(inp):
     return name, options
 
 
-def deployment_options(func):
+def installation_options(func):
     @wraps(func)
-    def deployment_wrapper(
+    def installation_wrapper(
             settings,
             environment,
             configuration,
@@ -89,7 +89,7 @@ def deployment_options(func):
         source_name, source_options = parse_source(source)
         next_source_name, next_source_options = parse_source(next_source)
 
-        deployment = Deployment(
+        installation = Installation(
             settings,
             environment,
             configuration,
@@ -101,13 +101,13 @@ def deployment_options(func):
             performer_specific={},  # TODO
             disable_isolation=disable_isolation
         )
-        return func(deployment, **kwargs)
+        return func(installation, **kwargs)
 
     f = click.option(
         '-e', '--environment',
         metavar='<environment>',
         required=True,
-        help='environment')(deployment_wrapper)
+        help='environment')(installation_wrapper)
 
     f = click.option(
         '-c', '--configuration',
@@ -226,7 +226,7 @@ def command(confirmation=None, bool_exit=True, **kwargs):
     def decorator(func):
         if confirmation:
             func = confirmation_message(confirmation)(func)
-        func = deployment_options(func)
+        func = installation_options(func)
         func = nice_exception(func)
         func = performer_option(func)
         func = disable_isolation_option(func)
