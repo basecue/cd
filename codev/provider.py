@@ -6,25 +6,27 @@ class ProviderMetaClass(type):
             return type.__new__(mcs, name, bases, attrs)
 
         if Provider in bases:
-            attrs['providers'] = {}
             cls = type.__new__(mcs, name, bases, attrs)
+            cls.providers = {}
             cls.provider_class = cls
+            if cls.provider_name is not None:
+                raise ImportError(
+                    "Attribute 'provider_name' has not to be defined in provider class '{name}'.".format(name=name)
+                )
             return cls
         else:
             for base in bases:
-                if hasattr(base, 'provider_class'):
+                if base.provider_class is not None:
                     attrs['provider_class'] = base.provider_class
                     break
             else:
                 raise ImportError("It is unable to determine provider class for class '{name}'.".format(name=name))
 
             if 'provider_name' in attrs:
+                if not isinstance(attrs['provider_name'], str):
+                    raise TypeError("Attribute 'provider_name' has to be 'str' type in provider class '{name}'.".format(name=name))
                 cls = type.__new__(mcs, name, bases, attrs)
-
-                provider_cls = attrs['provider_class']
-                provider_name = attrs['provider_name']
-
-                provider_cls.register_provider(provider_name, cls)
+                cls.provider_class.register_provider(cls.provider_name, cls)
                 return cls
             else:
                 raise ImportError("Attribute 'provider_name' has to be defined in provider class '{name}'.".format(name=name))
@@ -49,6 +51,9 @@ class ProviderMetaClass(type):
 
 
 class Provider(object, metaclass=ProviderMetaClass):
+    provider_name = None
+    provider_class = None
+
     @classmethod
     def register_provider(cls, provider_name, provider_cls):
         if provider_name in cls.provider_class.providers:

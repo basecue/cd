@@ -1,9 +1,12 @@
-import unittest
+import pytest
 
 
-class ProviderTestCase(unittest.TestCase):
+class TestProvider:
+    """
+    Testing basic provider function and inheritance
+    """
     @classmethod
-    def setUpClass(cls):
+    def setup_class(cls):
         from codev.provider import Provider
 
         class TestProvider(Provider):
@@ -45,19 +48,106 @@ class ProviderTestCase(unittest.TestCase):
 
     def test_foo_provider(self):
         test_provider = self.__class__.TestProvider('foo')
-        self.assertEqual(test_provider.__class__, self.__class__.FooTestProvider)
+        assert test_provider.__class__, self.__class__.FooTestProvider
 
     def test_super_foo_provider(self):
         test_provider = self.__class__.TestProvider('super_foo')
-        self.assertEqual(test_provider.__class__, self.__class__.SuperFooTestProvider)
+        assert test_provider.__class__, self.__class__.SuperFooTestProvider
 
     def test_bar_provider(self):
         test_provider = self.__class__.TestProvider('bar')
-        self.assertEqual(test_provider.__class__, self.__class__.BarTestProvider)
+        assert test_provider.__class__, self.__class__.BarTestProvider
 
     def test_super_bar_foo_provider(self):
         test_provider = self.__class__.TestProvider('super_bar_foo')
-        self.assertEqual(test_provider.__class__, self.__class__.SuperBarFooTestProvider)
+        assert test_provider.__class__, self.__class__.SuperBarFooTestProvider
 
-if __name__ == '__main__':
-    unittest.main()
+
+class TestAnotherProvider:
+    """
+    Testing two distinct providers with same provider_name
+    """
+    @classmethod
+    def setup_class(cls):
+        from codev.provider import Provider
+
+        class TestProvider(Provider):
+            pass
+
+        cls.TestProvider = TestProvider
+
+        class SuperTestProvider(TestProvider):
+            provider_name = 'same'
+
+        cls.SuperTestProvider = SuperTestProvider
+
+        class AnotherProvider(Provider):
+            pass
+
+        cls.AnotherProvider = AnotherProvider
+
+        class SuperAnotherProvider(AnotherProvider):
+            provider_name = 'same'
+
+        cls.SuperAnotherProvider = SuperAnotherProvider
+
+    def test_super_test_provider(self):
+        super_test_provider = self.__class__.TestProvider('same')
+        assert super_test_provider.__class__, self.__class__.SuperTestProvider
+
+    def test_super_another_provider(self):
+        super_another_provider = self.__class__.AnotherProvider('same')
+        assert super_another_provider.__class__, self.__class__.SuperAnotherProvider
+
+
+class TestNotAllowedProvider:
+    def test_named_provider(self):
+        """
+        Testing provider with not allowed set up provider_name
+        """
+        from codev.provider import Provider
+        with pytest.raises(ImportError):
+            class NamedProvider(Provider):
+                provider_name = 'named'
+
+    def test_not_named_provider(self):
+        """
+        Testing provider with not named provider
+        """
+        from codev.provider import Provider
+
+        class TestProvider(Provider):
+            pass
+
+        with pytest.raises(ImportError):
+            class NotNamedProvider(TestProvider):
+                pass
+
+    def test_same_named_providers(self):
+        """
+        Testing providers with same provider_names
+        """
+        from codev.provider import Provider
+
+        class TestProvider(Provider):
+            pass
+
+        class FirstProvider(TestProvider):
+            provider_name = 'name'
+
+        with pytest.raises(ImportError):
+            class SecondProvider(TestProvider):
+                provider_name = 'name'
+
+    def test_bad_named_provider(self):
+        """
+        Testing provider with not named provider
+        """
+        from codev.provider import Provider
+
+        class TestProvider(Provider):
+            pass
+
+        with pytest.raises(TypeError):
+            class NotNamedProvider(TestProvider):
+                provider_name = None
