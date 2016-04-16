@@ -1,4 +1,5 @@
 # codev - continuous delivery tool
+[![PyPI version](https://badge.fury.io/py/codev.svg)](https://badge.fury.io/py/codev)
 
 Highly configurable tool for automatic creating and configuration environments.
 

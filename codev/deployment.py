@@ -25,14 +25,38 @@ class Deployment(object):
             next_source_name='',
             next_source_options='',
             performer_provider=None,
-            performer_specific={},
+            performer_specific={},  # TODO
             disable_isolation=False
     ):
+        """
+
+        :param settings:
+        :type settings: Settings
+        :param environment_name:
+        :type environment_name: string
+        :param configuration_name:
+        :type configuration_name: string
+        :param source_name:
+        :type source_name: string
+        :param source_options:
+        :type source_options: string
+        :param next_source_name:
+        :type next_source_name: string
+        :param next_source_options:
+        :type next_source_options: string
+        :param performer_provider:
+        :type performer_provider: string
+        :param performer_specific:
+        :type performer_specific: string
+        :param disable_isolation:
+        :type disable_isolation: bool
+        :return:
+        """
         environment_settings = settings.environments[environment_name]
         self.environment = environment_name
         self.project_name = settings.project
 
-        # installation
+        # source
         try:
             source_settings = environment_settings.sources[source_name]
         except KeyError as e:
@@ -79,7 +103,7 @@ class Deployment(object):
             settings_data=performer_specific
         )
 
-        # isolator
+        # isolation
         if not disable_isolation:
             isolator_settings = environment_settings.isolator
             isolator_provider = isolator_settings.provider
@@ -99,6 +123,12 @@ class Deployment(object):
         )
 
     def deploy(self):
+        """
+        Start provisioning of installation
+
+        :return: True if deployment is successfully realized
+        :rtype: bool
+        """
         return self.configuration.deploy(self.info)
 
     def install(self):
@@ -112,10 +142,11 @@ class Deployment(object):
 
     def run(self, script, arguments=None):
         """
-        Run command in project context in isolation.
+        Run script.
 
-        :param command: Command to execute
-        :type command: str
+        :param script: Script to execute
+        :type script: str
+        :param arguments: Arguments passed to script
         :return: True if executed command returns 0
         :rtype: bool
         """
@@ -140,6 +171,9 @@ class Deployment(object):
 
     @property
     def info(self):
+        """
+        :return: basic info
+        """
         return dict(
             project=self.project_name,
             environment=self.environment,
@@ -148,6 +182,9 @@ class Deployment(object):
 
     @property
     def deployment_info(self):
+        """
+        :return: complete deployment info
+        """
         return self.configuration.deployment_info(self.info)
 
     # def execute(self, command):
