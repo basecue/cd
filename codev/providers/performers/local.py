@@ -10,8 +10,8 @@ class LocalPerformer(Performer):
     provider_name = 'local'
 
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
         self.logger = getLogger(__name__)
+        super().__init__(*args, **kwargs)
 
     def execute(self, command, logger=None, writein=None, max_lines=None):
         self.logger.debug('Executing LOCAL command: %s' % command)

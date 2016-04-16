@@ -162,7 +162,11 @@ class BasePerformer(BaseExecutor):
 
 
 class Performer(Provider, BasePerformer, ConfigurableProvider):
-    pass
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # TODO move to future authentication module
+        if not self.check_execute('ssh-add -L'):
+            raise PerformerError("No SSH identities found, use the 'ssh-add'.")
 
 
 class BaseProxyExecutor(BaseExecutor):
