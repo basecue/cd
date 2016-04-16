@@ -23,23 +23,19 @@ class GitSource(Source):
         # branch
         if options in remote.refs:
             self.branch = options
-            return
 
         # tag
-        if options in self.repository.tags:
+        elif options in self.repository.tags:
             self.tag = options
-            return
 
         # commit
-        for commit in self.repository.iter_commits():
-            if options == commit:
-                self.commit = commit
-                return
+        else:
+            for commit in self.repository.iter_commits():
+                if options == commit:
+                    self.commit = commit
+            else:
+                raise ValueError("Branch, tag or commit '{options}' not found.".format(options=options))
 
-        raise ValueError(options)
-
-    @property
-    def id(self):
         return self.branch or self.tag or self.commit
 
     def install(self, performer):

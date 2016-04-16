@@ -3,7 +3,7 @@ from .provider import Provider, ConfigurableProvider
 
 class Source(Provider, ConfigurableProvider):
     def __init__(self, options, *args, **kwargs):
-        self.process_options(options)
+        self.ident = self.create_ident(self.process_options(options))
         self.options = options
         super().__init__(*args, **kwargs)
 
@@ -11,18 +11,17 @@ class Source(Provider, ConfigurableProvider):
     def name(self):
         return self.__class__.provider_name
 
-    @property
-    def ident(self):
+    def create_ident(self, ident):
         return '{name}_{ident}'.format(
             name=self.name,
-            ident=self.id
+            ident=ident
         )
 
     def install(self, performer):
         raise NotImplementedError()
 
     def process_options(self, options):
-        raise NotImplementedError()
+        return options
 
     @property
     def id(self):

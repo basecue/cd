@@ -24,8 +24,4 @@ class ActualSource(Source):
         )
 
     def process_options(self, options):
-        self.uid = options or str(time())
-
-    @property
-    def id(self):
-        return self.uid
+        return options or str(time())
