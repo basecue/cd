@@ -73,7 +73,7 @@ class Configuration(object):
         else:
             if self.isolation:
                 logger.info("Setting up connectivity.")
-                self.isolation.connect()
+                self.isolation.connect(self.infrastructure)
             logger.info("Installation has been successfully completed.")
             return True
 
