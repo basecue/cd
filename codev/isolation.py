@@ -113,6 +113,5 @@ class Isolation(BaseProxyPerformer):
             current_source=self.current_source.name,
             current_source_options=self.current_source.options,
             current_source_ident=self.current_source.ident,
-            ident=self.isolator.ident,
-            ip=self.isolator.ip
+            isolation=dict(ident=self.isolator.ident, ip=self.isolator.ip)
         )

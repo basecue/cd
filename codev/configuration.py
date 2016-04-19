@@ -107,7 +107,7 @@ class Configuration(object):
             infrastructure=self.infrastructure.info
         )
         if self.isolation:
-            info.update(isolation=self.isolation.info)
+            info.update(self.isolation.info)
 
 
         # click.echo('Configuration:')
