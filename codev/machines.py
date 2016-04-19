@@ -6,9 +6,36 @@ class BaseMachine(BaseProxyPerformer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+    def exists(self):
+        raise NotImplementedError()
+
+    def start(self):
+        raise NotImplementedError()
+
 
 class MachinesProvider(Provider, ConfigurableProvider):
-    def __init__(self, machines_name, performer, *args, **kwargs):
-        self.machines_name = machines_name
+    machine_class = BaseMachine
+
+    def __init__(self, ident, performer, *args, **kwargs):
+        self.ident = ident
         self.performer = performer
         super().__init__(*args, **kwargs)
+
+    def create(self, machine, pub_key):
+        raise NotImplementedError()
+
+    def idents(self):
+        for i in range(1, self.settings.number + 1):
+            ident = '%s_%000d' % (self.ident, i)
+            yield ident
+
+    def machines(self, create=False, pub_key=None):
+        for ident in self.idents():
+            machine = self.machine_class(self.performer, ident=ident)
+            if create and not machine.exists():
+                self.create(machine, pub_key)
+            elif create:
+                machine.start()
+
+            if create or machine.exists():
+                yield machine

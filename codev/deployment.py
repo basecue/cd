@@ -23,16 +23,22 @@ class Deployment(BaseProxyExecutor):
         self.run_scripts(self.scripts.onerror, arguments)
 
     def deploy(self, infrastructure, script_info):
+        """
+
+        :param infrastructure: infrastructure.Infrastructure
+        :param script_info: dict
+        :return:
+        """
         self.run_scripts(self.scripts.onstart, script_info)
         try:
             logger.info('Installing provisioner...')
             self.provisioner.install()
 
             logger.info('Creating machines...')
-            infrastructure.create()
+            machines_groups = infrastructure.machines_groups(create=True)
 
             logger.info('Configuration...')
-            self.provisioner.run(infrastructure, script_info)
+            self.provisioner.run(machines_groups, script_info)
         except CommandError as e:
             self._onerror(script_info, e)
             return False

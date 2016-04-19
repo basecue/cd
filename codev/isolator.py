@@ -9,6 +9,9 @@ class Isolator(Provider, BaseProxyPerformer, ConfigurableProvider):
     def create(self):
         raise NotImplementedError()
 
+    def is_started(self):
+        raise NotImplementedError()
+
     def destroy(self):
         raise NotImplementedError()
 

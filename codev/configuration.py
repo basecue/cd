@@ -104,20 +104,11 @@ class Configuration(object):
             next_source=self.next_source.name if self.next_source else '',
             next_source_options=self.next_source.options if self.next_source else '',
             next_source_ident=self.next_source.ident if self.next_source else '',
-            infrastructure=self.infrastructure.info
+            infrastructure=self.infrastructure.info if not self.isolation or self.isolation.is_started() else {}
         )
         if self.isolation:
             info.update(self.isolation.info)
 
-
-        # click.echo('Configuration:')
-        # for machine_group_name, machines in self.infrastructure'].items():
-        #     click.echo('    Machines group: {name}'.format(name=machine_group_name))
-        #     for machine in machines:
-        #         machine_connectivity = info['connectivity'].get(machine.ident, {})
-        #         click.echo('        {machine.ip} {machine.ident}'.format(machine=machine))
-        #         for source, target in machine_connectivity.items():
-        #             click.echo('                {source} -> {target}'.format(source=source, target=target))
         return info
 
     def destroy_isolation(self):

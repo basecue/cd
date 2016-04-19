@@ -39,14 +39,14 @@ class AnsibleProvisioner(Provisioner):
             version_add = '==%s' % self.settings.version
         self.performer.execute('pip install --upgrade ansible%s' % version_add)
 
-    def run(self, infrastructure, info):
+    def run(self, machines_groups, info):
         inventory = configparser.ConfigParser(allow_no_value=True, delimiters=('',))
-        for name, machines in infrastructure.machines_groups.items():
-            inventory.add_section(name)
+        for machines_group, machines in machines_groups.items():
+            inventory.add_section(machines_group)
             for machine in machines:
                 # ansible node additional requirements
                 machine.install_packages('python')
-                inventory.set(name, machine.host, '')
+                inventory.set(machines_group, machine.host, '')
 
         inventory_filepath = 'codev.ansible.inventory'
 

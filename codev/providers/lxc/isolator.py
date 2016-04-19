@@ -35,6 +35,9 @@ class LXCIsolator(Isolator):
     def destroy(self):
         return self.machine.destroy()
 
+    def is_started(self):
+        return self.machine.is_started()
+
     @property
     def ip(self):
         return self.machine.ip

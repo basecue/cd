@@ -267,71 +267,65 @@ class LXCMachinesSettings(BaseSettings):
     def number(self):
         return int(self.data.get('number', 1))
 
-    # TODO rethink
-    @property
-    def network(self):
-        return self.data.get('network', {})
-
-    @property
-    def network_ip_start(self):
-        return self.network.get('ip_start', 0)
-
-    @property
-    def static_network(self):
-        return self.network == {} or self.network_ip_start
+    # # TODO rethink
+    # @property
+    # def network(self):
+    #     return self.data.get('network', {})
+    #
+    # @property
+    # def network_ip_start(self):
+    #     return self.network.get('ip_start', 0)
+    #
+    # @property
+    # def static_network(self):
+    #     return self.network == {} or self.network_ip_start
 
 
 class LXCMachinesProvider(MachinesProvider):
     provider_name = 'lxc'
     settings_class = LXCMachinesSettings
+    machine_class = LXCMachine
     ip_counter = 0
 
-    def _machine(self, ident, create=False, pub_key=None, ip=None, gateway=None):
-        machine = LXCMachine(self.performer, ident=ident)
-        created = create and machine.create(
-            self.settings.distribution, self.settings.release, ip=ip, gateway=gateway
-        )
+    def create(self, machine, pub_key):
+        machine.create(self.settings.distribution, self.settings.release)
 
         machine.start()
 
-        if created:
-            #install ssh server
-            machine.install_packages('openssh-server')
+        #install ssh server
+        machine.install_packages('openssh-server')
 
-            #authorize user for ssh
-            if pub_key:
-                machine.execute('mkdir -p .ssh')
-                machine.execute('tee .ssh/authorized_keys', writein=pub_key)
+        #authorize user for ssh
+        if pub_key:
+            machine.execute('mkdir -p .ssh')
+            machine.execute('tee .ssh/authorized_keys', writein=pub_key)
 
         return machine
 
-    def machines(self, create=False, pub_key=None):
-        machines = []
+    # @contextmanager
+    # def network_settings(self):
+    #
+    #
+    # def create(self, pub_key=None):
+    #
+    #     ip_nums = None
+    #     gateway = None
+    #
+    #     if self.settings.static_network:
+    #         for line in self.performer.execute('cat /etc/default/lxc-net').splitlines():
+    #             r = re.match('^LXC_ADDR=\"([\w\.]+)\"$', line)
+    #             if r:
+    #                 gateway = r.group(1)
+    #                 ip_nums = list(map(int, gateway.split('.')))
+    #
+    #     for i in range(1, self.settings.number + 1):
+    #         ident = '%s_%000d' % (self.ident, i)
+    #
+    #         if self.settings.network_ip_start:
+    #             ip = '.'.join(map(str, ip_nums[:3] + [self.settings.network_ip_start + i - 1]))
+    #         elif ip_nums:
+    #             ip = '.'.join(map(str, ip_nums[:3] + [ip_nums[3] + self.__class__.ip_counter + 1]))
+    #             self.__class__.ip_counter += 1
+    #         else:
+    #             ip = None
 
-        ip_nums = None
-        gateway = None
-
-        if self.settings.static_network:
-            for line in self.performer.execute('cat /etc/default/lxc-net').splitlines():
-                r = re.match('^LXC_ADDR=\"([\w\.]+)\"$', line)
-                if r:
-                    gateway = r.group(1)
-                    ip_nums = list(map(int, gateway.split('.')))
-
-        for i in range(1, self.settings.number + 1):
-            ident = '%s_%000d' % (self.machines_name, i)
-            if create:
-                if self.settings.network_ip_start:
-                    ip = '.'.join(map(str, ip_nums[:3] + [self.settings.network_ip_start + i - 1]))
-                elif ip_nums:
-                    ip = '.'.join(map(str, ip_nums[:3] + [ip_nums[3] + self.__class__.ip_counter + 1]))
-                    self.__class__.ip_counter += 1
-                else:
-                    ip = None
-            else:
-                ip = None
-
-            # TODO maybe lxc-clone instead of this - huge performance gain
-            machine = self._machine(ident, create=create, pub_key=pub_key, ip=ip, gateway=gateway)
-            machines.append(machine)
-        return machines

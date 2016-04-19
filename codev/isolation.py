@@ -25,16 +25,11 @@ class Isolation(BaseProxyPerformer):
         :param isolation:
         :return:
         """
-        for machine_str, connectivity_conf in self.connectivity.items():
-            r = re.match('^(?P<machine_group>[^\[]+)_(?P<machine_index>\d+)$', machine_str)
-            if r:
-                machines_groups = infrastructure.machines_groups
-                machine_group = r.group('machine_group')
-                machine_index = int(r.group('machine_index')) - 1
-                machine = machines_groups[machine_group][machine_index]
+        for machine_ident, connectivity_conf in self.connectivity.items():
+            machine = infrastructure.get_machine_by_ident(machine_ident)
 
-                for source_port, target_port in connectivity_conf.items():
-                    self.isolator.redirect(machine, source_port, target_port)
+            for source_port, target_port in connectivity_conf.items():
+                self.isolator.redirect(machine, source_port, target_port)
 
     def install_codev(self):
         with self.change_directory(self.current_source.directory):
@@ -106,6 +101,9 @@ class Isolation(BaseProxyPerformer):
 
     def destroy(self):
         return self.isolator.destroy()
+
+    def is_started(self):
+        return self.isolator.is_started()
 
     @property
     def info(self):
