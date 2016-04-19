@@ -32,7 +32,7 @@ class Deployment(BaseProxyExecutor):
             infrastructure.create()
 
             logger.info('Configuration...')
-            self.provisioner.run(infrastructure)
+            self.provisioner.run(infrastructure, script_info)
         except CommandError as e:
             self._onerror(script_info, e)
             return False
