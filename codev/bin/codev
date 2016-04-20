@@ -81,25 +81,25 @@ def run(installation, command):
     :rtype: bool
     """
 
-    if select.select([sys.stdin,],[],[],0.0)[0]:
+    if select.select([sys.stdin,], [], [], 0.0)[0]:
         arguments = loads(sys.stdin.read())
     else:
         arguments = {}
     return installation.run(' '.join(command), arguments)
 
 
-@command(help='Execute command in isolation.')
-@click.argument('command', nargs=-1)
-def execute(installation, command):
-    """
-    :param installation:
-    :type installation: codev.installation.Installation
-    :param command:
-    :type command: str
-    :return:
-    :rtype: bool
-    """
-    return installation.execute(' '.join(command))
+# @command(help='Execute command in isolation.')
+# @click.argument('command', nargs=-1)
+# def execute(installation, command):
+#     """
+#     :param installation:
+#     :type installation: codev.installation.Installation
+#     :param command:
+#     :type command: str
+#     :return:
+#     :rtype: bool
+#     """
+#     return installation.execute(' '.join(command))
 
 
 # @command(help='Stop the running command in isolation.')
@@ -180,6 +180,10 @@ def info(installation):
                                 formatter.write_text('{source} -> {target}'.format(source=source, target=target))
     click.echo(formatter.getvalue())
     return True
+
+# @command(help='Show settings.')
+# def settings(installation):
+#     pass
 
 
 if __name__ == "__main__":
