@@ -158,28 +158,28 @@ def info(installation):
     :rtype: bool
     """
     info = installation.info
-    click.echo(
-        str(info)
-    )
-    # click.echo(
-    #     'Isolation:\n'
-    #     '    ident: {isolation.ident}\n'
-    #     '    ip: {isolation.ip}\n'.format(
-    #         isolation=info['isolation']
-    #     )
-    # )
-    # click.echo('Configuration:')
-    # for machine_group_name, machines in info['infrastructure'].items():
-    #     click.echo('    Machines group: {name}'.format(name=machine_group_name))
-    #     for machine in machines:
-    #         machine_connectivity = info['connectivity'].get(machine.ident, {})
-    #         click.echo('        {machine.ip} {machine.ident}'.format(machine=machine))
-    #         for source, target in machine_connectivity.items():
-    #             click.echo('                {source} -> {target}'.format(source=source, target=target))
+    formatter = click.HelpFormatter(indent_increment=4)
+    isolation = info.get('isolation', {})
+    if isolation:
+        formatter.write_text('Isolation:')
+        with formatter.indentation():
+            formatter.write_text('ident: {ident}'.format(**isolation))
+            formatter.write_text('   ip: {ip}'.format(**isolation))
+
+    formatter.write_text('Infrastructure:')
+    for machine_group_name, machines in info['infrastructure'].items():
+        with formatter.indentation():
+            formatter.write_text('{name}'.format(name=machine_group_name))
+            for machine in machines:
+                with formatter.indentation():
+                    formatter.write_text('{ident:<20} {ip}'.format(**machine))
+                    if isolation:
+                        machine_connectivity = isolation.get('connectivity', {}).get(machine['ident'], {})
+                        with formatter.indentation():
+                            for source, target in machine_connectivity.items():
+                                formatter.write_text('{source} -> {target}'.format(source=source, target=target))
+    click.echo(formatter.getvalue())
     return True
-    # click.echo(
-    #     '{project} {environment} {configuration} {source_transition}'.format(**installation.installation_info())
-    # )
 
 
 if __name__ == "__main__":

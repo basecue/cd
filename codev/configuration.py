@@ -97,6 +97,11 @@ class Configuration(object):
         :return: configuration info
         :rtype: dict
         """
+        if not self.isolation or (self.isolation.exists() and self.isolation.is_started()):
+            infrastructure_info = self.infrastructure.info
+        else:
+            infrastructure_info = {}
+
         info = dict(
             source=self.source.name,
             source_options=self.source.options,
@@ -104,10 +109,10 @@ class Configuration(object):
             next_source=self.next_source.name if self.next_source else '',
             next_source_options=self.next_source.options if self.next_source else '',
             next_source_ident=self.next_source.ident if self.next_source else '',
-            infrastructure=self.infrastructure.info if not self.isolation or self.isolation.is_started() else {}
+            infrastructure=infrastructure_info
         )
         if self.isolation:
-            info.update(self.isolation.info)
+            info.update(isolation=self.isolation.info)
 
         return info
 

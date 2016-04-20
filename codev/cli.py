@@ -14,7 +14,7 @@ import sys
 def source_transition(installation_info):
         next_source_ident = installation_info['next_source_ident']
         source_ident = installation_info['source_ident']
-        current_source_ident = installation_info['current_source_ident']
+        current_source_ident = installation_info.get('isolation', {}).get('current_source_ident', source_ident)
 
         color_options = dict(
             color_source=color.GREEN,

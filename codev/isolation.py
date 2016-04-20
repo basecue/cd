@@ -107,9 +107,11 @@ class Isolation(BaseProxyPerformer):
 
     @property
     def info(self):
-        return dict(
+        info = dict(
             current_source=self.current_source.name,
             current_source_options=self.current_source.options,
             current_source_ident=self.current_source.ident,
-            isolation=dict(ident=self.isolator.ident, ip=self.isolator.ip)
         )
+        if self.isolator.exists():
+            info.update(dict(ident=self.isolator.ident, ip=self.isolator.ip))
+        return info
