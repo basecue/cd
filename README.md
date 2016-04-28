@@ -23,6 +23,13 @@ $ pip3 install setuptools
 $ pip3 install codev --pre
 ```
 
+### Arch Linux
+```bash
+$ pacman -S python-pip
+$ pip install codev --pre
+```
+
+
 ## Basic usage
 
 ### Overview
