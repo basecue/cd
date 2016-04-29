@@ -34,13 +34,16 @@ class Configuration(object):
         self.infrastructure = Infrastructure(performer, self.settings.infrastructure)
         self.deployment = Deployment(performer, self.settings.provision)
 
-    def install(self, info):
+    def deploy(self, info):
+        info.update(self.info)
         if self.isolation:
-            info.update(self.info)
             current_source = self.isolation.create(info)
+            self.install(current_source)
         else:
-            current_source = self.source
+            logger.info("Deploying project.")
+            self.deployment.deploy(self.infrastructure, info)
 
+    def install(self, current_source):
         version = self.performer.execute('pip3 show codev | grep Version | cut -d " " -f 2')
         logger.info("Run 'codev {version}' in isolation.".format(version=version))
 
@@ -77,11 +80,6 @@ class Configuration(object):
             logger.info("Installation has been successfully completed.")
             return True
 
-    def deploy(self, info):
-        logger.info("Deploying project.")
-        info.update(self.info)
-        self.deployment.deploy(self.infrastructure, info)
-
     def run_script(self, script, arguments=None):
         executor = self.isolation or self.performer
 
@@ -117,7 +115,8 @@ class Configuration(object):
         return info
 
     def destroy_isolation(self):
-        if self.isolation and self.isolation.destroy():
+        if self.isolation and self.isolation.exists():
+            self.isolation.destroy()
             logger.info('Isolation has been destroyed.')
             return True
         else:

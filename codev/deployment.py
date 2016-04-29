@@ -31,11 +31,11 @@ class Deployment(BaseProxyExecutor):
         """
         self.run_scripts(self.scripts.onstart, script_info)
         try:
-            logger.info('Installing provisioner...')
-            self.provisioner.install()
-
             logger.info('Creating machines...')
             machines_groups = infrastructure.machines_groups(create=True)
+
+            logger.info('Installing provisioner...')
+            self.provisioner.install()
 
             logger.info('Configuration...')
             self.provisioner.run(machines_groups, script_info)

@@ -124,21 +124,12 @@ class Installation(object):
 
     def deploy(self):
         """
-        Start provisioning of installation
+        Create isolation if it does not exist and start deployment in isolation (if not disabled).
 
         :return: True if deployment is successfully realized
         :rtype: bool
         """
         return self.configuration.deploy(self.info)
-
-    def install(self):
-        """
-        Create isolation if it does not exist and start installation in isolation.
-
-        :return: True if installation is successfully realized
-        :rtype: bool
-        """
-        return self.configuration.install(self.info)
 
     def run(self, script, arguments=None):
         """
