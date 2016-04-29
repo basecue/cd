@@ -17,8 +17,3 @@ class RealMachinesProvider(MachinesProvider):
     provider_name = 'real'
     settings_class = RealMachinesSettings
 
-    def machines(self, create=False, pub_key=None):
-        machines = []
-        for host in self.settings.hosts:
-            machines.append(RealMachine(host))
-        return machines

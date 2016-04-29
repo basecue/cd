@@ -9,7 +9,19 @@ class BaseMachine(BaseProxyPerformer):
     def exists(self):
         raise NotImplementedError()
 
+    def is_started(self):
+        raise NotImplementedError()
+
     def start(self):
+        raise NotImplementedError()
+
+    def create(self, distribution, release, install_ssh_server=False, ssh_key=None):
+        raise NotImplementedError()
+
+    def destroy(self):
+        raise NotImplementedError()
+
+    def stop(self):
         raise NotImplementedError()
 
 
@@ -21,19 +33,16 @@ class MachinesProvider(Provider, ConfigurableProvider):
         self.performer = performer
         super().__init__(*args, **kwargs)
 
-    def create(self, machine, pub_key):
-        raise NotImplementedError()
-
     def idents(self):
         for i in range(1, self.settings.number + 1):
             ident = '%s_%000d' % (self.ident, i)
             yield ident
 
-    def machines(self, create=False, pub_key=None):
+    def machines(self, create=False, ssh_key=None):
         for ident in self.idents():
             machine = self.machine_class(self.performer, ident=ident)
             if create and not machine.exists():
-                self.create(machine, pub_key)
+                machine.create(self.settings.distribution, self.settings.release, install_ssh_server=True, ssh_key=ssh_key)
             elif create:
                 machine.start()
 

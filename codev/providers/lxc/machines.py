@@ -43,29 +43,38 @@ class LXCMachine(BaseMachine):
         else:
             raise ValueError('s:%s:s' % state)
 
-    def create(self, distribution, release, ip=None, gateway=None):
-        if not self.exists():
-            architecture = self._get_architecture()
+    def create(self, distribution, release, install_ssh=False, ssh_key=None): #, ip=None, gateway=None):
+        architecture = self._get_architecture()
+        if not self.performer.check_execute(
+            'lxc-create -t {distribution} -n {container_name} -- --release {release}'.format(
+                container_name=self.ident,
+                distribution=distribution,
+                release=release,
+                architecture=architecture
+            )
+        ):
             self.performer.execute('lxc-create -t download -n {container_name} -- --dist {distribution} --release {release} --arch {architecture}'.format(
                 container_name=self.ident,
                 distribution=distribution,
                 release=release,
                 architecture=architecture
             ))
-            self._configure(ip=ip, gateway=gateway)
-            return True
-        else:
-            return False
+        self._configure()  # ip=ip, gateway=gateway)
+
+        self.start()
+        # install ssh server
+        if install_ssh:
+            self.install_packages('openssh-server')
+
+            # authorize user for ssh
+            if ssh_key:
+                self.execute('mkdir -p .ssh')
+                self.execute('tee .ssh/authorized_keys', writein=ssh_key)
 
     def destroy(self):
-        if self.exists():
-            self.stop()
-            self.performer.execute('lxc-destroy -n {container_name}'.format(
-                container_name=self.ident,
-            ))
-            return True
-        else:
-            return False
+        self.performer.execute('lxc-destroy -n {container_name}'.format(
+            container_name=self.ident,
+        ))
 
     def _get_architecture(self):
         architecture = self.performer.execute('uname -m')
@@ -156,27 +165,18 @@ class LXCMachine(BaseMachine):
         return '{container_directory}/config'.format(container_directory=self._container_directory)
 
     def start(self):
-        if not self.is_started():
-            self.performer.execute('lxc-start -n {container_name}'.format(
-                container_name=self.ident,
-            ))
+        self.performer.execute('lxc-start -n {container_name}'.format(
+            container_name=self.ident,
+        ))
 
-            while not self.is_started():
-                sleep(0.5)
-
+        while not self.is_started():
+            sleep(0.5)
             return True
-        else:
-            return False
 
     def stop(self):
-        if self.is_started():
-            self.performer.execute('lxc-stop -n {container_name}'.format(
-                container_name=self.ident,
-            ))
-
-            return True
-        else:
-            return False
+        self.performer.execute('lxc-stop -n {container_name}'.format(
+            container_name=self.ident,
+        ))
 
     @property
     def ip(self):
@@ -267,65 +267,8 @@ class LXCMachinesSettings(BaseSettings):
     def number(self):
         return int(self.data.get('number', 1))
 
-    # # TODO rethink
-    # @property
-    # def network(self):
-    #     return self.data.get('network', {})
-    #
-    # @property
-    # def network_ip_start(self):
-    #     return self.network.get('ip_start', 0)
-    #
-    # @property
-    # def static_network(self):
-    #     return self.network == {} or self.network_ip_start
-
 
 class LXCMachinesProvider(MachinesProvider):
     provider_name = 'lxc'
     settings_class = LXCMachinesSettings
     machine_class = LXCMachine
-    ip_counter = 0
-
-    def create(self, machine, pub_key):
-        machine.create(self.settings.distribution, self.settings.release)
-
-        machine.start()
-
-        #install ssh server
-        machine.install_packages('openssh-server')
-
-        #authorize user for ssh
-        if pub_key:
-            machine.execute('mkdir -p .ssh')
-            machine.execute('tee .ssh/authorized_keys', writein=pub_key)
-
-        return machine
-
-    # @contextmanager
-    # def network_settings(self):
-    #
-    #
-    # def create(self, pub_key=None):
-    #
-    #     ip_nums = None
-    #     gateway = None
-    #
-    #     if self.settings.static_network:
-    #         for line in self.performer.execute('cat /etc/default/lxc-net').splitlines():
-    #             r = re.match('^LXC_ADDR=\"([\w\.]+)\"$', line)
-    #             if r:
-    #                 gateway = r.group(1)
-    #                 ip_nums = list(map(int, gateway.split('.')))
-    #
-    #     for i in range(1, self.settings.number + 1):
-    #         ident = '%s_%000d' % (self.ident, i)
-    #
-    #         if self.settings.network_ip_start:
-    #             ip = '.'.join(map(str, ip_nums[:3] + [self.settings.network_ip_start + i - 1]))
-    #         elif ip_nums:
-    #             ip = '.'.join(map(str, ip_nums[:3] + [ip_nums[3] + self.__class__.ip_counter + 1]))
-    #             self.__class__.ip_counter += 1
-    #         else:
-    #             ip = None
-
