@@ -29,7 +29,7 @@ class Isolation(BaseProxyPerformer):
             machine = infrastructure.get_machine_by_ident(machine_ident)
 
             for source_port, target_port in connectivity_conf.items():
-                self.isolator.redirect(machine, source_port, target_port)
+                self.isolator.redirect(machine.ip, source_port, target_port)
 
     def install_codev(self):
         with self.change_directory(self.current_source.directory):
@@ -113,5 +113,5 @@ class Isolation(BaseProxyPerformer):
             current_source_ident=self.current_source.ident,
         )
         if self.isolator.exists():
-            info.update(dict(ident=self.isolator.ident, ip=self.isolator.ip))
+            info.update(dict(ident=self.isolator.ident, specific=self.isolator.info))
         return info

@@ -265,7 +265,11 @@ class VirtualboxMachine(BaseMachine):
 
         hdd_dir = '~ /.share/codev/virtualbox'
         # create storage
-        self.performer.execute('VBoxManage createhd --filename {hdd_dir}/{ident}.vdi --size {hdd}'.format(ident=self.ident, hdd_dir=hdd_dir, hdd=hdd))
+        self.performer.execute(
+            'VBoxManage createhd --filename {hdd_dir}/{ident}.vdi --size {hdd}'.format(
+                ident=self.ident, hdd_dir=hdd_dir, hdd=hdd
+            )
+        )
         # if error appears, delete {name}.vdi and "runvboxmanage closemedium disk {name}.vdi"
 
         # create SATA

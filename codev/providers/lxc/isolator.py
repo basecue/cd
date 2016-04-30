@@ -137,7 +137,6 @@ class LXCIsolator(Isolator):
             yield
 
     def make_link(self, source, target):
-        # experimental
         performer_background_runner = BackgroundExecutor(
             self.performer, ident='{share_directory}/{target}'.format(
                 share_directory=self.machine.share_directory,

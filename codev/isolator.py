@@ -19,17 +19,33 @@ class Isolator(Provider, BaseProxyPerformer, ConfigurableProvider):
         raise NotImplementedError()
 
     @property
-    def ip(self):
-        raise NotImplementedError()
+    def info(self):
+        return {}
 
-    def redirect(self, machine, source_port, target_port):
+    @property
+    def ip(self):
+        return '127.0.0.1'
+
+    def redirect(self, source_ip, source_port, target_port):
         redirection = dict(
             source_port=source_port,
             target_port=target_port,
-            source_ip=machine.ip,
+            source_ip=source_ip,
             target_ip=self.ip
         )
 
-        self.execute('iptables -t nat -A PREROUTING --dst {target_ip} -p tcp --dport {target_port} -j DNAT --to-destination {source_ip}:{source_port}'.format(**redirection))
-        self.execute('iptables -t nat -A POSTROUTING -p tcp --dst {source_ip} --dport {source_port} -j SNAT --to-source {target_ip}'.format(**redirection))
-        self.execute('iptables -t nat -A OUTPUT --dst {target_ip} -p tcp --dport {target_port} -j DNAT --to-destination {source_ip}:{source_port}'.format(**redirection))
+        self.execute(
+            'iptables -t nat -A PREROUTING --dst {target_ip} -p tcp --dport {target_port} -j DNAT --to-destination {source_ip}:{source_port}'.format(
+                **redirection
+            )
+        )
+        self.execute(
+            'iptables -t nat -A POSTROUTING -p tcp --dst {source_ip} --dport {source_port} -j SNAT --to-source {target_ip}'.format(
+                **redirection
+            )
+        )
+        self.execute(
+            'iptables -t nat -A OUTPUT --dst {target_ip} -p tcp --dport {target_port} -j DNAT --to-destination {source_ip}:{source_port}'.format(
+                **redirection
+            )
+        )
