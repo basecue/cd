@@ -1,9 +1,11 @@
-import re
 from logging import getLogger
 
 from .settings import YAMLSettingsReader
-from .debug import DebugSettings
 from .performer import BaseProxyPerformer
+from .logging import logging_config
+from .performer import CommandError
+from .debug import DebugSettings
+
 
 logger = getLogger(__name__)
 command_logger = getLogger('command')
@@ -31,7 +33,7 @@ class Isolation(BaseProxyPerformer):
             for source_port, target_port in connectivity_conf.items():
                 self.isolator.redirect(machine.ip, source_port, target_port)
 
-    def install_codev(self):
+    def _install_codev(self):
         with self.change_directory(self.current_source.directory):
             with self.get_fo('.codev') as codev_file:
                 version = YAMLSettingsReader().from_yaml(codev_file).version
@@ -76,7 +78,7 @@ class Isolation(BaseProxyPerformer):
         with self.change_directory(self.current_source.directory):
             super().run_script(codev_script, arguments=arguments, logger=logger)
 
-    def create(self, info):
+    def create(self, infrastructure, info):
         logger.info("Creating isolation...")
         created = self.isolator.create()
 
@@ -84,17 +86,53 @@ class Isolation(BaseProxyPerformer):
         if created:
             logger.info("Install project to isolation...")
             self.current_source.install(self.performer)
-            self.install_codev()
+            self._install_codev()
             self.run_scripts(self.scripts.oncreate, info, logger=command_logger)
         else:
             if self.next_source:
                 logger.info("Transition source in isolation...")
                 self.current_source = self.next_source
                 self.current_source.install(self.performer)
-                self.install_codev()
+                self._install_codev()
         logger.info("Entering isolation...")
         self.run_scripts(self.scripts.onenter, info, logger=command_logger)
-        return self.current_source
+        return self._install(infrastructure, info)
+
+    def _install(self, infrastructure, info):
+        version = self.performer.execute('pip3 show codev | grep ^Version | cut -d " " -f 2')
+        logger.info("Run 'codev {version}' in isolation.".format(version=version))
+
+        if DebugSettings.perform_settings:
+            perform_debug = ' '.join(
+                (
+                    '--debug {key} {value}'.format(key=key, value=value)
+                    for key, value in DebugSettings.perform_settings.data.items()
+                )
+            )
+        else:
+            perform_debug = ''
+
+        logging_config(control_perform=True)
+        try:
+            installation_options = '-e {environment} -c {configuration} -s {current_source.provider_name}:{current_source.options}'.format(
+                current_source=self.current_source,
+                **info
+            )
+            with self.performer.change_directory(self.current_source.directory):
+                self.performer.execute(
+                    'codev deploy {installation_options} --performer=local --disable-isolation --force {perform_debug}'.format(
+                        installation_options=installation_options,
+                        perform_debug=perform_debug
+                    ), logger=command_logger)
+        except CommandError as e:
+            command_logger.error(e.error)
+            logger.error("Installation failed.")
+            return False
+        else:
+            logger.info("Setting up connectivity.")
+            self.connect(infrastructure)
+            logger.info("Installation has been successfully completed.")
+            return True
 
     def exists(self):
         return self.isolator.exists()

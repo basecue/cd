@@ -53,7 +53,7 @@ class Installation(object):
         :return:
         """
         environment_settings = settings.environments[environment_name]
-        self.environment = environment_name
+        self.environment_name = environment_name
         self.project_name = settings.project
 
         # source
@@ -116,15 +116,23 @@ class Installation(object):
 
         # configuration
         configuration_settings = environment_settings.configurations[configuration_name]
+        self.configuration_name = configuration_name
         self.configuration = Configuration(
-            self.performer,
-            settings.project, environment_name, configuration_name,
-            configuration_settings, source, next_source, disable_isolation
+            self.performer, configuration_settings, source, next_source, disable_isolation
         )
+
+    def install(self):
+        """
+        Create isolation if it does not exist and deploy the project in isolation (if not disabled).
+
+        :return: True if deployment is successfully realized
+        :rtype: bool
+        """
+        return self.configuration.install(self.info)
 
     def deploy(self):
         """
-        Create isolation if it does not exist and start deployment in isolation (if not disabled).
+        Create machines, install and run provisioner
 
         :return: True if deployment is successfully realized
         :rtype: bool
@@ -157,7 +165,7 @@ class Installation(object):
         :return: True if isolation is destroyed
         :rtype: bool
         """
-        return self.configuration.destroy_isolation()
+        return self.configuration.destroy()
 
     @property
     def info(self):
@@ -169,8 +177,8 @@ class Installation(object):
         """
         info = dict(
             project=self.project_name,
-            environment=self.environment,
-            configuration=self.configuration.name,
+            environment=self.environment_name,
+            configuration=self.configuration_name,
         )
         info.update(self.configuration.info)
         return info
@@ -287,14 +295,3 @@ class Installation(object):
     #             isolation.execute(command, logger=shell_logger)
     #         except CommandError as e:
     #             shell_logger.error(e.error)
-
-
-    # def info(self):
-    #     isolation = self.isolation()
-    #
-    #     return dict(
-    #         isolation=isolation,
-    #         machines_groups=self.configuration.infrastructure(),
-    #         connectivity=isolation.connectivity
-    #     )
-

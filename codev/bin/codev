@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/home/beer/projects/baseclue/codev/env/bin/python
 
 """
 Use cases
@@ -24,6 +24,22 @@ from codev.cli import command, main
 from json import loads
 import sys
 import select
+
+
+@command(
+    help='Install project.',
+    confirmation="Install project '{project}' to environment '{environment}' in configuration '{configuration}' at source '{source_transition}'?"
+)
+def install(installation):
+    """
+    Create isolation, install project into isolation and deploy
+
+    :param installation:
+    :type installation: codev.installation.Installation
+    :return:
+    :rtype: bool
+    """
+    return installation.install()
 
 
 @command(
