@@ -25,6 +25,10 @@ yaml.add_constructor(_mapping_tag, dict_constructor)
 """
 
 
+class SettingsError(Exception):
+    pass
+
+
 class BaseSettings(object):
     def __init__(self, data=None):
         if data is None:

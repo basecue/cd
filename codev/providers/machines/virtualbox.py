@@ -28,14 +28,14 @@ class VirtualboxMachine(BaseMachine):
     def create(self, distribution, release, install_ssh_server=False, ssh_key=None):
         if distribution != 'ubuntu':
             raise RuntimeError("Distribution '{distribution}' is not supported".format(distribution=distribution))
-        if release in ('wily',):
+        if release in ('wily', 'xenial'):
             device_1 = 'enp0s3'
             device_2 = 'enp0s8'
         elif release in ('trusty', 'utopic'):
             device_1 = 'eth0'
             device_2 = 'eth1'
         else:
-            raise RuntimeError("Release 'release' is not supported".format(release=release))
+            raise RuntimeError("Release '{release}' is not supported".format(release=release))
 
         release_iso = self._download_ubuntu_iso(release)
 
@@ -84,7 +84,8 @@ class VirtualboxMachine(BaseMachine):
     def _download_ubuntu_iso(self, release, subtype='server', arch='amd64'):
         release_to_number = {
             'trusty': '14.04.3',
-            'wily': '15.10'
+            'wily': '15.10',
+            'xenial': '16.04'
         }
 
         release_number = release_to_number[release]
@@ -93,7 +94,7 @@ class VirtualboxMachine(BaseMachine):
         if not self.performer.check_execute('[ -f {release_iso} ]'.format(release_iso=release_iso)):
             self.performer.execute('mkdir -p ~/.cache/codev/')
             self.performer.execute(
-                'wget http://releases.ubuntu.com/{release_dir}/ubuntu-{release_number}-{subtype}-{arch}.iso -O {release_iso}'.format(
+                'wget http://releases.ubuntu.com/{release_dir}/ubuntu-{release_number}-{subtype}-{arch}.iso -O {release_iso} -o /dev/null'.format(
                     release_dir='.'.join(release_number.split('.')[:2]),
                     release_number=release_number,
                     subtype=subtype,
@@ -101,6 +102,7 @@ class VirtualboxMachine(BaseMachine):
                     release_iso=release_iso
                 )
             )
+            # TODO check checksum and move file to release_iso, else delete it and raise exception
         return release_iso
 
     def _extract_iso(self, source_iso, target_dir):
@@ -263,11 +265,15 @@ class VirtualboxMachine(BaseMachine):
             )
         )
 
-        hdd_dir = '~ /.share/codev/virtualbox'
+        hdd_dir = '.share/codev/virtualbox'
+        medium = '{hdd_dir}/{ident}.vdi'.format(
+            ident=self.ident,
+            hdd_dir=hdd_dir
+        )
         # create storage
         self.performer.execute(
-            'VBoxManage createhd --filename {hdd_dir}/{ident}.vdi --size {hdd}'.format(
-                ident=self.ident, hdd_dir=hdd_dir, hdd=hdd
+            'VBoxManage createhd --filename {medium} --size {hdd}'.format(
+                ident=self.ident, medium=medium, hdd=hdd
             )
         )
         # if error appears, delete {name}.vdi and "runvboxmanage closemedium disk {name}.vdi"
@@ -280,9 +286,9 @@ class VirtualboxMachine(BaseMachine):
 
         # attach storage to SATA
         self.performer.execute(
-            'VBoxManage storageattach "{ident}" --storagectl "SATA" --port 0 --device 0 --type hdd --medium {hdd_dir}/{ident}git di'.format(
+            'VBoxManage storageattach "{ident}" --storagectl "SATA" --port 0 --device 0 --type hdd --medium {medium}'.format(
                 ident=self.ident,
-                hdd_dir=hdd_dir
+                medium=medium
             )
         )
 
