@@ -6,14 +6,13 @@ class DirectoryIsolator(Isolator):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._dir = '~/.share/codev/{ident}'.format(ident=self.ident)
+        self._dir = '~/.share/codev/{ident}/directory'.format(ident=self.ident)
 
     def exists(self):
         return self.performer.check_execute('[ -d {dir} ]'.format(dir=self._dir))
 
     def create(self):
         self.performer.execute('mkdir -p {dir}'.format(dir=self._dir))
-        return True
 
     def is_started(self):
         return self.exists
