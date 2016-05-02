@@ -20,7 +20,7 @@ class VirtualenvIsolator(DirectoryIsolator):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._env_dir = '~/.share/codev/{ident}/virtualenv'.format(ident=self.ident)
+        self._env_dir = 'virtualenv'
 
     def exists(self):
         return super().exists() and self.performer.check_execute('[ -d {env_dir} ]'.format(env_dir=self._env_dir))
@@ -29,18 +29,19 @@ class VirtualenvIsolator(DirectoryIsolator):
         super().create()
         python_version = self.settings.python_version
         if python_version == 3:
-            self.performer.execute('python3 -m venv {env_dir}'.format(env_dir=self._env_dir))
+            super().execute('python3 -m venv {env_dir}'.format(env_dir=self._env_dir))
         else:
-            self.performer.execute('virtualenv -p python{python_version} {env_dir}'.format(
+            super().execute('virtualenv -p python{python_version} {env_dir}'.format(
                 python_version=python_version, env_dir=self._env_dir)
             )
+        return True
 
     def is_started(self):
         return self.exists
 
     def destroy(self):
         super().destroy()
-        return self.performer.execute('rm -rf {env_dir}'.format(env_dir=self._env_dir))
+        return super().execute('rm -rf {env_dir}'.format(env_dir=self._env_dir))
 
     def execute(self, command, logger=None, writein=None, max_lines=None):
         return super().execute(
