@@ -15,7 +15,7 @@ class LXCMachine(BaseMachine):
         super().__init__(*args, **kwargs)
         self.__container_directory = None
         self.__share_directory = None
-        self.base_dir = self.working_dir = '/root'
+        self.base_dir = '/root'
         self.__gateway = None
 
     def exists(self):
