@@ -46,7 +46,7 @@ class AnsibleProvisioner(Provisioner):
             for machine in machines:
                 # ansible node additional requirements
                 machine.install_packages('python')
-                inventory.set(machines_group, machine.host, '')
+                inventory.set(machines_group, machine.ip, '')
 
         inventory_filepath = 'codev.ansible.inventory'
 

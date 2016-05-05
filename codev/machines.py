@@ -24,6 +24,11 @@ class BaseMachine(BaseProxyPerformer):
     def stop(self):
         raise NotImplementedError()
 
+    @property
+    def ip(self):
+        #TODO rename to host
+        raise NotImplementedError()
+
 
 class MachinesProvider(Provider, ConfigurableProvider):
     machine_class = BaseMachine

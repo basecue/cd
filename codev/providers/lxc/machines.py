@@ -236,10 +236,6 @@ class LXCMachine(BaseMachine):
         ))
         self.performer.execute('rm {tempfile}'.format(tempfile=tempfile))
 
-    @property
-    def host(self):
-        return self.ip
-
     def execute(self, command, env={}, logger=None, writein=None, max_lines=None):
         env.update({
             'HOME': self.base_dir,

@@ -46,10 +46,9 @@ class VirtualboxMachine(BaseMachine):
 
         iface_ip = '192.168.77.1'
 
+        packages = ['virtualbox-guest-utils']
         if install_ssh_server:
-            packages = ['openssh-server']
-        else:
-            packages = []
+            packages.append('openssh-server')
 
         self._prepare_ubuntu_iso(
             release_iso, vm_iso,
@@ -307,6 +306,14 @@ class VirtualboxMachine(BaseMachine):
         # remove install iso
         self.performer.execute(
             'VBoxManage storageattach "{ident}" --storagectl "IDE" --port 1 --device 0 --type dvddrive --medium none'.format(
+                ident=self.ident
+            )
+        )
+
+    @property
+    def ip(self):
+        return self.performer.execute(
+            'VBoxManage guestproperty get "{ident}" "/VirtualBox/GuestInfo/Net/0/V4/IP"'.format(
                 ident=self.ident
             )
         )
