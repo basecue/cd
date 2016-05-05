@@ -52,17 +52,15 @@ class LXCIsolator(Isolator):
 
     def create(self):
         try:
-            created = self.machine.create('ubuntu', 'wily')
+            self.machine.create('ubuntu', 'wily')
         except:
-            created = self.machine.create('ubuntu', 'trusty')
+            self.machine.create('ubuntu', 'trusty')
 
         self.machine.start()
         self.machine.install_packages('lxc', 'socat')
 
-        if created:
-            # reboot
-            self.machine.stop()
-            self.machine.start()
+        self.machine.stop()
+        self.machine.start()
 
         # TODO test uid/gid mapping
         # if created:
@@ -84,8 +82,6 @@ class LXCIsolator(Isolator):
         #         gid_start=gid_start,
         #         gid_range=gid_range
         #     ))
-
-        return created
 
     @contextmanager
     def _environment(self):
