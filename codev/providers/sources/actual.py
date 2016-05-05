@@ -14,7 +14,8 @@ class ActualSource(Source):
         performer.send_file(archive, remote_archive)
 
         # install gunzip
-        performer.install_packages('gzip')
+        # TODO requirements
+        # performer.install_packages('gzip')
 
         performer.execute('mkdir -p {directory}'.format(directory=self.directory))
         performer.execute(

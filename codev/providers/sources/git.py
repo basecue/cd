@@ -46,7 +46,8 @@ class GitSource(Source):
         :type performer: codev.performer.BasePerformer
         :return:
         """
-        performer.install_packages('git')
+        # TODO requirements
+        # performer.install_packages('git')
 
         # TODO checking fingerprints instead of copying known_hosts
         # http://serverfault.com/questions/132970/can-i-automatically-add-a-new-host-to-known-hosts

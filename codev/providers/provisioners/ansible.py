@@ -30,7 +30,9 @@ class AnsibleProvisioner(Provisioner):
     settings_class = AnsibleProvisionerSettings
 
     def install(self):
-        self.performer.install_packages('python-dev', 'python-pip')
+        self.performer.install_pip()
+        # TODO requirements
+        # self.performer.install_packages('python-dev', 'python-pip')
         self.performer.execute('pip install setuptools')
         self.performer.execute('pip install --upgrade markupsafe paramiko PyYAML Jinja2 httplib2 six ecdsa==0.11')
 

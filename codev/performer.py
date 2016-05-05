@@ -65,7 +65,7 @@ class BaseExecutor(object):
 
     @property
     def working_dir(self):
-        return path.join(self.base_dir, self.working_dirs)
+        return path.join(self.base_dir, *self.working_dirs)
 
     @contextmanager
     def change_directory(self, directory):
@@ -159,7 +159,7 @@ class BasePerformer(BaseExecutor):
                 )
             elif self._distribution() == 'arch':
                 self.execute(
-                    'pacman -S {packages} --no-confirm'.format(
+                    'pacman -S {packages} --noconfirm'.format(
                         packages=' '.join(not_installed_packages)
                     )
                 )

@@ -28,9 +28,6 @@ class VirtualenvIsolator(DirectoryIsolator):
     def create(self):
         super().create()
         python_version = self.settings.python_version
-        # if python_version == 3:
-        #     self.performer.execute('python3 -m venv {env_dir}'.format(env_dir=self._env_dir))
-        # else:
         self.performer.execute('virtualenv -p python{python_version} {env_dir}'.format(
             python_version=python_version, env_dir=self._env_dir)
         )
