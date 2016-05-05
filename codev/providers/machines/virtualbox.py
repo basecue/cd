@@ -312,11 +312,18 @@ class VirtualboxMachine(BaseMachine):
 
     @property
     def ip(self):
-        return self.performer.execute(
+        ip = self.performer.execute(
             'VBoxManage guestproperty get "{ident}" "/VirtualBox/GuestInfo/Net/0/V4/IP"'.format(
                 ident=self.ident
             )
         )
+        if ip == 'No value set!':
+            # TODO better exception
+            raise Exception(
+                "Guest additions are not installed for virtualbox machine '{ident}'.".format(
+                    ident=self.ident
+                )
+            )
 
 
 class VirtualboxMachinesSettings(BaseSettings):
