@@ -7,8 +7,6 @@ from .isolator import Isolator
 from logging import getLogger
 
 logger = getLogger(__name__)
-command_logger = getLogger('command')
-debug_logger = getLogger('debug')
 
 
 class Installation(object):

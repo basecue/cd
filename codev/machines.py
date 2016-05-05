@@ -3,9 +3,6 @@ from .performer import BaseProxyPerformer
 
 
 class BaseMachine(BaseProxyPerformer):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
     def exists(self):
         raise NotImplementedError()
 
