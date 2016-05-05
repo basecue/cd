@@ -242,10 +242,9 @@ class LXCMachine(BaseMachine):
             'LANG': 'C.UTF-8',
             'LC_ALL':  'C.UTF-8'
         })
-        return self.performer.execute('lxc-attach {env} -n {container_name} -- bash -c "cd {working_dir} && {command}"'.format(
-            working_dir=self.working_dir,
+        return self.performer.execute('lxc-attach {env} -n {container_name} -- {command}"'.format(
             container_name=self.ident,
-            command=command.replace('\\', '\\\\').replace('$', '\$').replace('"', '\\"'),
+            command=self._prepare_command(command),
             env=' '.join('-v {var}={value}'.format(var=var, value=value) for var, value in env.items())
         ), logger=logger, writein=writein, max_lines=max_lines)
 

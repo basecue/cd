@@ -21,10 +21,6 @@ class DirectoryIsolator(Isolator):
         return self.performer.execute('rm -rf {dir}'.format(dir=self.base_dir))
 
     def execute(self, command, logger=None, writein=None, max_lines=None):
-        with self.performer.change_directory(self.base_dir):
-            return super().execute(
-                'bash -c "cd {base_dir} && {command}"'.format(
-                    base_dir=self.base_dir,
-                    command=command.replace('\\', '\\\\').replace('$', '\$').replace('"', '\\"')
-                ), logger=logger, writein=writein, max_lines=max_lines
-            )
+        return super().execute(
+            self._prepare_command(command), logger=logger, writein=writein, max_lines=max_lines
+        )
