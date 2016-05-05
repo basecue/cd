@@ -38,8 +38,6 @@ class Isolation(BaseProxyPerformer):
             with self.get_fo('.codev') as codev_file:
                 version = YAMLSettingsReader().from_yaml(codev_file).version
 
-        # install python3 pip
-        self.install_packages('python3-pip')
         self.execute('pip3 install setuptools')
 
         # install proper version of codev
