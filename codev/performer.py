@@ -63,8 +63,9 @@ class BaseExecutor(object):
             arguments.update(common_arguments)
             self.run_script(script, arguments, logger=logger)
 
+    @property
     def working_dir(self):
-        path.join(self.base_dir, self.working_dirs)
+        return path.join(self.base_dir, self.working_dirs)
 
     @contextmanager
     def change_directory(self, directory):
