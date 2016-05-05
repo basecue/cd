@@ -130,6 +130,7 @@ class BasePerformer(BaseExecutor):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__cache_packages = False
+        self.__distribution = None
 
     def _distribution(self):
         if not self.__distribution:
