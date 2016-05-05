@@ -141,6 +141,7 @@ class BasePerformer(BaseExecutor):
                     break
             else:
                 raise PerformerError('Unknown distribution')
+        return self.__distribution
 
     def install_packages(self, *packages):
         # TODO make this os independent
