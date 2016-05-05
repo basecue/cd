@@ -1,4 +1,3 @@
-from hashlib import md5
 from contextlib import contextmanager
 from logging import getLogger
 
@@ -13,7 +12,6 @@ class LXCIsolator(Isolator):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.ident = md5(self.ident.encode()).hexdigest()
         self.machine = LXCMachine(self.performer, ident=self.ident)
         self.logger = getLogger(__name__)
 

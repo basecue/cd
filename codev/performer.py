@@ -4,6 +4,7 @@ from os import path
 from time import time
 from json import dumps
 from codev.scripts import COMMON_SCRIPTS
+from hashlib import md5
 
 # TODO - codev/ -> common/ ?
 COMMON_SCRIPTS_PREFIX = 'codev/'
@@ -14,7 +15,8 @@ class BaseExecutor(object):
     def __init__(self, *args, ident=None, **kwargs):
         self.base_dir = ''
         self.working_dirs = []
-        self.ident = ident or str(time())
+        ident = str(ident or time())
+        self.ident = md5(ident.encode()).hexdigest()
         self.output_logger = getLogger('command_output')
         super().__init__(*args, **kwargs)
 

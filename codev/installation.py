@@ -83,15 +83,6 @@ class Installation(object):
         else:
             next_source = None
 
-        # TODO add codev version?
-        ident = '{project}:{environment}:{configuration}:{source_ident}:{next_source_ident}'.format(
-            project=settings.project,
-            environment=environment_name,
-            configuration=configuration_name,
-            source_ident=source.ident,
-            next_source_ident=next_source.ident if next_source else ''
-        )
-
         # performer
         if not performer_provider:
             performer_settings = environment_settings.performer
@@ -108,6 +99,15 @@ class Installation(object):
             isolator_settings = environment_settings.isolator
             isolator_provider = isolator_settings.provider
             isolator_specific = isolator_settings.specific
+
+            # TODO add codev version?
+            ident = sorted(list(dict(
+                project=settings.project,
+                environment=environment_name,
+                configuration=configuration_name,
+                source_ident=source.ident,
+                next_source_ident=next_source.ident if next_source else ''
+            ).items()))
 
             self.performer = Isolator(isolator_provider, performer, settings_data=isolator_specific, ident=ident)
         else:
