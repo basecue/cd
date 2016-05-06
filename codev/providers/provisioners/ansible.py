@@ -30,7 +30,6 @@ class AnsibleProvisioner(Provisioner):
     settings_class = AnsibleProvisionerSettings
 
     def install(self):
-        self.performer.install_pip()
         # TODO requirements
         # self.performer.install_packages('python-dev', 'python-pip')
         self.performer.execute('pip install setuptools')
