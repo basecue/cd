@@ -1,10 +1,9 @@
 from .provider import Provider, ConfigurableProvider
 from contextlib import contextmanager
 from os import path
-from time import time
 from json import dumps
 from codev.scripts import COMMON_SCRIPTS
-from hashlib import md5
+
 
 # TODO - codev/ -> common/ ?
 COMMON_SCRIPTS_PREFIX = 'codev/'
@@ -15,8 +14,7 @@ class BaseExecutor(object):
     def __init__(self, *args, ident=None, **kwargs):
         self.base_dir = ''
         self.working_dirs = []
-        ident = str(ident or time())
-        self.ident = md5(ident.encode()).hexdigest()
+        self.ident = ident
         self.output_logger = getLogger('command_output')
         super().__init__(*args, **kwargs)
 
