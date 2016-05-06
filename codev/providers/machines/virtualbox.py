@@ -312,7 +312,7 @@ class VirtualboxMachine(BaseMachine):
 
     @property
     def ip(self):
-        for i in range(3):
+        for i in range(20):
             value_ip = self.performer.execute(
                 'VBoxManage guestproperty get "{ident}" "/VirtualBox/GuestInfo/Net/0/V4/IP"'.format(
                     ident=self.ident

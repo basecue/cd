@@ -45,7 +45,7 @@ class MachinesProvider(Provider, ConfigurableProvider):
             machine = self.machine_class(self.performer, ident=ident)
             if create and not machine.exists():
                 machine.create(self.settings.distribution, self.settings.release, install_ssh_server=True, ssh_key=ssh_key)
-            elif create:
+            elif create and not machine.is_started():
                 machine.start()
 
             if create or machine.exists():
