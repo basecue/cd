@@ -6,7 +6,7 @@ class DirectoryIsolator(Isolator):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.base_dir = '~/.share/codev/{ident}/directory'.format(ident=self.ident)
+        self.base_dir = '~/.share/codev/directory/{ident}'.format(ident=self.ident)
 
     def exists(self):
         return self.performer.check_execute('[ -d {dir} ]'.format(dir=self.base_dir))
@@ -19,8 +19,3 @@ class DirectoryIsolator(Isolator):
 
     def destroy(self):
         return self.performer.execute('rm -rf {dir}'.format(dir=self.base_dir))
-
-    def execute(self, command, logger=None, writein=None, max_lines=None):
-        return super().execute(
-            self._prepare_command(command), logger=logger, writein=writein, max_lines=max_lines
-        )

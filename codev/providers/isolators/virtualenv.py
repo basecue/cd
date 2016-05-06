@@ -1,5 +1,5 @@
 from codev.settings import BaseSettings, SettingsError
-from .directory import DirectoryIsolator
+from codev.isolator import Isolator
 
 
 class VirtualenvIsolatorSettings(BaseSettings):
@@ -14,35 +14,33 @@ class VirtualenvIsolatorSettings(BaseSettings):
             raise SettingsError('Unsupported python version for virtualenv isolator.')
 
 
-class VirtualenvIsolator(DirectoryIsolator):
+class VirtualenvIsolator(Isolator):
     provider_name = 'virtualenv'
     settings_class = VirtualenvIsolatorSettings
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._env_dir = '~/.share/codev/{ident}/virtualenv'.format(ident=self.ident)
+        self._env_dir = '~/.share/codev/virtualenv/{ident}'.format(ident=self.ident)
 
     def exists(self):
-        return super().exists() and self.performer.check_execute('[ -d {env_dir} ]'.format(env_dir=self._env_dir))
+        return self.performer.check_execute('[ -d {env_dir} ]'.format(env_dir=self._env_dir))
 
     def create(self):
-        super().create()
         python_version = self.settings.python_version
         self.performer.execute('virtualenv -p python{python_version} {env_dir}'.format(
             python_version=python_version, env_dir=self._env_dir)
         )
 
     def is_started(self):
-        return self.exists
+        return self.exists()
 
     def destroy(self):
-        super().destroy()
-        return self.performer.execute('rm -rf {env_dir}'.format(env_dir=self._env_dir))
+        self.performer.execute('rm -rf {env_dir}'.format(env_dir=self._env_dir))
 
-    def execute(self, command, logger=None, writein=None, max_lines=None):
+    def _execute(self, command, logger=None, writein=None, max_lines=None):
         return super().execute(
             'bash -c "source {env_dir}/bin/activate && {command}"'.format(
                 env_dir=self._env_dir,
-                command=command.replace('\\', '\\\\').replace('$', '\$').replace('"', '\\"')
+                command=command
             ), logger=None, writein=None, max_lines=None
         )

@@ -44,8 +44,6 @@ class VirtualboxMachine(BaseMachine):
             ident=self.ident
         )
 
-        iface_ip = '192.168.77.1'
-
         packages = ['virtualbox-guest-utils']
         if install_ssh_server:
             packages.append('openssh-server')
@@ -57,7 +55,12 @@ class VirtualboxMachine(BaseMachine):
             packages=packages, ssh_authorized_keys=[ssh_key]
         )
 
-        iface = self._create_vbox_iface(iface_ip)
+        iface_ip = '192.168.77.1'
+        dhcp_ip = '192.168.77.2'
+        netmask = '255.255.255.0'
+        lower_ip = '192.168.77.100'
+        upper_ip = '192.168.77.200'
+        iface = self._create_vbox_iface(iface_ip, dhcp_ip, netmask, lower_ip, upper_ip)
         self._create_vm(hostonly_iface=iface)
 
         self._install_vm(vm_iso)
@@ -221,7 +224,7 @@ class VirtualboxMachine(BaseMachine):
             )
         )
 
-    def _create_vbox_iface(self, ip):
+    def _create_vbox_iface(self, ip, dhcp_ip, netmask, lower_ip, upper_ip):
         """
         Create hostonly network interface
 
@@ -246,6 +249,15 @@ class VirtualboxMachine(BaseMachine):
             if r:
                 iface = r.group(1)
                 self.performer.execute('VBoxManage hostonlyif ipconfig {iface} --ip {ip}'.format(iface=iface, ip=ip))
+                self.performer.execute(
+                    'VBoxManage dhcpserver add --ifname {iface} --ip {dhcp_ip} --netmask {netmask} --lowerip {lower_ip} --upperip {upper_ip} --enable'.format(
+                        iface=iface,
+                        dhcp_ip=dhcp_ip,
+                        netmask=netmask,
+                        lower_ip=lower_ip,
+                        upper_ip=upper_ip
+                    )
+                )
 
         if not iface:
             raise RuntimeError('Error during creating virtualbox network host-only interface.')
@@ -257,7 +269,7 @@ class VirtualboxMachine(BaseMachine):
 
         # setup VM + ifaces
         self.performer.execute(
-            'VBoxManage modifyvm "{ident}" --memory {memory} --acpi on --vram 10 --boot1 dvd --nic1 nat --nictype1 Am79C973 --nic2 hostonly --nictype2 Am79C970A --hostonlyadapter2 {hostonly_iface}'.format(
+            'VBoxManage modifyvm "{ident}" --memory {memory} --acpi on --vram 10 --boot1 dvd --nic1 hostonly --nictype1 Am79C970A --hostonlyadapter1 {hostonly_iface} --nic2 nat --nictype2 Am79C973'.format(
                 ident=self.ident,
                 memory=memory,
                 hostonly_iface=hostonly_iface

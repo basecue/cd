@@ -236,7 +236,7 @@ class LXCMachine(BaseMachine):
         ))
         self.performer.execute('rm {tempfile}'.format(tempfile=tempfile))
 
-    def execute(self, command, env={}, logger=None, writein=None, max_lines=None):
+    def _execute(self, command, env={}, logger=None, writein=None, max_lines=None):
         env.update({
             'HOME': self.base_dir,
             'LANG': 'C.UTF-8',
@@ -244,7 +244,7 @@ class LXCMachine(BaseMachine):
         })
         return self.performer.execute('lxc-attach {env} -n {container_name} -- {command}"'.format(
             container_name=self.ident,
-            command=self._prepare_command(command),
+            command=command,
             env=' '.join('-v {var}={value}'.format(var=var, value=value) for var, value in env.items())
         ), logger=logger, writein=writein, max_lines=max_lines)
 

@@ -1,5 +1,6 @@
 from codev.provisioner import Provisioner
 from codev.settings import BaseSettings
+from codev.isolator import Isolator
 # from os import environ
 import configparser
 
@@ -29,16 +30,19 @@ class AnsibleProvisioner(Provisioner):
     provider_name = 'ansible'
     settings_class = AnsibleProvisionerSettings
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.isolator = Isolator('virtualenv', self.performer, settings_data=dict(python='2'))
+
     def install(self):
         # TODO requirements
-        # self.performer.install_packages('python-dev', 'python-pip')
-        self.performer.execute('pip install setuptools')
-        self.performer.execute('pip install --upgrade markupsafe paramiko PyYAML Jinja2 httplib2 six ecdsa==0.11')
+        self.isolator.execute('pip install setuptools')
+        self.isolator.execute('pip install --upgrade markupsafe paramiko PyYAML Jinja2 httplib2 six ecdsa==0.11')
 
         version_add = ''
         if self.settings.version:
             version_add = '==%s' % self.settings.version
-        self.performer.execute('pip install --upgrade ansible%s' % version_add)
+        self.isolator.execute('pip install --upgrade ansible%s' % version_add)
 
     def run(self, machines_groups, info):
         inventory = configparser.ConfigParser(allow_no_value=True, delimiters=('',))
@@ -87,7 +91,7 @@ class AnsibleProvisioner(Provisioner):
         else:
             env_vars = ''
 
-        self.performer.execute('{env_vars}ansible-playbook -i {inventory} {playbook}{extra_vars}'.format(
+        self.isolator.execute('{env_vars}ansible-playbook -i {inventory} {playbook}{extra_vars}'.format(
             inventory=inventory_filepath,
             playbook=self.settings.playbook,
             extra_vars=extra_vars,

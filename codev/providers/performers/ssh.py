@@ -70,7 +70,7 @@ class SSHperformer(Performer):
         stderr = chan.makefile_stderr('rb', bufsize)
         return stdin, stdout, stderr
 
-    def execute(self, command, logger=None, writein=None, max_lines=None):
+    def _execute(self, command, logger=None, writein=None, max_lines=None):
         self.logger.debug('command: %s' % command)
         if not self.client:
             self._connect()

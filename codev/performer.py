@@ -31,8 +31,11 @@ class BaseExecutor(object):
             command=command.replace('\\', '\\\\').replace('$', '\$').replace('"', '\\"')
         )
 
-    def execute(self, command, logger=None, writein=None, max_lines=None):
+    def _execute(self, command, logger=None, writein=None, max_lines=None):
         raise NotImplementedError()
+
+    def execute(self, command, logger=None, writein=None, max_lines=None):
+        return self._execute(self._prepare_command(command), logger=logger, writein=writein, max_lines=max_lines)
 
     def run_script(self, script, arguments=None, logger=None):
         if arguments is None:
@@ -358,7 +361,7 @@ class BackgroundExecutor(BaseProxyExecutor):
     def _get_bg_running_pid(self):
         return self._cat_file(self._isolation.pid_file)
 
-    def execute(self, command, logger=None, writein=None, wait=True):
+    def _execute(self, command, logger=None, writein=None, wait=True):
         self.logger.debug('Command: {command} wait: {wait}'.format(command=command, wait=wait))
         isolation = self._isolation
 
