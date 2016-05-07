@@ -58,7 +58,7 @@ class VirtualboxMachine(BaseMachine):
         iface_ip = '192.168.77.100'
         dhcp_ip = '192.168.77.100'
         netmask = '255.255.255.0'
-        lower_ip = '192.168.77.101'
+        lower_ip = '192.168.77.100'
         upper_ip = '192.168.77.200'
         iface = self._create_vbox_iface(iface_ip, dhcp_ip, netmask, lower_ip, upper_ip)
         self._create_vm(hostonly_iface=iface)

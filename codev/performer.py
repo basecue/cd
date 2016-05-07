@@ -38,11 +38,11 @@ class BaseExecutor(object):
         else:
             return command
 
-    def _execute(self, command, logger=None, writein=None, max_lines=None):
+    def _execute(self, command, logger=None, writein=None, max_lines=None, **kwargs):
         raise NotImplementedError()
 
-    def execute(self, command, logger=None, writein=None, max_lines=None):
-        return self._execute(self._prepare_command(command), logger=logger, writein=writein, max_lines=max_lines)
+    def execute(self, command, logger=None, writein=None, max_lines=None, **kwargs):
+        return self._execute(self._prepare_command(command), logger=logger, writein=writein, max_lines=max_lines, **kwargs)
 
     def run_script(self, script, arguments=None, logger=None):
         if arguments is None:

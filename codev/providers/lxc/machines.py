@@ -236,7 +236,9 @@ class LXCMachine(BaseMachine):
         ))
         self.performer.execute('rm {tempfile}'.format(tempfile=tempfile))
 
-    def _execute(self, command, env={}, logger=None, writein=None, max_lines=None):
+    def _execute(self, command, env=None, logger=None, writein=None, max_lines=None):
+        if env is None:
+            env = {}
         env.update({
             'HOME': self.base_dir,
             'LANG': 'C.UTF-8',
