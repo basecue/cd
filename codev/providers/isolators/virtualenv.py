@@ -1,5 +1,5 @@
 from codev.settings import BaseSettings, SettingsError
-from codev.isolator import Isolator
+from .directory import DirectoryIsolator
 
 
 class VirtualenvIsolatorSettings(BaseSettings):
@@ -14,7 +14,7 @@ class VirtualenvIsolatorSettings(BaseSettings):
             raise SettingsError('Unsupported python version for virtualenv isolator.')
 
 
-class VirtualenvIsolator(Isolator):
+class VirtualenvIsolator(DirectoryIsolator):
     provider_name = 'virtualenv'
     settings_class = VirtualenvIsolatorSettings
 
@@ -23,9 +23,10 @@ class VirtualenvIsolator(Isolator):
         self._env_dir = '~/.share/codev/virtualenv/{ident}'.format(ident=self.ident)
 
     def exists(self):
-        return self.performer.check_execute('[ -d {env_dir} ]'.format(env_dir=self._env_dir))
+        return super().exists() and self.performer.check_execute('[ -d {env_dir} ]'.format(env_dir=self._env_dir))
 
     def create(self):
+        super().create()
         python_version = self.settings.python_version
         self.performer.execute('virtualenv -p python{python_version} {env_dir}'.format(
             python_version=python_version, env_dir=self._env_dir)
@@ -35,12 +36,13 @@ class VirtualenvIsolator(Isolator):
         return self.exists()
 
     def destroy(self):
+        super().destroy()
         self.performer.execute('rm -rf {env_dir}'.format(env_dir=self._env_dir))
 
-    def _execute(self, command, logger=None, writein=None, max_lines=None):
+    def execute(self, command, logger=None, writein=None, max_lines=None):
         return super().execute(
             'bash -c "source {env_dir}/bin/activate && {command}"'.format(
                 env_dir=self._env_dir,
-                command=command
+                command=self._include_command(command),
             ), logger=None, writein=None, max_lines=None
         )

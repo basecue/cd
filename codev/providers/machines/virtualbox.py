@@ -55,10 +55,10 @@ class VirtualboxMachine(BaseMachine):
             packages=packages, ssh_authorized_keys=[ssh_key]
         )
 
-        iface_ip = '192.168.77.1'
-        dhcp_ip = '192.168.77.2'
+        iface_ip = '192.168.77.100'
+        dhcp_ip = '192.168.77.100'
         netmask = '255.255.255.0'
-        lower_ip = '192.168.77.100'
+        lower_ip = '192.168.77.101'
         upper_ip = '192.168.77.200'
         iface = self._create_vbox_iface(iface_ip, dhcp_ip, netmask, lower_ip, upper_ip)
         self._create_vm(hostonly_iface=iface)

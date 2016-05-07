@@ -25,11 +25,18 @@ class BaseExecutor(object):
         except CommandError:
             return False
 
+    def _include_command(self, command):
+        return command.replace('\\', '\\\\').replace('$', '\$').replace('"', '\\"')
+
     def _prepare_command(self, command):
-        return 'bash -c "cd {working_dir} && {command}"'.format(
-            working_dir=self.working_dir,
-            command=command.replace('\\', '\\\\').replace('$', '\$').replace('"', '\\"')
-        )
+        working_dir = self.working_dir
+        if working_dir:
+            return 'bash -c "cd {working_dir} && {command}"'.format(
+                working_dir=working_dir,
+                command=self._include_command(command)
+            )
+        else:
+            return command
 
     def _execute(self, command, logger=None, writein=None, max_lines=None):
         raise NotImplementedError()
@@ -67,6 +74,13 @@ class BaseExecutor(object):
     @property
     def working_dir(self):
         return path.join(self.base_dir, *self.working_dirs)
+
+    @contextmanager
+    def change_base_dir(self, directory):
+        old_base_dir = self.base_dir
+        self.base_dir = directory
+        yield
+        self.base_dir = old_base_dir
 
     @contextmanager
     def change_directory(self, directory):
