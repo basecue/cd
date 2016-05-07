@@ -36,6 +36,7 @@ class AnsibleProvisioner(Provisioner):
 
     def install(self):
         # TODO requirements
+        self.isolator.create()
         self.isolator.execute('pip install setuptools')
         self.isolator.execute('pip install --upgrade markupsafe paramiko PyYAML Jinja2 httplib2 six ecdsa==0.11')
 

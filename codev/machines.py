@@ -27,6 +27,7 @@ class BaseMachine(BaseProxyPerformer):
         raise NotImplementedError()
 
 
+#TODO refactorize
 class MachinesProvider(Provider, ConfigurableProvider):
     machine_class = BaseMachine
 

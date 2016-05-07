@@ -49,6 +49,12 @@ class ProviderSettings(BaseSettings):
         return self.data.get('specific', {})
 
 
+class InfrastructureSettings(ProviderSettings):
+    @property
+    def only_one(self):
+        return self.data.get('only_one', False)
+
+
 class DictSettings(OrderedDict):
     def __init__(self, cls, data, *args, **kwargs):
         super().__init__()
@@ -134,7 +140,7 @@ class IsolationSettings(BaseSettings):
 class ConfigurationSettings(BaseSettings):
     @property
     def infrastructure(self):
-        return DictSettings(ProviderSettings, self.data.get('infrastructure', {}))
+        return DictSettings(InfrastructureSettings, self.data.get('infrastructure', {}))
 
     @property
     def provision(self):
