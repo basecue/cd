@@ -238,8 +238,8 @@ class BaseProxyExecutor(BaseExecutor):
             with self.executor.change_directory(directory):
                 yield
 
-    def execute(self, command, logger=None, writein=None, max_lines=None):
-        return self.executor.execute(command, logger=logger, writein=writein, max_lines=max_lines)
+    def execute(self, command, logger=None, writein=None, max_lines=None, **kwargs):
+        return self.executor.execute(command, logger=logger, writein=writein, max_lines=max_lines, **kwargs)
 
 
 class BaseProxyPerformer(BaseProxyExecutor, BasePerformer):

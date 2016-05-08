@@ -77,6 +77,13 @@ class VirtualboxMachine(BaseMachine):
 
         self.start()
 
+    def _execute(self, command, logger=None, writein=None, max_lines=None, **kwargs):
+        return self.performer.execute(
+            'ssh root@{ip} -- {command}'.format(
+                ip=self.ip, command=command, logger=logger, writein=writein, max_lines=max_lines
+            )
+        )
+
     def destroy(self):
         raise NotImplementedError()
 
@@ -269,7 +276,7 @@ class VirtualboxMachine(BaseMachine):
 
         # setup VM + ifaces
         self.performer.execute(
-            'VBoxManage modifyvm "{ident}" --memory {memory} --acpi on --vram 10 --boot1 dvd --nic1 hostonly --nictype1 Am79C970A --hostonlyadapter1 {hostonly_iface} --nic2 nat --nictype2 Am79C973'.format(
+            'VBoxManage modifyvm "{ident}" --memory {memory} --acpi on --vram 10 --boot1 dvd --nic1 nat --nictype1 Am79C973 --nic2 hostonly --nictype2 Am79C970A --hostonlyadapter2 {hostonly_iface}'.format(
                 ident=self.ident,
                 memory=memory,
                 hostonly_iface=hostonly_iface
@@ -326,7 +333,7 @@ class VirtualboxMachine(BaseMachine):
     def ip(self):
         for i in range(20):
             value_ip = self.performer.execute(
-                'VBoxManage guestproperty get "{ident}" "/VirtualBox/GuestInfo/Net/0/V4/IP"'.format(
+                'VBoxManage guestproperty get "{ident}" "/VirtualBox/GuestInfo/Net/1/V4/IP"'.format(
                     ident=self.ident
                 )
             )
@@ -335,11 +342,12 @@ class VirtualboxMachine(BaseMachine):
                 continue
             else:
                 return value_ip.split()[1]
-        raise Exception(
-            "Guest additions are not installed for virtualbox machine '{ident}'.".format(
-                ident=self.ident
-            )
-        )
+        return None
+        # raise Exception(
+        #     "Guest additions are not installed for virtualbox machine '{ident}'.".format(
+        #         ident=self.ident
+        #     )
+        # )
 
 
 class VirtualboxMachinesSettings(BaseSettings):
