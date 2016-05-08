@@ -95,6 +95,7 @@ def installation_options(func):
             source,
             next_source,
             performer,
+            performer_settings,
             disable_isolation, **kwargs):
         source_name, source_options = parse_source(source)
         next_source_name, next_source_options = parse_source(next_source)
@@ -108,7 +109,7 @@ def installation_options(func):
             next_source_name=next_source_name,
             next_source_options=next_source_options,
             performer_provider=performer,
-            performer_specific={},  # TODO
+            performer_specific=performer_settings,
             disable_isolation=disable_isolation
         )
         return func(installation, **kwargs)
@@ -143,6 +144,18 @@ def performer_option(func):
                         default=None,
                         metavar='<performer>',
                         help='Set performer')(func)
+
+
+def performer_settings_option(func):
+    @wraps(func)
+    def performer_settings_wrapper(*args, performer_settings, **kwargs):
+        return func(*args, performer_settings=dict(performer_settings), **kwargs)
+
+    return click.option('--performer-settings',
+                        type=click.Tuple([str, str]),
+                        multiple=True,
+                        metavar='<variable> <value>',
+                        help='Performer settings.')(performer_settings_wrapper)
 
 
 def disable_isolation_option(func):
@@ -239,6 +252,7 @@ def command(confirmation=None, bool_exit=True, **kwargs):
         func = installation_options(func)
         func = nice_exception(func)
         func = performer_option(func)
+        func = performer_settings_option(func)
         func = disable_isolation_option(func)
         func = path_option(func)
         func = debug_option(func)

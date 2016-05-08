@@ -23,7 +23,7 @@ class Installation(object):
             next_source_name='',
             next_source_options='',
             performer_provider=None,
-            performer_specific={},  # TODO
+            performer_specific=None,
             disable_isolation=False
     ):
         """
@@ -86,6 +86,9 @@ class Installation(object):
             performer_settings = environment_settings.performer
             performer_provider = performer_settings.provider
             performer_specific = performer_settings.specific
+        else:
+            if performer_specific is None:
+                performer_specific = {}
 
         performer = Performer(
             performer_provider,

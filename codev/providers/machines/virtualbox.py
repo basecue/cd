@@ -1,5 +1,6 @@
 from codev.settings import BaseSettings
 from codev.machines import MachinesProvider, BaseMachine
+from codev.performer import Performer
 import re
 from os import urandom, path
 from crypt import crypt
@@ -15,6 +16,9 @@ ubuntu: TODO
 
 
 class VirtualboxMachine(BaseMachine):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
     def exists(self):
         return self.ident in self.performer.execute('VBoxManage list vms')
 
@@ -77,12 +81,15 @@ class VirtualboxMachine(BaseMachine):
 
         self.start()
 
-    def _execute(self, command, logger=None, writein=None, max_lines=None, **kwargs):
-        return self.performer.execute(
-            'ssh root@{ip} -- {command}'.format(
-                ip=self.ip, command=command, logger=logger, writein=writein, max_lines=max_lines
-            )
+    def execute(self, command, logger=None, writein=None, max_lines=None, **kwargs):
+        return Performer('ssh', settings_data={'hostname': self.ip, 'username': 'root'}).execute(
+            command, logger=logger, writein=writein, max_lines=max_lines
         )
+        # return super().execute(
+        #     'ssh root@{ip} -- {command}'.format(
+        #         ip=self.ip, command=command, logger=logger, writein=writein, max_lines=max_lines
+        #     )
+        # )
 
     def destroy(self):
         raise NotImplementedError()
