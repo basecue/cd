@@ -275,6 +275,7 @@ COMMAND_FILE = 'codev.command'
 PID_FILE = 'codev.pid'
 TEMP_FILE = 'codev.temp'
 
+from time import time
 
 class BackgroundExecutor(BaseProxyExecutor):
 
@@ -283,16 +284,18 @@ class BackgroundExecutor(BaseProxyExecutor):
         self._isolation_cache = None
         self.__isolation_directory = None
         self.logger = getLogger(__name__)
+        if not self.ident:
+            self.ident = str(time())
 
     @property
     def _isolation_directory(self):
         if not self.__isolation_directory:
-            if not self.ident:
-                ssh_info = self.executor.execute('echo $SSH_CLIENT')
-                ip, remote_port, local_port = ssh_info.split()
-                self.ident = 'control_{ip}_{remote_port}_{local_port}'.format(
-                    ip=ip, remote_port=remote_port, local_port=local_port
-                )
+            # if not self.ident:
+            #     ssh_info = self.executor.execute('echo $SSH_CLIENT')
+            #     ip, remote_port, local_port = ssh_info.split()
+            #     self.ident = 'control_{ip}_{remote_port}_{local_port}'.format(
+            #         ip=ip, remote_port=remote_port, local_port=local_port
+            #     )
 
             self.__isolation_directory = '/tmp/.codev/{ident}'.format(
                 ident=self.ident
@@ -375,7 +378,7 @@ class BackgroundExecutor(BaseProxyExecutor):
     def _get_bg_running_pid(self):
         return self._cat_file(self._isolation.pid_file)
 
-    def _execute(self, command, logger=None, writein=None, wait=True, **kwargs):
+    def execute(self, command, logger=None, writein=None, wait=True, **kwargs):
         self.logger.debug('Command: {command} wait: {wait}'.format(command=command, wait=wait))
         isolation = self._isolation
 

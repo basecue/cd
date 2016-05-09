@@ -8,9 +8,10 @@ class ActualSource(Source):
     provider_name = 'actual'
 
     def install(self, performer):
-        archive = shutil.make_archive('/tmp/{filename}'.format(filename=uuid1()), 'gztar')
+        filename = uuid1()
+        archive = shutil.make_archive('/tmp/{filename}'.format(filename=filename), 'gztar')
 
-        remote_archive = '/tmp/{filename}.tar.gz'
+        remote_archive = '/tmp/{filename}.tar.gz'.format(filename=filename)
         performer.send_file(archive, remote_archive)
 
         # install gunzip
