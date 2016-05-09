@@ -201,6 +201,7 @@ class VirtualboxMachine(BaseMachine):
             for line in open('{template_path}/ks.cfg'.format(template_path=template_path)):
                 file_ks.write(
                     line.format(
+                        fstype='btrfs',
                         username=username,
                         encrypted_password=encrypted_password,
                         ip=ip,
@@ -277,7 +278,7 @@ class VirtualboxMachine(BaseMachine):
             raise RuntimeError('Error during creating virtualbox network host-only interface.')
         return iface
 
-    def _create_vm(self, ostype='Ubuntu_64', hdd=4096, memory=1024, hostonly_iface=''):
+    def _create_vm(self, ostype='Ubuntu_64', hdd=20000, memory=1024, hostonly_iface=''):
         # create VM
         self.performer.execute('VBoxManage createvm --name "{ident}" --ostype "Ubuntu_64" --register'.format(ident=self.ident))
 
