@@ -38,11 +38,9 @@ class BaseExecutor(object):
         else:
             return command
 
-    def _execute(self, command, logger=None, writein=None, max_lines=None, **kwargs):
+    def execute(self, command, logger=None, writein=None, max_lines=None):
         raise NotImplementedError()
-
-    def execute(self, command, logger=None, writein=None, max_lines=None, **kwargs):
-        return self._execute(self._prepare_command(command), logger=logger, writein=writein, max_lines=max_lines, **kwargs)
+        # return self._execute(self._prepare_command(command), logger=logger, writein=writein, max_lines=max_lines, **kwargs)
 
     def run_script(self, script, arguments=None, logger=None):
         if arguments is None:
@@ -238,8 +236,8 @@ class BaseProxyExecutor(BaseExecutor):
             with self.executor.change_directory(directory):
                 yield
 
-    def execute(self, command, logger=None, writein=None, max_lines=None, **kwargs):
-        return self.executor.execute(command, logger=logger, writein=writein, max_lines=max_lines, **kwargs)
+    def execute(self, command, logger=None, writein=None, max_lines=None):
+        return self.executor.execute(command, logger=logger, writein=writein, max_lines=max_lines)
 
 
 class BaseProxyPerformer(BaseProxyExecutor, BasePerformer):
@@ -378,7 +376,7 @@ class BackgroundExecutor(BaseProxyExecutor):
     def _get_bg_running_pid(self):
         return self._cat_file(self._isolation.pid_file)
 
-    def execute(self, command, logger=None, writein=None, wait=True, **kwargs):
+    def execute(self, command, logger=None, writein=None, wait=True):
         self.logger.debug('Command: {command} wait: {wait}'.format(command=command, wait=wait))
         isolation = self._isolation
 
