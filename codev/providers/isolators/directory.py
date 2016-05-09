@@ -22,4 +22,4 @@ class DirectoryIsolator(Isolator):
 
     def execute(self, command, logger=None, writein=None, max_lines=None):
         with self.change_base_dir(self.base_dir):
-            return super().execute(self._prepare_command(command), logger=logger, writein=writein, max_lines=max_lines)
+            return self.performer.execute(self._prepare_command(command), logger=logger, writein=writein, max_lines=max_lines)

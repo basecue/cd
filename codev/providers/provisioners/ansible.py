@@ -32,7 +32,7 @@ class AnsibleProvisioner(Provisioner):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.isolator = Isolator('virtualenv', self.performer, settings_data=dict(python='2'))
+        self.isolator = Isolator('virtualenv', self.performer, settings_data=dict(python='2', directory=''))
 
     def install(self):
         # TODO requirements
