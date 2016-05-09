@@ -375,7 +375,7 @@ class BackgroundExecutor(BaseProxyExecutor):
     def _get_bg_running_pid(self):
         return self._cat_file(self._isolation.pid_file)
 
-    def _execute(self, command, logger=None, writein=None, wait=True):
+    def _execute(self, command, logger=None, writein=None, wait=True, **kwargs):
         self.logger.debug('Command: {command} wait: {wait}'.format(command=command, wait=wait))
         isolation = self._isolation
 

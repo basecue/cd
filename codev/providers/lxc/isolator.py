@@ -121,9 +121,9 @@ class LXCIsolator(Isolator):
                 machine_background_runner.kill()
                 performer_background_runner.kill()
 
-    def execute(self, command, logger=None, writein=None, max_lines=None):
+    def execute(self, command, logger=None, writein=None, max_lines=None, **kwargs):
         with self._environment() as env:
-            return self.machine.execute(command, env=env, logger=logger, writein=writein, max_lines=max_lines)
+            return self.machine.execute(command, env=env, logger=logger, writein=writein, max_lines=max_lines, **kwargs)
 
     @contextmanager
     def change_directory(self, directory):
