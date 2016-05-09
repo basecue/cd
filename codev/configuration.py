@@ -32,10 +32,10 @@ class Configuration(object):
         info.update(self.info)
         if self.isolation:
             self.isolation.install(info)
-            self.isolation.deploy(self.infrastructure, info)
+            return self.isolation.deploy(self.infrastructure, info)
         else:
             logger.info("Deploying project.")
-            self.deployment.deploy(self.infrastructure, info)
+            return self.deployment.deploy(self.infrastructure, info)
 
     def run_script(self, script, arguments=None):
         executor = self.isolation or self.performer

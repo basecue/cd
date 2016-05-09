@@ -89,8 +89,8 @@ def info(installation):
     if isolation:
         formatter.write_text('Isolation:')
         with formatter.indentation():
-            formatter.write_text('ident: {ident}'.format(**isolation))
-            formatter.write_text('   ip: {ip}'.format(**isolation))
+            formatter.write_text('   ident: {ident}'.format(**isolation))
+            formatter.write_text('      ip: {ip}'.format(**isolation))
 
     formatter.write_text('Infrastructure:')
     for machine_group_name, machines in info['infrastructure'].items():

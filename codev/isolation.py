@@ -152,5 +152,5 @@ class Isolation(BaseProxyPerformer):
             current_source_ident=self.current_source.ident,
         )
         if self.isolator.exists():
-            info.update(dict(ident=self.isolator.ident, specific=self.isolator.info))
+            info.update(dict(ident=self.isolator.ident, ip=self.isolator.ip))
         return info
