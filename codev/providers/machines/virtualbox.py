@@ -20,7 +20,7 @@ class VirtualboxMachine(BaseMachine):
         super().__init__(*args, **kwargs)
 
     def exists(self):
-        return self.ident in self.performer.execute('VBoxManage list vms')
+        return '"{ident}"'.format(ident=self.ident) in self.performer.execute('VBoxManage list vms').split()
 
     def is_started(self):
         output = self.performer.execute("VBoxManage list runningvms")

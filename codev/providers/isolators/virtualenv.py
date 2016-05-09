@@ -43,6 +43,6 @@ class VirtualenvIsolator(DirectoryIsolator):
         return super().execute(
             'bash -c "source {env_dir}/bin/activate && {command}"'.format(
                 env_dir=self._env_dir,
-                command=self._include_command(command),
+                command=self._prepare_command(command),
             ), logger=logger, writein=writein, max_lines=max_lines
         )

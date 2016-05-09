@@ -21,5 +21,5 @@ class DirectoryIsolator(Isolator):
         return self.performer.execute('rm -rf {dir}'.format(dir=self.base_dir))
 
     def execute(self, command, logger=None, writein=None, max_lines=None):
-        with self.performer.change_base_dir(self.base_dir):
-            return super().execute(command, logger=logger, writein=writein, max_lines=max_lines)
+        with self.change_base_dir(self.base_dir):
+            return super().execute(self._prepare_command(command), logger=logger, writein=writein, max_lines=max_lines)
