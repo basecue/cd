@@ -35,7 +35,7 @@ class AnsibleProvisioner(Provisioner):
         self.isolator = Isolator('virtualenv', self.performer, settings_data=dict(python='2', directory=''))
 
     def install(self):
-        # TODO requirements
+        # TODO requirements - python-dev, python-virtualenv
         self.isolator.create()
         self.isolator.execute('pip install setuptools')
         self.isolator.execute('pip install --upgrade markupsafe paramiko PyYAML Jinja2 httplib2 six ecdsa==0.11')

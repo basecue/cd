@@ -41,6 +41,7 @@ class Isolation(BaseProxyPerformer):
         self.execute('pip3 install setuptools')
 
         # install proper version of codev
+        # TODO requirements - 'python3-pip', 'libffi-dev', 'libssl-dev'
         if not DebugSettings.settings.distfile:
             logger.debug("Install codev version '{version}' to isolation.".format(version=version))
             self.execute('pip3 install --upgrade codev=={version}'.format(version=version))
