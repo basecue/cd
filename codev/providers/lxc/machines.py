@@ -183,13 +183,12 @@ class LXCMachine(BaseMachine):
         output = self.performer.execute('lxc-info -n {container_name} -i'.format(
             container_name=self.ident,
         ))
-
         for line in output.splitlines():
             r = re.match('^IP:\s+([0-9\.]+)$', line)
             if r:
                 return r.group(1)
-
-        return None
+        else:
+            return None
 
     @property
     def _gateway(self):
