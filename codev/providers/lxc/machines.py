@@ -168,10 +168,11 @@ class LXCMachine(BaseMachine):
         self.performer.execute('lxc-start -n {container_name}'.format(
             container_name=self.ident,
         ))
-
+        #TODO timeout
         while not self.is_started():
             sleep(0.5)
-            return True
+
+        return True
 
     def stop(self):
         self.performer.execute('lxc-stop -n {container_name}'.format(
@@ -183,12 +184,13 @@ class LXCMachine(BaseMachine):
         output = self.performer.execute('lxc-info -n {container_name} -i'.format(
             container_name=self.ident,
         ))
+
         for line in output.splitlines():
             r = re.match('^IP:\s+([0-9\.]+)$', line)
             if r:
                 return r.group(1)
-        else:
-            return None
+
+        return None
 
     @property
     def _gateway(self):
