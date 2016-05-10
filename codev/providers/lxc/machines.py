@@ -43,7 +43,7 @@ class LXCMachine(BaseMachine):
         else:
             raise ValueError('s:%s:s' % state)
 
-    def create(self, distribution, release, install_ssh=False, ssh_key=None): #, ip=None, gateway=None):
+    def create(self, distribution, release, install_ssh_server=False, ssh_key=None): #, ip=None, gateway=None):
         architecture = self._get_architecture()
         if not self.performer.check_execute(
             'lxc-create -t {distribution} -n {container_name} -- --release {release}'.format(
@@ -63,7 +63,7 @@ class LXCMachine(BaseMachine):
 
         self.start()
         # install ssh server
-        if install_ssh:
+        if install_ssh_server:
             self.install_packages('openssh-server')
 
             # authorize user for ssh
