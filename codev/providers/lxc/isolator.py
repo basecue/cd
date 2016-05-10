@@ -55,7 +55,7 @@ class LXCIsolator(Isolator):
             self.machine.create('ubuntu', 'trusty')
 
         self.machine.start()
-        self.machine.install_packages('lxc', 'socat', 'python3-pip')
+        self.machine.install_packages('lxc', 'socat', 'python3-pip', 'libffi-dev', 'libssl-dev')
 
         self.machine.stop()
         self.machine.start()
