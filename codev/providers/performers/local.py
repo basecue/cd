@@ -38,6 +38,7 @@ class LocalPerformer(Performer):
         return output
 
     def send_file(self, source, target):
+        self.logger.debug('Send file {source} {target}'.format(source=source, target=target))
         call(['cp', source, target])
 
     @contextmanager
