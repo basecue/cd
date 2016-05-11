@@ -12,17 +12,16 @@ import sys
 
 
 def source_transition(installation_info):
-        next_source_ident = installation_info['next_source_ident']
-        source_ident = installation_info['source_ident']
-        current_source_ident = installation_info.get('isolation', {}).get('current_source_ident', source_ident)
+        next_source_available = bool(installation_info['next_source_ident'])
+        isolation_exists = 'ident' in installation_info.get('isolation', {})
 
         color_options = dict(
             color_source=color.GREEN,
             color_reset=color.RESET + style.RESET_ALL
         )
 
-        if next_source_ident:
-            if current_source_ident == source_ident:
+        if next_source_available:
+            if not isolation_exists:
                 color_source = color.GREEN + style.BRIGHT
                 color_next_source = color.GREEN
             else:
