@@ -137,13 +137,12 @@ class Isolation(BaseProxyPerformer):
             return True
 
     def exists(self):
-        return self.isolator.exists()
+        return self.isolator.exists() and self.isolator.is_started()
 
     def destroy(self):
+        if self.isolator.is_started():
+            self.isolator.stop()
         return self.isolator.destroy()
-
-    def is_started(self):
-        return self.isolator.is_started()
 
     @property
     def info(self):

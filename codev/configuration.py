@@ -52,7 +52,7 @@ class Configuration(object):
         :return: configuration info
         :rtype: dict
         """
-        if not self.isolation or (self.isolation.exists() and self.isolation.is_started()):
+        if not self.isolation or self.isolation.exists():
             infrastructure_info = self.infrastructure.info
         else:
             infrastructure_info = {}

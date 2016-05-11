@@ -33,6 +33,9 @@ class LXCIsolator(Isolator):
     def destroy(self):
         return self.machine.destroy()
 
+    def stop(self):
+        return self.machine.stop()
+
     def is_started(self):
         return self.machine.is_started()
 
@@ -55,7 +58,15 @@ class LXCIsolator(Isolator):
             self.machine.create('ubuntu', 'trusty')
 
         self.machine.start()
-        self.machine.install_packages('lxc', 'socat', 'python3-pip', 'libffi-dev', 'libssl-dev', 'python-virtualenv', 'python-dev')
+
+        # TODO - providers requirements
+        self.machine.install_packages(
+            'lxc',
+            'socat',  # for ssh tunneling
+            'python3-pip', 'libffi-dev', 'libssl-dev',  # for codev
+            'python-virtualenv', 'python-dev',  # for ansible provisioner
+            'git'  # for git source
+        )
 
         self.machine.stop()
         self.machine.start()
