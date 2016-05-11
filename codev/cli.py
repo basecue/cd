@@ -12,45 +12,50 @@ import sys
 
 
 def source_transition(installation_info):
-        next_source_available = bool(installation_info['next_source_ident'])
-        isolation_exists = 'ident' in installation_info.get('isolation', {})
+    """
+    :param installation_info:
+    :return:
+    """
+    # TODO deploy vs destroy (different highlited source in transition)
+    next_source_available = bool(installation_info['next_source_ident'])
+    isolation_exists = 'ident' in installation_info.get('isolation', {})
 
-        color_options = dict(
-            color_source=color.GREEN,
-            color_reset=color.RESET + style.RESET_ALL
-        )
+    color_options = dict(
+        color_source=color.GREEN,
+        color_reset=color.RESET + style.RESET_ALL
+    )
 
-        if next_source_available:
-            if not isolation_exists:
-                color_source = color.GREEN + style.BRIGHT
-                color_next_source = color.GREEN
-            else:
-                color_source = color.GREEN
-                color_next_source = color.GREEN + style.BRIGHT
-
-            color_options.update(dict(
-                color_source=color_source,
-                color_next_source=color_next_source,
-            ))
-
-            final = {}
-            final.update(installation_info)
-            final.update(color_options)
-            # TODO in python 3.5 use **installation_info, **color_options
-            transition = ' -> {color_next_source}{next_source}:{next_source_options}{color_reset}'.format(
-                **final
-            )
+    if next_source_available:
+        if not isolation_exists:
+            color_source = color.GREEN + style.BRIGHT
+            color_next_source = color.GREEN
         else:
-            transition = ''
+            color_source = color.GREEN
+            color_next_source = color.GREEN + style.BRIGHT
 
-        final2 = {}
-        final2.update(installation_info)
-        final2.update(color_options)
+        color_options.update(dict(
+            color_source=color_source,
+            color_next_source=color_next_source,
+        ))
+
+        final = {}
+        final.update(installation_info)
+        final.update(color_options)
         # TODO in python 3.5 use **installation_info, **color_options
-        return '{color_source}{source}:{source_options}{color_reset}{transition}'.format(
-            transition=transition,
-            **final2
+        transition = ' -> {color_next_source}{next_source}:{next_source_options}{color_reset}'.format(
+            **final
         )
+    else:
+        transition = ''
+
+    final2 = {}
+    final2.update(installation_info)
+    final2.update(color_options)
+    # TODO in python 3.5 use **installation_info, **color_options
+    return '{color_source}{source}:{source_options}{color_reset}{transition}'.format(
+        transition=transition,
+        **final2
+    )
 
 
 def confirmation_message(message):
