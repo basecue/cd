@@ -64,7 +64,7 @@ class LXCIsolator(Isolator):
             'lxc',
             'socat',  # for ssh tunneling
             'python3-pip', 'libffi-dev', 'libssl-dev',  # for codev
-            'python-virtualenv', 'python-dev',  # for ansible provisioner
+            'python-virtualenv', 'python-dev', 'python3-venv',  # for ansible provisioner
             'git'  # for git source
         )
 
