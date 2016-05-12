@@ -83,6 +83,8 @@ class Isolation(BaseProxyPerformer):
             self.isolator.create()
             created = True
         else:
+            if not self.isolator.is_started():
+                self.isolator.start()
             created = False
 
         self.current_source = self.source
