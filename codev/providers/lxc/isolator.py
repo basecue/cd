@@ -33,6 +33,9 @@ class LXCIsolator(Isolator):
     def destroy(self):
         return self.machine.destroy()
 
+    def start(self):
+        return self.machine.start()
+
     def stop(self):
         return self.machine.stop()
 
