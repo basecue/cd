@@ -32,7 +32,7 @@ class Deployment(BaseProxyExecutor):
         self.run_scripts(self.scripts.onstart, script_info)
         try:
             logger.info('Creating machines...')
-            machines_groups = infrastructure.machines_groups(source, create=True)
+            machines_groups = infrastructure.machines_groups(source=source, create=True)
             script_info.update(infrastructure=infrastructure.info)
 
             logger.info('Installing provisioner...')

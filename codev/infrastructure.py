@@ -20,7 +20,7 @@ class Infrastructure(object):
                     return machine
         raise KeyError(ident)
 
-    def machines_groups(self, source, create=False):
+    def machines_groups(self, source=None, create=False):
         if create:
             ssh_key = '%s\n' % self.performer.execute('ssh-add -L')
         else:
