@@ -20,6 +20,9 @@ class Source(Provider, ConfigurableProvider):
     def install(self, performer):
         raise NotImplementedError()
 
+    def machine_install(self, machine):
+        pass
+
     def process_options(self, options):
         return options
 
