@@ -87,10 +87,12 @@ def info(installation):
     formatter = click.HelpFormatter(indent_increment=4)
     isolation = info.get('isolation', {})
     if isolation:
-        formatter.write_text('Isolation:')
-        with formatter.indentation():
-            formatter.write_text('   ident: {ident}'.format(ident=isolation['ident']))
-            formatter.write_text('      ip: {ip}'.format(ip=isolation['ip']))
+        isolation_ident = isolation.get('ident', '')
+        if isolation_ident:
+            formatter.write_text('Isolation:')
+            with formatter.indentation():
+                formatter.write_text('   ident: {ident}'.format(ident=isolation['ident']))
+                formatter.write_text('      ip: {ip}'.format(ip=isolation['ip']))
 
     formatter.write_text('Infrastructure:')
     for machine_group_name, machines in info['infrastructure'].items():
