@@ -68,9 +68,9 @@ if __name__ == "__main__":
 
     isolation = arguments.get('isolation', {})
     if isolation:
-        source = isolation.get('current_source')
+        source = isolation.get('current_source_ident')
     else:
-        source = arguments.get('source')
+        source = arguments.get('source_ident')
 
     url = arguments.get('url', '')
     channel = arguments.get('channel', '')

@@ -84,29 +84,31 @@ def info(installation):
     :rtype: bool
     """
     info = installation.info
-    formatter = click.HelpFormatter(indent_increment=4)
-    isolation = info.get('isolation', {})
-    if isolation:
-        isolation_ident = isolation.get('ident', '')
-        if isolation_ident:
-            formatter.write_text('Isolation:')
-            with formatter.indentation():
-                formatter.write_text('   ident: {ident}'.format(ident=isolation['ident']))
-                formatter.write_text('      ip: {ip}'.format(ip=isolation['ip']))
-
-    formatter.write_text('Infrastructure:')
-    for machine_group_name, machines in info['infrastructure'].items():
-        with formatter.indentation():
-            formatter.write_text('{name}'.format(name=machine_group_name))
-            for machine in machines:
-                with formatter.indentation():
-                    formatter.write_text('{ident:<20} {ip}'.format(**machine))
-                    if isolation:
-                        machine_connectivity = isolation.get('connectivity', {}).get(machine['ident'], {})
-                        with formatter.indentation():
-                            for source, target in machine_connectivity.items():
-                                formatter.write_text('{source} -> {target}'.format(source=source, target=target))
-    click.echo(formatter.getvalue())
+    from pprint import pformat
+    click.echo(pformat(info))
+    # formatter = click.HelpFormatter(indent_increment=4)
+    # isolation = info.get('isolation', {})
+    # if isolation:
+    #     isolation_ident = isolation.get('ident', '')
+    #     if isolation_ident:
+    #         formatter.write_text('Isolation:')
+    #         with formatter.indentation():
+    #             formatter.write_text('   ident: {ident}'.format(ident=isolation['ident']))
+    #             formatter.write_text('      ip: {ip}'.format(ip=isolation['ip']))
+    #
+    # formatter.write_text('Infrastructure:')
+    # for machine_group_name, machines in info['infrastructure'].items():
+    #     with formatter.indentation():
+    #         formatter.write_text('{name}'.format(name=machine_group_name))
+    #         for machine in machines:
+    #             with formatter.indentation():
+    #                 formatter.write_text('{ident:<20} {ip}'.format(**machine))
+    #                 if isolation:
+    #                     machine_connectivity = isolation.get('connectivity', {}).get(machine['ident'], {})
+    #                     with formatter.indentation():
+    #                         for source, target in machine_connectivity.items():
+    #                             formatter.write_text('{source} -> {target}'.format(source=source, target=target))
+    # click.echo(formatter.getvalue())
     return True
 
 
