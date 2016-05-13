@@ -28,7 +28,7 @@ class Infrastructure(object):
 
         return {
             machines_provider.ident: [
-                machine for machine in machines_provider.machines(source, create=create, ssh_key=ssh_key)
+                machine for machine in machines_provider.machines(source=source, create=create, ssh_key=ssh_key)
             ] for machines_provider in self._machines_providers()
         }
 

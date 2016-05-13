@@ -41,7 +41,7 @@ class MachinesProvider(Provider, ConfigurableProvider):
             ident = '%s_%000d' % (self.ident, i)
             yield ident
 
-    def machines(self, source, create=False, ssh_key=None):
+    def machines(self, source=None, create=False, ssh_key=None):
         for ident in self.idents():
             machine = self.machine_class(self.performer, ident=ident)
             if create and not machine.exists():
@@ -50,5 +50,6 @@ class MachinesProvider(Provider, ConfigurableProvider):
                 machine.start()
 
             if create or machine.exists():
-                source.machine_install(machine)
+                if source:
+                    source.machine_install(machine)
                 yield machine

@@ -28,11 +28,15 @@ class BaseExecutor(object):
     def _include_command(self, command):
         return command.replace('\\', '\\\\').replace('$', '\$').replace('"', '\\"')
 
-    def _prepare_command(self, command):
+    def _prepare_command(self, command, wrap=False):
         working_dir = self.working_dir
         if working_dir:
             return 'bash -c "cd {working_dir} && {command}"'.format(
                 working_dir=working_dir,
+                command=self._include_command(command)
+            )
+        elif wrap:
+            return 'bash -c "{command}"'.format(
                 command=self._include_command(command)
             )
         else:
