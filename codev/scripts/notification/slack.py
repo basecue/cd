@@ -68,13 +68,8 @@ if __name__ == "__main__":
     environment = arguments.get('environment', '')
     configuration = arguments.get('configuration', '')
 
-    isolation = arguments.get('isolation', {})
-    if isolation:
-        source = isolation.get('current_source')
-        source_options = isolation.get('current_source_options')
-    else:
-        source = arguments.get('source')
-        source_options = arguments.get('source_options')
+    source = arguments.get('source')
+    source_options = arguments.get('source_options')
 
     url = arguments.get('url', '')
     channel = arguments.get('channel', '')
