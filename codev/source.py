@@ -18,7 +18,9 @@ class Source(Provider, ConfigurableProvider):
         )
 
     def install(self, performer):
-        raise NotImplementedError()
+        with performer.change_directory(self.directory):
+            with performer.get_fo('.codev') as codev_file:
+                return codev_file
 
     def machine_install(self, machine):
         pass

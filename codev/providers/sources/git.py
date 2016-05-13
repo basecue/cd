@@ -75,3 +75,6 @@ class GitSource(Source):
                 performer.execute('git remote add origin {url}'.format(url=self.repository_url))
                 performer.execute('git fetch origin {commit}'.format(commit=self.commit))
                 performer.execute('git reset --hard FETCH_HEAD')
+
+        # TODO optimize return opened codev_file
+        return super().install(performer)

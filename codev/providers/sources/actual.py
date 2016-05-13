@@ -26,5 +26,7 @@ class ActualSource(Source):
             )
         )
 
+        return open('.codev')
+
     def process_options(self, options):
         return options or str(time())
