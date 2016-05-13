@@ -18,6 +18,7 @@ class LXCMachine(BaseMachine):
         self.__container_directory = None
         self.__share_directory = None
         self.__gateway = None
+        self.base_dir = '/root'
 
     def exists(self):
         output = self.performer.execute('lxc-ls')
@@ -242,7 +243,7 @@ class LXCMachine(BaseMachine):
         if env is None:
             env = {}
         env.update({
-            'HOME': '/root',
+            'HOME': self.base_dir,
             'LANG': 'C.UTF-8',
             'LC_ALL':  'C.UTF-8'
         })
