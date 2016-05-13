@@ -258,12 +258,16 @@ class LXCMachine(BaseMachine):
             target=target
         )
 
-        self.performer.execute('cp -R {source} {share_directory}/{target}')
+        self.performer.execute(
+            'cp -R {source} {share_target}'.format(
+                source=source,
+                share_target=share_target
+            )
+        )
 
         performer_background_runner = BackgroundExecutor(
-            self.performer, ident='{share_directory}/{target}'.format(
-                share_directory=self.share_directory,
-                target=target
+            self.performer, ident='{share_target}'.format(
+                share_target=share_target
             )
         )
         dir_path = path.dirname(__file__)
