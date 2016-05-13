@@ -98,9 +98,6 @@ class Isolation(BaseProxyPerformer):
         logger.info("Entering isolation...")
         self.run_scripts(self.scripts.onenter, info, logger=command_logger)
 
-    def _get_codev
-        return YAMLSettingsReader().from_yaml(codev_file).version
-
     def deploy(self, infrastructure, info):
         version = self.performer.execute('pip3 show codev | grep ^Version | cut -d " " -f 2')
         logger.info("Run 'codev {version}' in isolation.".format(version=version))
