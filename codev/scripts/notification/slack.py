@@ -74,7 +74,7 @@ if __name__ == "__main__":
         source_options = isolation.get('current_source_options')
     else:
         source = arguments.get('source')
-        source_options = isolation.get('source_options')
+        source_options = arguments.get('source_options')
 
     url = arguments.get('url', '')
     channel = arguments.get('channel', '')
