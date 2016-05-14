@@ -294,7 +294,7 @@ class LXCMachine(BaseMachine):
             pass
 
         self.execute(
-            'ln -s /share/{target} {target}'.format(
+            '[ -S {target} ] && ln -s /share/{target} {target}'.format(
                 target=target,
             )
         )
