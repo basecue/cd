@@ -25,8 +25,8 @@ class ActualSource(Source):
                 archive=remote_archive, directory=self.directory
             )
         )
-
-        return open('.codev')
+        with open('.codev') as codev_file:
+            return codev_file
 
     def process_options(self, options):
         return options or str(time())

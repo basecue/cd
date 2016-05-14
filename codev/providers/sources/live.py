@@ -8,7 +8,8 @@ class LiveSource(Source):
     def install(self, performer):
         performer.share(getcwd(), self.directory)
 
-        return open('.codev')
+        with open('.codev') as codev_file:
+            return codev_file
 
     def machine_install(self, machine):
         machine.share(self.directory, self.directory)

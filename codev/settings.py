@@ -220,7 +220,8 @@ class YAMLSettingsReader(object):
         self.settings_class = settings_class
 
     def from_file(self, filepath, *args, **kwargs):
-        return self.from_yaml(open(filepath), *args, **kwargs)
+        with open(filepath) as file:
+            return self.from_yaml(file, *args, **kwargs)
 
     def from_yaml(self, yamldata, *args, **kwargs):
         return self.settings_class(yaml.load(yamldata), *args, **kwargs)
@@ -233,4 +234,5 @@ class YAMLSettingsWriter(object):
         self.settings = settings
 
     def save_to_file(self, filepath):
-        yaml.dump(self.settings.data, open(filepath, 'w+'))
+        with open(filepath, 'w+') as file:
+            yaml.dump(self.settings.data, file)
