@@ -6,5 +6,7 @@ class LiveSource(ActualSource):
     provider_name = 'live'
 
     def install(self, performer):
-        super().install(performer)
-        performer.make_link(getcwd(), self.directory)
+        performer.share(getcwd(), self.directory)
+
+    def machine_install(self, machine):
+        machine.share('.', self.directory)

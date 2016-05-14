@@ -1,11 +1,10 @@
 from logging import getLogger
 
-from .settings import YAMLSettingsReader
 from .performer import BaseProxyPerformer
 from .logging import logging_config
 from .performer import CommandError
 from .debug import DebugSettings
-
+from .settings import YAMLSettingsReader
 
 logger = getLogger(__name__)
 command_logger = getLogger('command')
@@ -33,11 +32,8 @@ class Isolation(BaseProxyPerformer):
             for source_port, target_port in connectivity_conf.items():
                 self.isolator.redirect(machine.ip, source_port, target_port)
 
-    def _install_codev(self):
-        with self.change_directory(self.current_source.directory):
-            with self.get_fo('.codev') as codev_file:
-                version = YAMLSettingsReader().from_yaml(codev_file).version
-
+    def _install_codev(self, codev_file):
+        version = YAMLSettingsReader().from_yaml(codev_file).version
         self.execute('pip3 install setuptools')
 
         # install proper version of codev
@@ -78,6 +74,7 @@ class Isolation(BaseProxyPerformer):
             super().run_script(codev_script, arguments=arguments, logger=logger)
 
     def install(self, info):
+        # TODO refactorize - divide?
         if not self.isolator.exists():
             logger.info("Creating isolation...")
             self.isolator.create()
@@ -90,15 +87,20 @@ class Isolation(BaseProxyPerformer):
         self.current_source = self.source
         if created:
             logger.info("Install project to isolation...")
+            # TODO DRY
             self.current_source.install(self.performer)
-            self._install_codev()
+            with self.current_source.open_codev_file(self.performer) as codev_file:
+                self._install_codev(codev_file)
             self.run_scripts(self.scripts.oncreate, info, logger=command_logger)
         else:
             if self.next_source:
                 logger.info("Transition source in isolation...")
                 self.current_source = self.next_source
+
+                # TODO DRY
                 self.current_source.install(self.performer)
-                self._install_codev()
+                with self.current_source.open_codev_file(self.performer) as codev_file:
+                    self._install_codev(codev_file)
         logger.info("Entering isolation...")
         self.run_scripts(self.scripts.onenter, info, logger=command_logger)
 

@@ -7,6 +7,8 @@ from contextlib import contextmanager
 from logging import getLogger
 from os import path
 
+from codev.performer import BackgroundExecutor, PerformerError
+
 logger = getLogger(__name__)
 
 
@@ -15,8 +17,8 @@ class LXCMachine(BaseMachine):
         super().__init__(*args, **kwargs)
         self.__container_directory = None
         self.__share_directory = None
-        self.base_dir = '/root'
         self.__gateway = None
+        self.base_dir = '/root'
 
     def exists(self):
         output = self.performer.execute('lxc-ls')
@@ -247,9 +249,58 @@ class LXCMachine(BaseMachine):
         })
         return self.performer.execute('lxc-attach {env} -n {container_name} -- {command}'.format(
             container_name=self.ident,
-            command=self._prepare_command(command),
+            command=self._prepare_command(command, wrap=True),
             env=' '.join('-v {var}={value}'.format(var=var, value=value) for var, value in env.items())
         ), logger=logger, writein=writein, max_lines=max_lines)
+
+    def share(self, source, target):
+        share_target = '{share_directory}/{target}'.format(
+            share_directory=self.share_directory,
+            target=target
+        )
+
+        # copy all files to share directory
+        # sequence /. just after source paramater makes cp command idempotent
+        self.performer.execute(
+            'cp -Ru {source}/. {share_target}'.format(
+                source=source,
+                share_target=share_target
+            )
+        )
+
+        performer_background_runner = BackgroundExecutor(
+            self.performer, ident='{share_target}'.format(
+                share_target=share_target
+            )
+        )
+        dir_path = path.dirname(__file__)
+
+        # TODO keep in mind relative and abs paths
+        try:
+            performer_background_runner.execute(
+                "TO={share_target}"
+                " clsync"
+                " --label live"
+                " --mode rsyncshell"
+                " --delay-sync 2"
+                " --delay-collect 3"
+                " --watch-dir {source}"
+                " --sync-handler {dir_path}/scripts/clsync-synchandler-rsyncshell.sh".format(
+                    share_target=share_target,
+                    source=source,
+                    dir_path=dir_path
+                ),
+                wait=False
+            )
+        except PerformerError:
+            pass
+
+        if self.check_execute('[ -S {target} ]'):
+            self.execute(
+                'ln -s /share/{target} {target}'.format(
+                    target=target,
+                )
+            )
 
 
 class LXCMachinesSettings(BaseSettings):

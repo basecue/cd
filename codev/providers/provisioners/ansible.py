@@ -58,7 +58,7 @@ class AnsibleProvisioner(Provisioner):
                 machine.install_packages('python')
                 inventory.set(machines_group, machine.ip, '')
 
-        inventory_filepath = 'codev.ansible.inventory'
+        inventory_filepath = '/tmp/codev.ansible.inventory'
 
         with open(inventory_filepath, 'w+') as inventoryfile:
             inventory.write(inventoryfile)

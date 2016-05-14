@@ -131,24 +131,24 @@ class Installation(object):
         """
         return self.configuration.deploy(self.info)
 
-    def run(self, script, arguments=None):
-        """
-        Run script.
-
-        :param script: Script to execute
-        :type script: str
-        :param arguments: Arguments passed to script
-        :return: True if executed command returns 0
-        :rtype: bool
-        """
-        logging_config(control_perform=True)
-        try:
-            self.configuration.run_script(script, arguments)
-        except CommandError as e:
-            logger.error(e)
-            return False
-        else:
-            return True
+    # def run(self, script, arguments=None):
+    #     """
+    #     Run script.
+    #
+    #     :param script: Script to execute
+    #     :type script: str
+    #     :param arguments: Arguments passed to script
+    #     :return: True if executed command returns 0
+    #     :rtype: bool
+    #     """
+    #     logging_config(control_perform=True)
+    #     try:
+    #         self.configuration.run_script(script, arguments)
+    #     except CommandError as e:
+    #         logger.error(e)
+    #         return False
+    #     else:
+    #         return True
 
     def destroy(self):
         """

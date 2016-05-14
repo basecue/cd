@@ -42,23 +42,23 @@ def deploy(installation):
     return installation.deploy()
 
 
-@command(help='Run command in project context in isolation.')
-@click.argument('command', nargs=-1)
-def run(installation, command):
-    """
-    :param installation:
-    :type installation: codev.installation.Installation
-    :param command:
-    :type command: str
-    :return:
-    :rtype: bool
-    """
-
-    if select.select([sys.stdin,], [], [], 0.0)[0]:
-        arguments = loads(sys.stdin.read())
-    else:
-        arguments = {}
-    return installation.run(' '.join(command), arguments)
+# @command(help='Run command in project context in isolation.')
+# @click.argument('command', nargs=-1)
+# def run(installation, command):
+#     """
+#     :param installation:
+#     :type installation: codev.installation.Installation
+#     :param command:
+#     :type command: str
+#     :return:
+#     :rtype: bool
+#     """
+#
+#     if select.select([sys.stdin,], [], [], 0.0)[0]:
+#         arguments = loads(sys.stdin.read())
+#     else:
+#         arguments = {}
+#     return installation.run(' '.join(command), arguments)
 
 
 @command(
