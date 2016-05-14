@@ -265,7 +265,7 @@ class LXCMachine(BaseMachine):
             'cp -R {source}/. {share_target}'.format(
                 source=source,
                 share_target=share_target
-            )
+            ), max_lines=0
         )
 
         performer_background_runner = BackgroundExecutor(
