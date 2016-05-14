@@ -260,12 +260,12 @@ class LXCMachine(BaseMachine):
         )
 
         # copy all files to share directory
-        # notice /. in source - it makes command idempotent
+        # sequence /. just after source paramater makes cp command idempotent
         self.performer.execute(
-            'cp -R {source}/. {share_target}'.format(
+            'cp -Rn {source}/. {share_target}'.format(
                 source=source,
                 share_target=share_target
-            ), max_lines=0
+            )
         )
 
         performer_background_runner = BackgroundExecutor(
