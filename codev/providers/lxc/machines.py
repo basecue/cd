@@ -262,7 +262,7 @@ class LXCMachine(BaseMachine):
         # copy all files to share directory
         # sequence /. just after source paramater makes cp command idempotent
         self.performer.execute(
-            'cp -Rn {source}/. {share_target}'.format(
+            'cp -Ru {source}/. {share_target}'.format(
                 source=source,
                 share_target=share_target
             )
