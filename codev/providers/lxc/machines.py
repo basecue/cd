@@ -295,11 +295,12 @@ class LXCMachine(BaseMachine):
         except PerformerError:
             pass
 
-        self.execute(
-            '[ -S {target} ] && ln -s /share/{target} {target}'.format(
-                target=target,
+        if self.check_execute('[ -S {target} ]'):
+            self.execute(
+                'ln -s /share/{target} {target}'.format(
+                    target=target,
+                )
             )
-        )
 
 
 class LXCMachinesSettings(BaseSettings):
