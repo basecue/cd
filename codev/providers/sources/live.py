@@ -9,4 +9,4 @@ class LiveSource(ActualSource):
         performer.share(getcwd(), self.directory)
 
     def machine_install(self, machine):
-        machine.share(self.directory, self.directory)
+        machine.share('.', self.directory)
