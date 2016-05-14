@@ -1,4 +1,5 @@
 from codev.source import Source
+from contextlib import contextmanager
 import shutil
 from time import time
 from uuid import uuid1
@@ -25,8 +26,11 @@ class ActualSource(Source):
                 archive=remote_archive, directory=self.directory
             )
         )
+
+    @contextmanager
+    def open_codev_file(self, performer):
         with open('.codev') as codev_file:
-            return codev_file
+            yield codev_file
 
     def process_options(self, options):
         return options or str(time())

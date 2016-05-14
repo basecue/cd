@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from .provider import Provider, ConfigurableProvider
 
 
@@ -18,9 +19,13 @@ class Source(Provider, ConfigurableProvider):
         )
 
     def install(self, performer):
+        raise NotImplementedError()
+
+    @contextmanager
+    def open_codev_file(self, performer):
         with performer.change_directory(self.directory):
             with performer.get_fo('.codev') as codev_file:
-                return codev_file
+                yield codev_file
 
     def machine_install(self, machine):
         pass

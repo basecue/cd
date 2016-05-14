@@ -74,6 +74,7 @@ class Isolation(BaseProxyPerformer):
             super().run_script(codev_script, arguments=arguments, logger=logger)
 
     def install(self, info):
+        # TODO refactorize - divide?
         if not self.isolator.exists():
             logger.info("Creating isolation...")
             self.isolator.create()
@@ -86,15 +87,20 @@ class Isolation(BaseProxyPerformer):
         self.current_source = self.source
         if created:
             logger.info("Install project to isolation...")
-            codev_file = self.current_source.install(self.performer)
-            self._install_codev(codev_file)
+            # TODO DRY
+            self.current_source.install(self.performer)
+            with self.current_source.open_codev_file(self.performer) as codev_file:
+                self._install_codev(codev_file)
             self.run_scripts(self.scripts.oncreate, info, logger=command_logger)
         else:
             if self.next_source:
                 logger.info("Transition source in isolation...")
                 self.current_source = self.next_source
-                codev_file = self.current_source.install(self.performer)
-                self._install_codev(codev_file)
+
+                # TODO DRY
+                self.current_source.install(self.performer)
+                with self.current_source.open_codev_file(self.performer) as codev_file:
+                    self._install_codev(codev_file)
         logger.info("Entering isolation...")
         self.run_scripts(self.scripts.onenter, info, logger=command_logger)
 
