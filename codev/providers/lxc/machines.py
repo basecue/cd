@@ -7,6 +7,8 @@ from contextlib import contextmanager
 from logging import getLogger
 from os import path
 
+from codev.performer import BackgroundExecutor, PerformerError
+
 logger = getLogger(__name__)
 
 
@@ -15,8 +17,8 @@ class LXCMachine(BaseMachine):
         super().__init__(*args, **kwargs)
         self.__container_directory = None
         self.__share_directory = None
-        self.base_dir = self.working_dir = '/root'
         self.__gateway = None
+        self.base_dir = '/root'
 
     def exists(self):
         output = self.performer.execute('lxc-ls')
@@ -43,29 +45,38 @@ class LXCMachine(BaseMachine):
         else:
             raise ValueError('s:%s:s' % state)
 
-    def create(self, distribution, release, ip=None, gateway=None):
-        if not self.exists():
-            architecture = self._get_architecture()
+    def create(self, distribution, release, install_ssh_server=False, ssh_key=None): #, ip=None, gateway=None):
+        architecture = self._get_architecture()
+        if not self.performer.check_execute(
+            'lxc-create -t {distribution} -n {container_name} -- --release {release}'.format(
+                container_name=self.ident,
+                distribution=distribution,
+                release=release,
+                architecture=architecture
+            )
+        ):
             self.performer.execute('lxc-create -t download -n {container_name} -- --dist {distribution} --release {release} --arch {architecture}'.format(
                 container_name=self.ident,
                 distribution=distribution,
                 release=release,
                 architecture=architecture
             ))
-            self._configure(ip=ip, gateway=gateway)
-            return True
-        else:
-            return False
+        self._configure()  # ip=ip, gateway=gateway)
+
+        self.start()
+        # install ssh server
+        if install_ssh_server:
+            self.install_packages('openssh-server')
+
+            # authorize user for ssh
+            if ssh_key:
+                self.execute('mkdir -p .ssh')
+                self.execute('tee .ssh/authorized_keys', writein=ssh_key)
 
     def destroy(self):
-        if self.exists():
-            self.stop()
-            self.performer.execute('lxc-destroy -n {container_name}'.format(
-                container_name=self.ident,
-            ))
-            return True
-        else:
-            return False
+        self.performer.execute('lxc-destroy -n {container_name}'.format(
+            container_name=self.ident,
+        ))
 
     def _get_architecture(self):
         architecture = self.performer.execute('uname -m')
@@ -156,27 +167,19 @@ class LXCMachine(BaseMachine):
         return '{container_directory}/config'.format(container_directory=self._container_directory)
 
     def start(self):
-        if not self.is_started():
-            self.performer.execute('lxc-start -n {container_name}'.format(
-                container_name=self.ident,
-            ))
+        self.performer.execute('lxc-start -n {container_name}'.format(
+            container_name=self.ident,
+        ))
+        #TODO timeout
+        while not self.is_started():
+            sleep(0.5)
 
-            while not self.is_started():
-                sleep(0.5)
-
-            return True
-        else:
-            return False
+        return True
 
     def stop(self):
-        if self.is_started():
-            self.performer.execute('lxc-stop -n {container_name}'.format(
-                container_name=self.ident,
-            ))
-
-            return True
-        else:
-            return False
+        self.performer.execute('lxc-stop -n {container_name}'.format(
+            container_name=self.ident,
+        ))
 
     @property
     def ip(self):
@@ -236,22 +239,68 @@ class LXCMachine(BaseMachine):
         ))
         self.performer.execute('rm {tempfile}'.format(tempfile=tempfile))
 
-    @property
-    def host(self):
-        return self.ip
-
-    def execute(self, command, env={}, logger=None, writein=None, max_lines=None):
+    def execute(self, command, env=None, logger=None, writein=None, max_lines=None):
+        if env is None:
+            env = {}
         env.update({
             'HOME': self.base_dir,
             'LANG': 'C.UTF-8',
             'LC_ALL':  'C.UTF-8'
         })
-        return self.performer.execute('lxc-attach {env} -n {container_name} -- bash -c "cd {working_dir} && {command}"'.format(
-            working_dir=self.working_dir,
+        return self.performer.execute('lxc-attach {env} -n {container_name} -- {command}'.format(
             container_name=self.ident,
-            command=command.replace('\\', '\\\\').replace('$', '\$').replace('"', '\\"'),
+            command=self._prepare_command(command, wrap=True),
             env=' '.join('-v {var}={value}'.format(var=var, value=value) for var, value in env.items())
         ), logger=logger, writein=writein, max_lines=max_lines)
+
+    def share(self, source, target):
+        share_target = '{share_directory}/{target}'.format(
+            share_directory=self.share_directory,
+            target=target
+        )
+
+        # copy all files to share directory
+        # sequence /. just after source paramater makes cp command idempotent
+        self.performer.execute(
+            'cp -Ru {source}/. {share_target}'.format(
+                source=source,
+                share_target=share_target
+            )
+        )
+
+        performer_background_runner = BackgroundExecutor(
+            self.performer, ident='{share_target}'.format(
+                share_target=share_target
+            )
+        )
+        dir_path = path.dirname(__file__)
+
+        # TODO keep in mind relative and abs paths
+        try:
+            performer_background_runner.execute(
+                "TO={share_target}"
+                " clsync"
+                " --label live"
+                " --mode rsyncshell"
+                " --delay-sync 2"
+                " --delay-collect 3"
+                " --watch-dir {source}"
+                " --sync-handler {dir_path}/scripts/clsync-synchandler-rsyncshell.sh".format(
+                    share_target=share_target,
+                    source=source,
+                    dir_path=dir_path
+                ),
+                wait=False
+            )
+        except PerformerError:
+            pass
+
+        if self.check_execute('[ -S {target} ]'):
+            self.execute(
+                'ln -s /share/{target} {target}'.format(
+                    target=target,
+                )
+            )
 
 
 class LXCMachinesSettings(BaseSettings):
@@ -267,65 +316,8 @@ class LXCMachinesSettings(BaseSettings):
     def number(self):
         return int(self.data.get('number', 1))
 
-    # # TODO rethink
-    # @property
-    # def network(self):
-    #     return self.data.get('network', {})
-    #
-    # @property
-    # def network_ip_start(self):
-    #     return self.network.get('ip_start', 0)
-    #
-    # @property
-    # def static_network(self):
-    #     return self.network == {} or self.network_ip_start
-
 
 class LXCMachinesProvider(MachinesProvider):
     provider_name = 'lxc'
     settings_class = LXCMachinesSettings
     machine_class = LXCMachine
-    ip_counter = 0
-
-    def create(self, machine, pub_key):
-        machine.create(self.settings.distribution, self.settings.release)
-
-        machine.start()
-
-        #install ssh server
-        machine.install_packages('openssh-server')
-
-        #authorize user for ssh
-        if pub_key:
-            machine.execute('mkdir -p .ssh')
-            machine.execute('tee .ssh/authorized_keys', writein=pub_key)
-
-        return machine
-
-    # @contextmanager
-    # def network_settings(self):
-    #
-    #
-    # def create(self, pub_key=None):
-    #
-    #     ip_nums = None
-    #     gateway = None
-    #
-    #     if self.settings.static_network:
-    #         for line in self.performer.execute('cat /etc/default/lxc-net').splitlines():
-    #             r = re.match('^LXC_ADDR=\"([\w\.]+)\"$', line)
-    #             if r:
-    #                 gateway = r.group(1)
-    #                 ip_nums = list(map(int, gateway.split('.')))
-    #
-    #     for i in range(1, self.settings.number + 1):
-    #         ident = '%s_%000d' % (self.ident, i)
-    #
-    #         if self.settings.network_ip_start:
-    #             ip = '.'.join(map(str, ip_nums[:3] + [self.settings.network_ip_start + i - 1]))
-    #         elif ip_nums:
-    #             ip = '.'.join(map(str, ip_nums[:3] + [ip_nums[3] + self.__class__.ip_counter + 1]))
-    #             self.__class__.ip_counter += 1
-    #         else:
-    #             ip = None
-

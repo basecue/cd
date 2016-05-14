@@ -1,4 +1,3 @@
-from hashlib import md5
 from contextlib import contextmanager
 from logging import getLogger
 
@@ -13,7 +12,6 @@ class LXCIsolator(Isolator):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.ident = md5(self.ident.encode()).hexdigest()
         self.machine = LXCMachine(self.performer, ident=self.ident)
         self.logger = getLogger(__name__)
 
@@ -35,6 +33,12 @@ class LXCIsolator(Isolator):
     def destroy(self):
         return self.machine.destroy()
 
+    def start(self):
+        return self.machine.start()
+
+    def stop(self):
+        return self.machine.stop()
+
     def is_started(self):
         return self.machine.is_started()
 
@@ -52,17 +56,23 @@ class LXCIsolator(Isolator):
 
     def create(self):
         try:
-            created = self.machine.create('ubuntu', 'wily')
+            self.machine.create('ubuntu', 'wily')
         except:
-            created = self.machine.create('ubuntu', 'trusty')
+            self.machine.create('ubuntu', 'trusty')
 
         self.machine.start()
-        self.machine.install_packages('lxc', 'socat')
 
-        if created:
-            # reboot
-            self.machine.stop()
-            self.machine.start()
+        # TODO - providers requirements
+        self.machine.install_packages(
+            'lxc',
+            'socat',  # for ssh tunneling
+            'python3-pip', 'libffi-dev', 'libssl-dev',  # for codev
+            'python-virtualenv', 'python-dev', 'python3-venv',  # for ansible provisioner
+            'git'  # for git source
+        )
+
+        self.machine.stop()
+        self.machine.start()
 
         # TODO test uid/gid mapping
         # if created:
@@ -84,8 +94,6 @@ class LXCIsolator(Isolator):
         #         gid_start=gid_start,
         #         gid_range=gid_range
         #     ))
-
-        return created
 
     @contextmanager
     def _environment(self):
@@ -136,63 +144,5 @@ class LXCIsolator(Isolator):
         with self.machine.change_directory(directory):
             yield
 
-    def make_link(self, source, target):
-        # experimental
-        performer_background_runner = BackgroundExecutor(
-            self.performer, ident='{share_directory}/{target}'.format(
-                share_directory=self.machine.share_directory,
-                target=target
-            )
-        )
-        from os import path
-        dir_path = path.dirname(__file__)
-
-        try:
-            performer_background_runner.execute(
-                "TO={share_directory}/{target}"
-                " clsync"
-                " --label live"
-                " --mode rsyncshell"
-                " --delay-sync 2"
-                " --delay-collect 3"
-                " --watch-dir {source}"
-                " --sync-handler {dir_path}/scripts/clsync-synchandler-rsyncshell.sh".format(
-                    share_directory=self.machine.share_directory,
-                    target=target,
-                    source=source,
-                    dir_path=dir_path
-                ),
-                wait=False
-            )
-        except PerformerError:
-            pass
-
-        machine_background_runner = BackgroundExecutor(
-            self.machine, ident=self.ident
-        )
-
-        self.machine.send_file(
-            '{dir_path}/scripts/clsync-synchandler-rsyncshell.sh'.format(dir_path=dir_path),
-            '/usr/bin/clsync-synchandler-rsyncshell.sh'
-        )
-        self.machine.execute('chmod +x /usr/bin/clsync-synchandler-rsyncshell.sh')
-
-        self.machine.install_packages('clsync', 'rsync')
-
-        try:
-            machine_background_runner.execute(
-                "TO={working_dir}/{target}"
-                " clsync"
-                " --label live"
-                " --mode rsyncshell"
-                " --delay-sync 2"
-                " --delay-collect 3"
-                " --watch-dir /share/{target}"
-                " --sync-handler /usr/bin/clsync-synchandler-rsyncshell.sh".format(
-                    working_dir=self.machine.working_dir,
-                    target=target
-                ),
-                wait=False
-            )
-        except PerformerError:
-            pass
+    def share(self, source, target):
+        self.machine.share(source, target)

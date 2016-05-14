@@ -20,14 +20,15 @@ class Infrastructure(object):
                     return machine
         raise KeyError(ident)
 
-    def machines_groups(self, create=False):
+    def machines_groups(self, source=None, create=False):
         if create:
-            pub_key = '%s\n' % self.performer.execute('ssh-add -L')
+            ssh_key = '%s\n' % self.performer.execute('ssh-add -L')
         else:
-            pub_key = None
+            ssh_key = None
+
         return {
             machines_provider.ident: [
-                machine for machine in machines_provider.machines(create=create, pub_key=pub_key)
+                machine for machine in machines_provider.machines(source=source, create=create, ssh_key=ssh_key)
             ] for machines_provider in self._machines_providers()
         }
 

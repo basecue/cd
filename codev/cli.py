@@ -12,46 +12,50 @@ import sys
 
 
 def source_transition(installation_info):
-        next_source_ident = installation_info['next_source_ident']
-        source_ident = installation_info['source_ident']
-        current_source_ident = installation_info.get('isolation', {}).get('current_source_ident', source_ident)
+    """
+    :param installation_info:
+    :return:
+    """
+    # TODO deploy vs destroy (different highlited source in transition)
+    next_source_available = bool(installation_info['next_source_ident'])
+    isolation_exists = 'ident' in installation_info.get('isolation', {})
 
-        color_options = dict(
-            color_source=color.GREEN,
-            color_reset=color.RESET + style.RESET_ALL
-        )
+    color_options = dict(
+        color_source=color.GREEN,
+        color_reset=color.RESET + style.RESET_ALL
+    )
 
-        if next_source_ident:
-            if current_source_ident == source_ident:
-                color_source = color.GREEN + style.BRIGHT
-                color_next_source = color.GREEN
-            else:
-                color_source = color.GREEN
-                color_next_source = color.GREEN + style.BRIGHT
-
-            color_options.update(dict(
-                color_source=color_source,
-                color_next_source=color_next_source,
-            ))
-
-            final = {}
-            final.update(installation_info)
-            final.update(color_options)
-            # TODO in python 3.5 use **installation_info, **color_options
-            transition = ' -> {color_next_source}{next_source}:{next_source_options}{color_reset}'.format(
-                **final
-            )
+    if next_source_available:
+        if not isolation_exists:
+            color_source = color.GREEN + style.BRIGHT
+            color_next_source = color.GREEN
         else:
-            transition = ''
+            color_source = color.GREEN
+            color_next_source = color.GREEN + style.BRIGHT
 
-        final2 = {}
-        final2.update(installation_info)
-        final2.update(color_options)
+        color_options.update(dict(
+            color_source=color_source,
+            color_next_source=color_next_source,
+        ))
+
+        final = {}
+        final.update(installation_info)
+        final.update(color_options)
         # TODO in python 3.5 use **installation_info, **color_options
-        return '{color_source}{source}:{source_options}{color_reset}{transition}'.format(
-            transition=transition,
-            **final2
+        transition = ' -> {color_next_source}{next_source}:{next_source_options}{color_reset}'.format(
+            **final
         )
+    else:
+        transition = ''
+
+    final2 = {}
+    final2.update(installation_info)
+    final2.update(color_options)
+    # TODO in python 3.5 use **installation_info, **color_options
+    return '{color_source}{source}:{source_options}{color_reset}{transition}'.format(
+        transition=transition,
+        **final2
+    )
 
 
 def confirmation_message(message):
@@ -95,6 +99,7 @@ def installation_options(func):
             source,
             next_source,
             performer,
+            performer_settings,
             disable_isolation, **kwargs):
         source_name, source_options = parse_source(source)
         next_source_name, next_source_options = parse_source(next_source)
@@ -108,7 +113,7 @@ def installation_options(func):
             next_source_name=next_source_name,
             next_source_options=next_source_options,
             performer_provider=performer,
-            performer_specific={},  # TODO
+            performer_specific=performer_settings,
             disable_isolation=disable_isolation
         )
         return func(installation, **kwargs)
@@ -143,6 +148,18 @@ def performer_option(func):
                         default=None,
                         metavar='<performer>',
                         help='Set performer')(func)
+
+
+def performer_settings_option(func):
+    @wraps(func)
+    def performer_settings_wrapper(*args, performer_settings, **kwargs):
+        return func(*args, performer_settings=dict(performer_settings), **kwargs)
+
+    return click.option('--performer-settings',
+                        type=click.Tuple([str, str]),
+                        multiple=True,
+                        metavar='<variable> <value>',
+                        help='Performer settings.')(performer_settings_wrapper)
 
 
 def disable_isolation_option(func):
@@ -239,6 +256,7 @@ def command(confirmation=None, bool_exit=True, **kwargs):
         func = installation_options(func)
         func = nice_exception(func)
         func = performer_option(func)
+        func = performer_settings_option(func)
         func = disable_isolation_option(func)
         func = path_option(func)
         func = debug_option(func)

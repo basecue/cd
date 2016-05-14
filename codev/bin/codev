@@ -1,4 +1,4 @@
-#!/home/beer/projects/baseclue/codev/env/bin/python3.4
+#!/home/beer/projects/baseclue/codev/env/bin/python
 
 """
 Use cases
@@ -27,28 +27,12 @@ import select
 
 
 @command(
-    help='Install project.',
-    confirmation="Install project '{project}' to environment '{environment}' in configuration '{configuration}' at source '{source_transition}'?"
-)
-def install(installation):
-    """
-    Install project
-
-    :param installation:
-    :type installation: codev.installation.Installation
-    :return:
-    :rtype: bool
-    """
-    return installation.install()
-
-
-@command(
     help='Deploy project.',
     confirmation="Deploy project '{project}' to environment '{environment}' in configuration '{configuration}' at source '{source_transition}'?"
 )
 def deploy(installation):
     """
-    Install project
+    Deploy project
 
     :param installation:
     :type installation: codev.installation.Installation
@@ -57,40 +41,10 @@ def deploy(installation):
     """
     return installation.deploy()
 
-#
-# @command(help='Join the running command in isolation.')
-# def join(installation):
-#     """
-#     :param installation:
-#     :type installation: codev.installation.Installation
-#     :return:
-#     :rtype: bool
-#     """
-#     return installation.join()
 
-
-@command(help='Run command in project context in isolation.')
-@click.argument('command', nargs=-1)
-def run(installation, command):
-    """
-    :param installation:
-    :type installation: codev.installation.Installation
-    :param command:
-    :type command: str
-    :return:
-    :rtype: bool
-    """
-
-    if select.select([sys.stdin,], [], [], 0.0)[0]:
-        arguments = loads(sys.stdin.read())
-    else:
-        arguments = {}
-    return installation.run(' '.join(command), arguments)
-
-
-# @command(help='Execute command in isolation.')
+# @command(help='Run command in project context in isolation.')
 # @click.argument('command', nargs=-1)
-# def execute(installation, command):
+# def run(installation, command):
 #     """
 #     :param installation:
 #     :type installation: codev.installation.Installation
@@ -99,40 +53,12 @@ def run(installation, command):
 #     :return:
 #     :rtype: bool
 #     """
-#     return installation.execute(' '.join(command))
-
-
-# @command(help='Stop the running command in isolation.')
-# def stop(installation):
-#     """
-#     :param installation:
-#     :type installation: codev.installation.Installation
-#     :return:
-#     :rtype: bool
-#     """
-#     return installation.stop()
 #
-#
-# @command(help='Kill the running command in isolation.')
-# def kill(installation):
-#     """
-#     :param installation:
-#     :type installation: codev.installation.Installation
-#     :return:
-#     :rtype: bool
-#     """
-#     return installation.kill()
-
-
-# @command(help='Invoke an isolation shell.')
-# def shell(installation):
-#     """
-#     :param installation:
-#     :type installation: codev.installation.Installation
-#     :return:
-#     :rtype: bool
-#     """
-#     return installation.shell()
+#     if select.select([sys.stdin,], [], [], 0.0)[0]:
+#         arguments = loads(sys.stdin.read())
+#     else:
+#         arguments = {}
+#     return installation.run(' '.join(command), arguments)
 
 
 @command(
@@ -158,32 +84,32 @@ def info(installation):
     :rtype: bool
     """
     info = installation.info
-    formatter = click.HelpFormatter(indent_increment=4)
-    isolation = info.get('isolation', {})
-    if isolation:
-        formatter.write_text('Isolation:')
-        with formatter.indentation():
-            formatter.write_text('ident: {ident}'.format(**isolation))
-            formatter.write_text('   ip: {ip}'.format(**isolation))
-
-    formatter.write_text('Infrastructure:')
-    for machine_group_name, machines in info['infrastructure'].items():
-        with formatter.indentation():
-            formatter.write_text('{name}'.format(name=machine_group_name))
-            for machine in machines:
-                with formatter.indentation():
-                    formatter.write_text('{ident:<20} {ip}'.format(**machine))
-                    if isolation:
-                        machine_connectivity = isolation.get('connectivity', {}).get(machine['ident'], {})
-                        with formatter.indentation():
-                            for source, target in machine_connectivity.items():
-                                formatter.write_text('{source} -> {target}'.format(source=source, target=target))
-    click.echo(formatter.getvalue())
+    from pprint import pformat
+    click.echo(pformat(info))
+    # formatter = click.HelpFormatter(indent_increment=4)
+    # isolation = info.get('isolation', {})
+    # if isolation:
+    #     isolation_ident = isolation.get('ident', '')
+    #     if isolation_ident:
+    #         formatter.write_text('Isolation:')
+    #         with formatter.indentation():
+    #             formatter.write_text('   ident: {ident}'.format(ident=isolation['ident']))
+    #             formatter.write_text('      ip: {ip}'.format(ip=isolation['ip']))
+    #
+    # formatter.write_text('Infrastructure:')
+    # for machine_group_name, machines in info['infrastructure'].items():
+    #     with formatter.indentation():
+    #         formatter.write_text('{name}'.format(name=machine_group_name))
+    #         for machine in machines:
+    #             with formatter.indentation():
+    #                 formatter.write_text('{ident:<20} {ip}'.format(**machine))
+    #                 if isolation:
+    #                     machine_connectivity = isolation.get('connectivity', {}).get(machine['ident'], {})
+    #                     with formatter.indentation():
+    #                         for source, target in machine_connectivity.items():
+    #                             formatter.write_text('{source} -> {target}'.format(source=source, target=target))
+    # click.echo(formatter.getvalue())
     return True
-
-# @command(help='Show settings.')
-# def settings(installation):
-#     pass
 
 
 if __name__ == "__main__":

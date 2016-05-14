@@ -71,7 +71,7 @@ class SSHperformer(Performer):
         return stdin, stdout, stderr
 
     def execute(self, command, logger=None, writein=None, max_lines=None):
-        self.logger.debug('command: %s' % command)
+        self.logger.debug("Execute command: '%s'" % command)
         if not self.client:
             self._connect()
 
@@ -100,7 +100,7 @@ class SSHperformer(Performer):
         return output
 
     def send_file(self, source, target):
-        self.logger.debug('Send file: %s %s' % (source, target))
+        self.logger.debug("Send file: '%s' '%s'" % (source, target))
         source = expanduser(source)
         sftp = self.client.open_sftp()
         sftp.put(source, target)

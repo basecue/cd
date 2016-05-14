@@ -1,5 +1,6 @@
 from contextlib import contextmanager
 from subprocess import Popen, PIPE, call
+from os.path import expanduser
 
 from codev.performer import CommandError, Performer, OutputReader
 
@@ -14,7 +15,7 @@ class LocalPerformer(Performer):
         super().__init__(*args, **kwargs)
 
     def execute(self, command, logger=None, writein=None, max_lines=None):
-        self.logger.debug('Executing LOCAL command: %s' % command)
+        self.logger.debug("Execute command: '%s'" % command)
         process = Popen(command, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=True)
 
         if writein:
@@ -38,7 +39,15 @@ class LocalPerformer(Performer):
         return output
 
     def send_file(self, source, target):
-        call(['cp', source, target])
+        self.logger.debug("Send file: '{source}' '{target}'".format(source=source, target=target))
+        expanduser_source = expanduser(source)
+        if expanduser_source != source:
+            self.logger.debug(
+                "Expanduser: '{source}' -> '{expanduser_source}'".format(
+                    source=source, expanduser_source=expanduser_source
+                )
+            )
+        call(['cp', expanduser_source, target])
 
     @contextmanager
     def get_fo(self, remote_path):

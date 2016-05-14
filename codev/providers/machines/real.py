@@ -3,8 +3,9 @@ from codev.machines import MachinesProvider, BaseMachine
 
 
 class RealMachine(BaseMachine):
-    def __init__(self, host):
-        self.host = host
+    def __init__(self, ip):
+        self.ip = ip
+        #TODO
 
 
 class RealMachinesSettings(BaseSettings):
@@ -17,8 +18,3 @@ class RealMachinesProvider(MachinesProvider):
     provider_name = 'real'
     settings_class = RealMachinesSettings
 
-    def machines(self, create=False, pub_key=None):
-        machines = []
-        for host in self.settings.hosts:
-            machines.append(RealMachine(host))
-        return machines

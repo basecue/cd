@@ -16,7 +16,7 @@ class DebugSettings(BaseSettings):
 
     @property
     def show_client_exception(self):
-        return literal_eval(self.data.get('show_client_exception', 'False'))
+        return literal_eval(self.data.get('show_client_exception', 'True'))
 
 
 DebugSettings.settings = DebugSettings()

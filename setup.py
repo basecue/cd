@@ -11,7 +11,7 @@ AUTHOR = info.AUTHOR
 AUTHOR_EMAIL = info.AUTHOR_EMAIL
 URL = info.URL
 VERSION = info.VERSION
-REQUIRES = ['click', 'pyyaml', 'paramiko', 'colorama', 'gitpython']
+REQUIRES = ['click==6.6', 'PyYAML==3.11', 'paramiko==2.0.0', 'colorama==0.3.7', 'GitPython==2.0.2']
 
 cmdclass = {}
 ext_modules = []

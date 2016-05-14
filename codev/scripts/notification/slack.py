@@ -8,7 +8,9 @@ from urllib.request import urlopen
 from urllib.parse import parse_qs, urlencode
 
 
-def send_message(message, color, url, channel, username, project, environment, configuration, source, icon):
+def send_message(
+    message, color, url, channel, username, project, environment, configuration, source, source_options, icon
+):
     format_vars = dict(
         project=project,
         environment=environment,
@@ -41,7 +43,7 @@ def send_message(message, color, url, channel, username, project, environment, c
                     },
                     {
                         "title": "Source",
-                        "value": source,
+                        "value": '{source}:{source_options}'.format(source=source, source_options=source_options),
                         "short": True
                     },
                 ],
@@ -66,11 +68,8 @@ if __name__ == "__main__":
     environment = arguments.get('environment', '')
     configuration = arguments.get('configuration', '')
 
-    isolation = arguments.get('isolation', {})
-    if isolation:
-        source = isolation.get('current_source')
-    else:
-        source = arguments.get('source')
+    source = arguments.get('source')
+    source_options = arguments.get('source_options')
 
     url = arguments.get('url', '')
     channel = arguments.get('channel', '')
@@ -79,4 +78,6 @@ if __name__ == "__main__":
     icon = arguments.get('icon', ':ghost:')
     color = arguments.get('color', 'good')
 
-    send_message(message, color, url, channel, username, project, environment, configuration, source, icon)
+    send_message(
+        message, color, url, channel, username, project, environment, configuration, source, source_options, icon
+    )
