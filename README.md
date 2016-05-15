@@ -18,7 +18,7 @@ There is no stable version (yet). Only beta is available now.
 
 ### Ubuntu
 ```bash
-$ apt-get install python3-pip
+$ apt-get install python3-pip libffi-dev libssl-dev
 $ pip3 install setuptools
 $ pip3 install codev --pre
 ```
