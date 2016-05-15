@@ -268,8 +268,9 @@ class LXCMachine(BaseMachine):
             )
         )
 
-        performer_background_runner = BackgroundExecutor(
-            self.performer, ident='{share_target}'.format(
+        source_target_background_runner = BackgroundExecutor(
+            self.performer, ident='{source}_{share_target}'.format(
+                source=source,
                 share_target=share_target
             )
         )
@@ -281,7 +282,7 @@ class LXCMachine(BaseMachine):
 
         # TODO keep in mind relative and abs paths
         try:
-            performer_background_runner.execute(
+            source_target_background_runner.execute(
                 'TO={share_target}'
                 ' clsync'
                 ' --label live'
@@ -302,8 +303,14 @@ class LXCMachine(BaseMachine):
             pass
 
         if bidirectional:
+            target_source_background_runner = BackgroundExecutor(
+                self.performer, ident='{share_target}_{source}'.format(
+                    share_target=share_target,
+                    source=source
+                )
+            )
             try:
-                performer_background_runner.execute(
+                target_source_background_runner.execute(
                     'TO={source}'
                     ' clsync'
                     ' --label live'
