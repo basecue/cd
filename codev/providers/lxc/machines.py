@@ -268,6 +268,13 @@ class LXCMachine(BaseMachine):
             )
         )
 
+        if bidirectional:
+            self.performer.execute(
+                'chmod -R go+w {share_target}'.format(
+                    share_target=share_target
+                )
+            )
+
         source_target_background_runner = BackgroundExecutor(
             self.performer, ident='share_{ident}'.format(
                 ident=self.ident
