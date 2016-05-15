@@ -144,5 +144,5 @@ class LXCIsolator(Isolator):
         with self.machine.change_directory(directory):
             yield
 
-    def share(self, source, target):
-        self.machine.share(source, target)
+    def share(self, source, target, bidirectional=False):
+        self.machine.share(source, target, bidirectional=bidirectional)
