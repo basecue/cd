@@ -285,7 +285,7 @@ class LXCMachine(BaseMachine):
 
         # prevent sync loop - if there is no change in file don't sync
         # This option may eat a lot of memory on huge file trees. see 'man clsync'
-        modification_signature = '*' if bidirectional else ''
+        modification_signature = ' --modification-signature "*"' if bidirectional else ''
 
         # TODO keep in mind relative and abs paths
         try:
@@ -297,7 +297,7 @@ class LXCMachine(BaseMachine):
                 ' --delay-sync 2'
                 ' --delay-collect 3'
                 ' --watch-dir {source}'
-                ' --modification-signature "{modification_signature}"'
+                '{modification_signature}'
                 ' --sync-handler {dir_path}/scripts/clsync-synchandler-rsyncshell.sh'.format(
                     modification_signature=modification_signature,
                     share_target=share_target,
