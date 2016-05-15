@@ -74,6 +74,7 @@ class LXCMachine(BaseMachine):
                 self.execute('tee .ssh/authorized_keys', writein=ssh_key)
 
     def destroy(self):
+        self.performer.execute('rm -rf {share_directory}'.format(share_directory=self.share_directory))
         self.performer.execute('lxc-destroy -n {container_name}'.format(
             container_name=self.ident,
         ))
