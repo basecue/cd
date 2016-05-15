@@ -6,8 +6,8 @@ class LiveSource(ActualSource):
     provider_name = 'live'
 
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
         self.bidirectional = False
+        super().__init__(*args, **kwargs)
 
     def install(self, performer):
         performer.share(getcwd(), self.directory, bidirectional=self.bidirectional)
