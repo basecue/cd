@@ -21,10 +21,6 @@ class BaseMachine(BaseProxyPerformer):
     def stop(self):
         raise NotImplementedError()
 
-    def install_packages(self):
-        # TODO use ssh performer
-        pass
-
     @property
     def ip(self):
         #TODO rename to host

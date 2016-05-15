@@ -21,6 +21,10 @@ class RealMachine(BaseMachine):
     def stop(self):
         pass
 
+    def install_packages(self, *packages):
+        # TODO use ssh performer
+        pass
+
     @property
     def ip(self):
         # TODO rename to host
