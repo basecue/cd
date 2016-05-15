@@ -253,7 +253,7 @@ class LXCMachine(BaseMachine):
             env=' '.join('-v {var}={value}'.format(var=var, value=value) for var, value in env.items())
         ), logger=logger, writein=writein, max_lines=max_lines)
 
-    def share(self, source, target):
+    def share(self, source, target, bidirectional=False):
         share_target = '{share_directory}/{target}'.format(
             share_directory=self.share_directory,
             target=target
@@ -275,17 +275,23 @@ class LXCMachine(BaseMachine):
         )
         dir_path = path.dirname(__file__)
 
+        # prevent sync loop - if there is no change in file don't sync
+        # This option may eat a lot of memory on huge file trees. see 'man clsync'
+        modification_signature = '*' if bidirectional else ''
+
         # TODO keep in mind relative and abs paths
         try:
             performer_background_runner.execute(
-                "TO={share_target}"
-                " clsync"
-                " --label live"
-                " --mode rsyncshell"
-                " --delay-sync 2"
-                " --delay-collect 3"
-                " --watch-dir {source}"
-                " --sync-handler {dir_path}/scripts/clsync-synchandler-rsyncshell.sh".format(
+                'TO={share_target}'
+                ' clsync'
+                ' --label live'
+                ' --mode rsyncshell'
+                ' --delay-sync 2'
+                ' --delay-collect 3'
+                ' --watch-dir {source}'
+                ' --modification-signature "{modification_signature}"'
+                ' --sync-handler {dir_path}/scripts/clsync-synchandler-rsyncshell.sh'.format(
+                    modification_signature=modification_signature,
                     share_target=share_target,
                     source=source,
                     dir_path=dir_path
@@ -294,6 +300,27 @@ class LXCMachine(BaseMachine):
             )
         except PerformerError:
             pass
+
+        if bidirectional:
+            try:
+                performer_background_runner.execute(
+                    'TO={source}'
+                    ' clsync'
+                    ' --label live'
+                    ' --mode rsyncshell'
+                    ' --delay-sync 2'
+                    ' --delay-collect 3'
+                    ' --watch-dir {share_target}'
+                    ' --modification-signature "*"'
+                    ' --sync-handler {dir_path}/scripts/clsync-synchandler-rsyncshell.sh'.format(
+                        share_target=share_target,
+                        source=source,
+                        dir_path=dir_path
+                    ),
+                    wait=False
+                )
+            except PerformerError:
+                pass
 
         if self.check_execute('[ -S {target} ]'):
             self.execute(
