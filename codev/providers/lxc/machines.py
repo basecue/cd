@@ -269,9 +269,8 @@ class LXCMachine(BaseMachine):
         )
 
         source_target_background_runner = BackgroundExecutor(
-            self.performer, ident='{source}_{share_target}'.format(
-                source=source,
-                share_target=share_target
+            self.performer, ident='share_{ident}'.format(
+                ident=self.ident
             )
         )
         dir_path = path.dirname(__file__)
@@ -304,9 +303,8 @@ class LXCMachine(BaseMachine):
 
         if bidirectional:
             target_source_background_runner = BackgroundExecutor(
-                self.performer, ident='{share_target}_{source}'.format(
-                    share_target=share_target,
-                    source=source
+                self.performer, ident='share_back_{ident}'.format(
+                    ident=self.ident
                 )
             )
             try:
