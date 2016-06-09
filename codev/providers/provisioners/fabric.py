@@ -40,7 +40,7 @@ class FabricProvisioner(Provisioner):
         version_add = ''
         if self.settings.version:
             version_add = '==%s' % self.settings.version
-        self.isolator.execute('pip install --upgrade fabric=%s fabtools' % version_add)
+        self.isolator.execute('pip install --upgrade fabric%s fabtools' % version_add)
 
     def run(self, machines_groups, info):
         role = self.settings.role or info['environment']
