@@ -38,13 +38,13 @@ class Configuration(object):
             deployment = Deployment(self.performer, self.settings.provision)
             return deployment.deploy(self.infrastructure, self.source, info)
 
-    def run_script(self, script, arguments=None):
+    def execute_script(self, script, arguments=None):
         executor = self.isolation or self.performer
 
         if arguments is None:
             arguments = {}
         arguments.update(self.info)
-        executor.run_script(script, arguments=arguments, logger=command_logger)
+        executor.execute_script(script, arguments=arguments, logger=command_logger)
 
     @property
     def info(self):

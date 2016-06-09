@@ -20,7 +20,7 @@ class Deployment(BaseProxyExecutor):
                 error=error.error
             )
         )
-        self.run_scripts(self.scripts.onerror, arguments)
+        self.execute_scripts(self.scripts.onerror, arguments)
 
     def deploy(self, infrastructure, source, script_info):
         """
@@ -29,7 +29,7 @@ class Deployment(BaseProxyExecutor):
         :param script_info: dict
         :return:
         """
-        self.run_scripts(self.scripts.onstart, script_info)
+        self.execute_scripts(self.scripts.onstart, script_info)
         try:
             logger.info('Creating machines...')
             machines_groups = infrastructure.machines_groups(source=source, create=True)
@@ -45,7 +45,7 @@ class Deployment(BaseProxyExecutor):
             return False
         else:
             try:
-                self.run_scripts(self.scripts.onsuccess, script_info)
+                self.execute_scripts(self.scripts.onsuccess, script_info)
                 return True
             except CommandError as e:
                 self._onerror(script_info, e)

@@ -35,8 +35,8 @@
         <UML:Attribute visibility="private" isSpecification="false" xmi.id="yYnpC83pNqD8" type="9K3NfWT9REMd" name="ident"/>
         <UML:Operation visibility="public" isSpecification="false" isQuery="false" isAbstract="false" isLeaf="false" isRoot="false" xmi.id="aFX1p7xcbE8I" name="execute"/>
         <UML:Operation visibility="public" isSpecification="false" isQuery="false" isAbstract="false" isLeaf="false" isRoot="false" xmi.id="YauARB1NjmDu" name="check_execute"/>
-        <UML:Operation visibility="public" isSpecification="false" isQuery="false" isAbstract="false" isLeaf="false" isRoot="false" xmi.id="uEhH4vNe8tdx" name="run_script"/>
-        <UML:Operation visibility="public" isSpecification="false" isQuery="false" isAbstract="false" isLeaf="false" isRoot="false" xmi.id="yaZZmgpIEiTf" name="run_scripts"/>
+        <UML:Operation visibility="public" isSpecification="false" isQuery="false" isAbstract="false" isLeaf="false" isRoot="false" xmi.id="uEhH4vNe8tdx" name="execute_script"/>
+        <UML:Operation visibility="public" isSpecification="false" isQuery="false" isAbstract="false" isLeaf="false" isRoot="false" xmi.id="yaZZmgpIEiTf" name="execute_scripts"/>
         <UML:Operation visibility="public" isSpecification="false" isQuery="false" isAbstract="false" isLeaf="false" isRoot="false" xmi.id="5i7Dbi8aGg72" name="change_directory"/>
        </UML:Classifier.feature>
       </UML:Class>

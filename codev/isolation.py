@@ -51,7 +51,7 @@ class Isolation(BaseProxyPerformer):
             self.send_file(distfile, remote_distfile)
             self.execute('pip3 install --upgrade {distfile}'.format(distfile=remote_distfile))
 
-    def run_script(self, script, arguments=None, logger=None):
+    def execute_script(self, script, arguments=None, logger=None):
         if DebugSettings.perform_settings:
             perform_debug = ' '.join(
                 (
@@ -71,7 +71,7 @@ class Isolation(BaseProxyPerformer):
             perform_debug=perform_debug
         )
         with self.change_directory(self.current_source.directory):
-            super().run_script(codev_script, arguments=arguments, logger=logger)
+            super().execute_script(codev_script, arguments=arguments, logger=logger)
 
     def install(self, info):
         # TODO refactorize - divide?
@@ -91,7 +91,7 @@ class Isolation(BaseProxyPerformer):
             self.current_source.install(self.performer)
             with self.current_source.open_codev_file(self.performer) as codev_file:
                 self._install_codev(codev_file)
-            self.run_scripts(self.scripts.oncreate, info, logger=command_logger)
+            self.execute_scripts(self.scripts.oncreate, info, logger=command_logger)
         else:
             if self.next_source:
                 logger.info("Transition source in isolation...")
@@ -102,7 +102,7 @@ class Isolation(BaseProxyPerformer):
                 with self.current_source.open_codev_file(self.performer) as codev_file:
                     self._install_codev(codev_file)
         logger.info("Entering isolation...")
-        self.run_scripts(self.scripts.onenter, info, logger=command_logger)
+        self.execute_scripts(self.scripts.onenter, info, logger=command_logger)
 
     def deploy(self, infrastructure, info):
         version = self.performer.execute('pip3 show codev | grep ^Version | cut -d " " -f 2')

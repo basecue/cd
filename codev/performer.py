@@ -46,7 +46,7 @@ class BaseExecutor(object):
         raise NotImplementedError()
         # return self._execute(self._prepare_command(command), logger=logger, writein=writein, max_lines=max_lines, **kwargs)
 
-    def run_script(self, script, arguments=None, logger=None):
+    def execute_script(self, script, arguments=None, logger=None):
         if arguments is None:
             arguments = {}
 
@@ -66,12 +66,12 @@ class BaseExecutor(object):
 
         return self.execute(script.format(**arguments), writein=dumps(arguments), logger=logger)
 
-    def run_scripts(self, scripts, common_arguments=None, logger=None):
+    def execute_scripts(self, scripts, common_arguments=None, logger=None):
         if common_arguments is None:
             common_arguments = {}
         for script, arguments in scripts.items():
             arguments.update(common_arguments)
-            self.run_script(script, arguments, logger=logger)
+            self.execute_script(script, arguments, logger=logger)
 
     @property
     def working_dir(self):
