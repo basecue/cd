@@ -98,9 +98,19 @@ def installation_options(func):
             configuration,
             source,
             next_source,
+            same_source,
             performer,
             performer_settings,
             disable_isolation, **kwargs):
+
+        if same_source:
+            if source or next_source:
+                raise click.BadOptionUsage('Parameter "-st" is not allowed to use together with "-s" / "--source" or "-t" / "--next-source" parameters.')
+            else:
+                source = next_source = same_source
+        elif not source:
+            raise click.BadOptionUsage('Missing option "-s" / "--source" or "-st"')
+
         source_name, source_options = parse_source(source)
         next_source_name, next_source_options = parse_source(next_source)
 
@@ -133,14 +143,19 @@ def installation_options(func):
     f = click.option(
         '-s', '--source',
         metavar='<source installation>',
-        required=True,
         help='Source')(f)
 
-    return click.option(
+    f = click.option(
         '-t', '--next-source',
         default='',
         metavar='<next source>',
         help='Next source')(f)
+
+    return click.option(
+        '-st', 'same_source',
+        default='',
+        metavar='<source>',
+        help='Shortcut for same source and next source')(f)
 
 
 def performer_option(func):
