@@ -105,9 +105,11 @@ def installation_options(func):
 
         if same_source:
             if source or next_source:
-                raise click.BadArgumentUsage('Parameter -st is not allowed to use together with -s or -t parameters.')
+                raise click.BadOptionUsage('Parameter "-st" is not allowed to use together with "-s" / "--source" or "-t" / "--next-source" parameters.')
             else:
                 source = next_source = same_source
+        elif not source:
+            raise click.BadOptionUsage('Missing option "-s" / "--source" or "-st"')
 
         source_name, source_options = parse_source(source)
         next_source_name, next_source_options = parse_source(next_source)
@@ -141,7 +143,6 @@ def installation_options(func):
     f = click.option(
         '-s', '--source',
         metavar='<source installation>',
-        required=True,
         help='Source')(f)
 
     f = click.option(
