@@ -34,8 +34,8 @@ class LocalPerformer(Performer):
         exit_code = process.wait()
 
         if exit_code:
-            err = process.stderr.read().decode('utf-8').strip()
-            raise CommandError(command, exit_code, err)
+            error = process.stderr.read().decode('utf-8').strip()
+            raise CommandError(command, exit_code, output, error)
         return output
 
     def send_file(self, source, target):

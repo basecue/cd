@@ -96,9 +96,10 @@ class PerformerError(Exception):
 
 
 class CommandError(PerformerError):
-    def __init__(self, command, exit_code, error):
+    def __init__(self, command, exit_code, output, error):
         self.command = command
         self.exit_code = exit_code
+        self.output = output
         self.error = error
         super().__init__(
             "Command '{command}' failed with exit code '{exit_code}' with error '{error}'".format(
@@ -425,9 +426,9 @@ class BackgroundExecutor(BaseProxyExecutor):
         output = self._cat_file(isolation.output_file)
 
         if exit_code:
-            err = self._cat_file(isolation.error_file)
+            error = self._cat_file(isolation.error_file)
             self._clean()
-            raise CommandError(command, exit_code, err)
+            raise CommandError(command, exit_code, output, error)
 
         self._clean()
         return output

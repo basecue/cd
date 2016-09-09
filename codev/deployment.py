@@ -17,6 +17,7 @@ class Deployment(BaseProxyExecutor):
             dict(
                 command=error.command,
                 exit_code=error.exit_code,
+                output=error.output,
                 error=error.error
             )
         )
