@@ -12,7 +12,7 @@ class RealMachine(BaseMachine):
     def start(self):
         pass
 
-    def create(self, distribution, release, install_ssh_server=False, ssh_key=None):
+    def create(self, settings, install_ssh_server=False, ssh_key=None):
         pass
 
     def destroy(self):

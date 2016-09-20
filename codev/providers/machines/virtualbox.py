@@ -10,7 +10,7 @@ from time import sleep
 
 """
 requirements: wget, isoinfo, mkisofs
-archlinux: cdrkit | cdrtools
+archlinux: wget, cdrkit | cdrtools
 ubuntu: TODO
 """
 
@@ -29,7 +29,9 @@ class VirtualboxMachine(BaseMachine):
     def start(self):
         self.performer.execute('VBoxManage startvm "{ident}"'.format(ident=self.ident))
 
-    def create(self, distribution, release, install_ssh_server=False, ssh_key=None):
+    def create(self, settings, install_ssh_server=False, ssh_key=None):
+        distribution = settings.distribution
+        release = settings.release
         if distribution != 'ubuntu':
             raise RuntimeError("Distribution '{distribution}' is not supported".format(distribution=distribution))
         if release in ('wily', 'xenial'):
@@ -54,7 +56,7 @@ class VirtualboxMachine(BaseMachine):
 
         self._prepare_ubuntu_iso(
             release_iso, vm_iso,
-            'codev', 'codev', self.ident.replace('_', '-'),
+            settings.username, settings.password, self.ident.replace('_', '-'),
             device_1=device_1, device_2=device_2,
             packages=packages, ssh_authorized_keys=[ssh_key]
         )

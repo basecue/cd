@@ -45,7 +45,9 @@ class LXCMachine(BaseMachine):
         else:
             raise ValueError('s:%s:s' % state)
 
-    def create(self, distribution, release, install_ssh_server=False, ssh_key=None): #, ip=None, gateway=None):
+    def create(self, settings, install_ssh_server=False, ssh_key=None): #, ip=None, gateway=None):
+        distribution = settings.distribution
+        release = settings.release
         architecture = self._get_architecture()
         if not self.performer.check_execute(
             'lxc-create -t {distribution} -n {container_name} -- --release {release}'.format(
