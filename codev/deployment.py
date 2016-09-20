@@ -8,7 +8,10 @@ logger = getLogger(__name__)
 class Deployment(BaseProxyExecutor):
     def __init__(self, performer, settings):
         super().__init__(performer)
-        self.provisioner = Provisioner(settings.provider, performer, settings_data=settings.specific)
+        if settings.provider:
+            self.provisioner = Provisioner(settings.provider, performer, settings_data=settings.specific)
+        else:
+            self.provisioner = None
         self.scripts = settings.scripts
 
     def _onerror(self, arguments, error):
@@ -35,11 +38,12 @@ class Deployment(BaseProxyExecutor):
             machines_groups = infrastructure.machines_groups(source=source, create=True)
             script_info.update(infrastructure=infrastructure.info)
 
-            logger.info('Installing provisioner...')
-            self.provisioner.install()
+            if self.provisioner:
+                logger.info('Installing provisioner...')
+                self.provisioner.install()
 
-            logger.info('Configuration...')
-            self.provisioner.run(machines_groups, script_info)
+                logger.info('Configuration...')
+                self.provisioner.run(machines_groups, script_info)
         except CommandError as e:
             self._onerror(script_info, e)
             return False
