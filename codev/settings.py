@@ -54,6 +54,10 @@ class InfrastructureSettings(ProviderSettings):
     def only_one(self):
         return self.data.get('only_one', False)
 
+    @property
+    def roles(self):
+        return self.data.get('roles', [])
+
 
 class DictSettings(OrderedDict):
     def __init__(self, cls, data, *args, **kwargs):
