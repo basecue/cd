@@ -1,11 +1,23 @@
+from codev.provider import Provider, ConfigurableProvider
 from codev.provisioner import Provisioner
-from codev.settings import BaseSettings
+from codev.settings import BaseSettings, ProviderSettings
 from codev.isolator import Isolator
 # from os import environ
 import configparser
 
 from logging import getLogger
 logger = getLogger(__name__)
+
+from .sources import *
+
+
+class AnsibleSource(Provider, ConfigurableProvider):
+    def __init__(self, performer, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.performer = performer
+
+    def install(self):
+        raise NotImplementedError()
 
 
 class AnsibleProvisionerSettings(BaseSettings):
@@ -24,6 +36,10 @@ class AnsibleProvisionerSettings(BaseSettings):
     @property
     def env_vars(self):
         return self.data.get('env_vars', {})
+
+    @property
+    def source(self):
+        return ProviderSettings(self.data.get('source', {}))
 
 
 class AnsibleProvisioner(Provisioner):
@@ -95,6 +111,10 @@ class AnsibleProvisioner(Provisioner):
             )
         else:
             env_vars = ''
+
+        if self.settings.source.provider:
+            source = AnsibleSource(self.settings.source.provider, self.performer, self.settings.source.specific)
+            source.install()
 
         self.isolator.execute('{env_vars}ansible-playbook -i {inventory} {playbook}{extra_vars}'.format(
             inventory=inventory_filepath,

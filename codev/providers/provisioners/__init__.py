@@ -1,2 +1,2 @@
-from .ansible import *
-from .fabric import *
+from .ansible import AnsibleProvisioner
+from .fabric import FabricProvisioner
