@@ -9,7 +9,7 @@ class Deployment(BaseProxyExecutor):
     def __init__(self, performer, settings):
         super().__init__(performer)
         if settings.provider:
-            self.provisioner = Provisioner(settings.provider, performer, settings_data=settings.specific)
+            self.provisioner = Provisioner(settings.provider, performer, settings_data=settings.settings_data)
         else:
             self.provisioner = None
         self.scripts = settings.scripts

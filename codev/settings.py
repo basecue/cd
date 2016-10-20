@@ -45,8 +45,8 @@ class ProviderSettings(BaseSettings):
         return self.data.get('provider')
 
     @property
-    def specific(self):
-        return self.data.get('specific', {})
+    def settings_data(self):
+        return self.data.get('settings', {})
 
 
 class InfrastructureSettings(ProviderSettings):

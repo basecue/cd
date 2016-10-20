@@ -10,7 +10,7 @@ class Infrastructure(object):
         for machines_ident, machines_settings in self.settings.items():
             yield MachinesProvider(
                 machines_settings.provider,
-                machines_ident, self.performer, settings_data=machines_settings.specific
+                machines_ident, self.performer, settings_data=machines_settings.settings_data
             )
 
     def get_machine_by_ident(self, ident):
