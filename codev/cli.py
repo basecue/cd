@@ -100,7 +100,7 @@ def installation_options(func):
             next_source,
             same_source,
             performer,
-            performer_settings,
+            performer_settings_data,
             disable_isolation, **kwargs):
 
         if same_source:
@@ -123,7 +123,7 @@ def installation_options(func):
             next_source_name=next_source_name,
             next_source_options=next_source_options,
             performer_provider=performer,
-            performer_specific=performer_settings,
+            performer_settings_data=performer_settings_data,
             disable_isolation=disable_isolation
         )
         return func(installation, **kwargs)
@@ -168,7 +168,7 @@ def performer_option(func):
 def performer_settings_option(func):
     @wraps(func)
     def performer_settings_wrapper(*args, performer_settings, **kwargs):
-        return func(*args, performer_settings=dict(performer_settings), **kwargs)
+        return func(*args, performer_settings_data=dict(performer_settings), **kwargs)
 
     return click.option('--performer-settings',
                         type=click.Tuple([str, str]),
