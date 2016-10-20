@@ -23,7 +23,7 @@ class Installation(object):
             next_source_name='',
             next_source_options='',
             performer_provider=None,
-            performer_specific=None,
+            performer_settings_data=None,
             disable_isolation=False
     ):
         """
@@ -44,8 +44,8 @@ class Installation(object):
         :type next_source_options: string
         :param performer_provider:
         :type performer_provider: string
-        :param performer_specific:
-        :type performer_specific: dict
+        :param performer_settings_data:
+        :type performer_settings_data: dict
         :param disable_isolation:
         :type disable_isolation: bool
         :return:
@@ -85,21 +85,21 @@ class Installation(object):
         if not performer_provider:
             performer_settings = environment_settings.performer
             performer_provider = performer_settings.provider
-            performer_specific = performer_settings.specific
+            performer_settings_data = performer_settings.settings_data
         else:
-            if performer_specific is None:
-                performer_specific = {}
+            if performer_settings_data is None:
+                performer_settings_data = {}
 
         performer = Performer(
             performer_provider,
-            settings_data=performer_specific
+            settings_data=performer_settings_data
         )
 
         # isolation
         if not disable_isolation:
             isolator_settings = environment_settings.isolator
             isolator_provider = isolator_settings.provider
-            isolator_specific = isolator_settings.specific
+            isolator_settings_data = isolator_settings.settings_data
 
             # TODO add codev version?
             ident = sorted(list(dict(
@@ -110,7 +110,7 @@ class Installation(object):
                 next_source_ident=next_source.ident if next_source else ''
             ).items()))
 
-            self.performer = Isolator(isolator_provider, performer, settings_data=isolator_specific, ident=ident)
+            self.performer = Isolator(isolator_provider, performer, settings_data=isolator_settings_data, ident=ident)
         else:
             logging_config(perform=True)
             self.performer = performer

@@ -27,7 +27,7 @@ class VirtualboxMachine(BaseMachine):
         return bool(re.search('^\"{ident}\"\s+.*'.format(ident=self.ident), output, re.MULTILINE))
 
     def start(self):
-        self.performer.execute('VBoxManage startvm "{ident}"'.format(ident=self.ident))
+        self.performer.execute('VBoxManage startvm "{ident}" --type headless'.format(ident=self.ident))
 
     def create(self, settings, install_ssh_server=False, ssh_key=None):
         distribution = settings.distribution
@@ -69,7 +69,7 @@ class VirtualboxMachine(BaseMachine):
         lower_ip = '192.168.77.100'
         upper_ip = '192.168.77.200'
         iface = self._create_vbox_iface(iface_ip, dhcp_ip, netmask, lower_ip, upper_ip)
-        self._create_vm(hostonly_iface=iface)
+        self._create_vm(hostonly_iface=iface, memory=settings.memory, hdd=settings.hdd)
 
         self._install_vm(vm_iso)
 
@@ -382,6 +382,14 @@ class VirtualboxMachinesSettings(BaseSettings):
     @property
     def password(self):
         return self.data.get('password')
+
+    @property
+    def memory(self):
+        return self.data.get('memory', 20000)
+
+    @property
+    def hdd(self):
+        return self.data.get('hdd', 1024)
 
 
 class VirtualboxMachinesProvider(MachinesProvider):
