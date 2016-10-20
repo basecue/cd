@@ -27,7 +27,7 @@ class VirtualboxMachine(BaseMachine):
         return bool(re.search('^\"{ident}\"\s+.*'.format(ident=self.ident), output, re.MULTILINE))
 
     def start(self):
-        self.performer.execute('VBoxManage startvm "{ident}"'.format(ident=self.ident))
+        self.performer.execute('VBoxManage startvm "{ident}" --type headless'.format(ident=self.ident))
 
     def create(self, settings, install_ssh_server=False, ssh_key=None):
         distribution = settings.distribution
