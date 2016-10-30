@@ -1,4 +1,4 @@
-from codev.provider import Provider, ConfigurableProvider
+from .source import AnsibleSource
 from codev.provisioner import Provisioner
 from codev.settings import BaseSettings, ProviderSettings
 from codev.isolator import Isolator
@@ -7,17 +7,6 @@ import configparser
 
 from logging import getLogger
 logger = getLogger(__name__)
-
-from .sources import *
-
-
-class AnsibleSource(Provider, ConfigurableProvider):
-    def __init__(self, performer, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.performer = performer
-
-    def install(self):
-        raise NotImplementedError()
 
 
 class AnsibleProvisionerSettings(BaseSettings):

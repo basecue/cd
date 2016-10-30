@@ -1,4 +1,4 @@
-from .. import AnsibleSource
+from ..source import AnsibleSource
 from codev.settings import BaseSettings
 from ....sources.git import Git
 
