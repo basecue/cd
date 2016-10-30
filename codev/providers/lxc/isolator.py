@@ -4,7 +4,7 @@ from logging import getLogger
 from codev.isolator import Isolator
 from codev.performer import BackgroundExecutor, PerformerError
 
-from .machines import LXCMachine
+from .machines import LXCMachine, LXCMachinesSettings
 
 
 class LXCIsolator(Isolator):
@@ -56,9 +56,11 @@ class LXCIsolator(Isolator):
 
     def create(self):
         try:
-            self.machine.create('ubuntu', 'wily')
-        except:
-            self.machine.create('ubuntu', 'trusty')
+            settings = LXCMachinesSettings(data=dict(distribution='ubuntu', release='wily'))
+            self.machine.create(settings)
+        except Exception as e:
+            settings = LXCMachinesSettings(data=dict(distribution='ubuntu', release='trusty'))
+            self.machine.create(settings)
 
         self.machine.start()
 
