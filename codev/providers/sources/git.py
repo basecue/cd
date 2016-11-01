@@ -39,7 +39,7 @@ class Git(object):
                 performer.check_execute('rm -rf {directory}'.format(directory=self.directory))
 
         if self.directory:
-                directory = self.directory
+            directory = self.directory
         else:
             directory = '.'
 

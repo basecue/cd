@@ -10,7 +10,7 @@ class AnsibleGitSourceSettings(BaseSettings):
 
     @property
     def version(self):
-        return self.data.get('version', '')
+        return self.data.get('version', 'master')
 
     @property
     def commit(self):
