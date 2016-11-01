@@ -55,12 +55,9 @@ class LXCIsolator(Isolator):
         return self.machine.send_file(source, target)
 
     def create(self):
-        try:
-            settings = LXCMachinesSettings(data=dict(distribution='ubuntu', release='wily'))
-            self.machine.create(settings)
-        except Exception as e:
-            settings = LXCMachinesSettings(data=dict(distribution='ubuntu', release='trusty'))
-            self.machine.create(settings)
+        # TODO isolator settings
+        settings = LXCMachinesSettings(data=dict(distribution='ubuntu', release='xenial'))
+        self.machine.create(settings)
 
         self.machine.start()
 

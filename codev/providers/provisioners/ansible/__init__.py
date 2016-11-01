@@ -1,4 +1,5 @@
 from .source import AnsibleSource
+from .sources import *
 from codev.provisioner import Provisioner
 from codev.settings import BaseSettings, ProviderSettings
 from codev.isolator import Isolator
@@ -102,7 +103,7 @@ class AnsibleProvisioner(Provisioner):
             env_vars = ''
 
         if self.settings.source.provider:
-            source = AnsibleSource(self.settings.source.provider, self.performer, self.settings.source.specific)
+            source = AnsibleSource(self.settings.source.provider, self.performer, self.settings.source.settings_data)
             source.install()
 
         self.isolator.execute('{env_vars}ansible-playbook -i {inventory} {playbook}{extra_vars}'.format(

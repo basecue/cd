@@ -17,16 +17,18 @@ class AnsibleGitSourceSettings(BaseSettings):
         return self.data.get('commit', '')
 
 
-class AnsibleGitSource(Git, AnsibleSource):
+class AnsibleGitSource(AnsibleSource):
     provider_name = 'git'
     settings_class = AnsibleGitSourceSettings
 
     def __init__(self, *args, **kwargs):
-        super().__init__(
-            *args,
+        super().__init__(*args, **kwargs)
+        self.git = Git(
             version=self.settings.version,
             commit=self.settings.commit,
             repository_url=self.settings.url,
-            directory='/tmp/ansible_git',
-            **kwargs
+            directory='/tmp/ansible_git'
         )
+
+    def install(self):
+        self.git.install(self.performer)
