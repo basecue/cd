@@ -75,4 +75,4 @@ class ConfigurableProvider(object):
     def __init__(self, *args, settings_data=None, **kwargs):
         if self.__class__.settings_class:
             self.settings = self.__class__.settings_class(settings_data)
-        super().__init__(*args, **kwargs)
+        super().__init__()
