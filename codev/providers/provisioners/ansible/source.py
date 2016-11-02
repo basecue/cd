@@ -8,3 +8,7 @@ class AnsibleSource(Provider, ConfigurableProvider):
 
     def install(self):
         raise NotImplementedError()
+
+    @property
+    def directory(self):
+        raise NotImplementedError()

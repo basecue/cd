@@ -103,14 +103,19 @@ class AnsibleProvisioner(Provisioner):
             env_vars = ''
 
         if self.settings.source.provider:
-            source = AnsibleSource(self.settings.source.provider, self.performer, self.settings.source.settings_data)
+            source = AnsibleSource(self.settings.source.provider, self.performer, settings_data=self.settings.source.settings_data)
             source.install()
+            source_directory = source.directory
+        else:
+            source_directory = ''
 
-        self.isolator.execute('{env_vars}ansible-playbook -i {inventory} {playbook}{extra_vars}'.format(
-            inventory=inventory_filepath,
-            playbook=self.settings.playbook,
-            extra_vars=extra_vars,
-            env_vars=env_vars
-        ))
+        with self.isolator.change_directory(source_directory):
+            # TODO support for vault pass
+            self.isolator.execute('{env_vars}ansible-playbook -i {inventory} {playbook}{extra_vars}'.format(
+                inventory=inventory_filepath,
+                playbook=self.settings.playbook,
+                extra_vars=extra_vars,
+                env_vars=env_vars
+            ))
 
         return True
