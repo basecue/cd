@@ -1,5 +1,7 @@
+from .source import AnsibleSource
+from .sources import *
 from codev.provisioner import Provisioner
-from codev.settings import BaseSettings
+from codev.settings import BaseSettings, ProviderSettings
 from codev.isolator import Isolator
 # from os import environ
 import configparser
@@ -24,6 +26,10 @@ class AnsibleProvisionerSettings(BaseSettings):
     @property
     def env_vars(self):
         return self.data.get('env_vars', {})
+
+    @property
+    def source(self):
+        return ProviderSettings(self.data.get('source', {}))
 
 
 class AnsibleProvisioner(Provisioner):
@@ -96,11 +102,20 @@ class AnsibleProvisioner(Provisioner):
         else:
             env_vars = ''
 
-        self.isolator.execute('{env_vars}ansible-playbook -i {inventory} {playbook}{extra_vars}'.format(
-            inventory=inventory_filepath,
-            playbook=self.settings.playbook,
-            extra_vars=extra_vars,
-            env_vars=env_vars
-        ))
+        if self.settings.source.provider:
+            source = AnsibleSource(self.settings.source.provider, self.performer, settings_data=self.settings.source.settings_data)
+            source.install()
+            source_directory = source.directory
+        else:
+            source_directory = ''
+
+        with self.isolator.change_directory(source_directory):
+            # TODO support for vault pass
+            self.isolator.execute('{env_vars}ansible-playbook -i {inventory} {playbook}{extra_vars}'.format(
+                inventory=inventory_filepath,
+                playbook=self.settings.playbook,
+                extra_vars=extra_vars,
+                env_vars=env_vars
+            ))
 
         return True

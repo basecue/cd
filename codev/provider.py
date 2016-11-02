@@ -16,7 +16,7 @@ class ProviderMetaClass(type):
             return cls
         else:
             for base in bases:
-                if base.provider_class is not None:
+                if issubclass(base, Provider) and base.provider_class is not None:
                     attrs['provider_class'] = base.provider_class
                     break
             else:

@@ -2,41 +2,14 @@ from codev.source import Source
 from git import Repo
 
 
-class GitSource(Source):
-    provider_name = 'git'
-
-    def __init__(self, *args, **kwargs):
-        self.branch = None
-        self.tag = None
-        self.commit = None
+class Git(object):
+    def __init__(self, version=None, commit=None, repository_url=None, directory=None):
+        self.branch = version
+        self.tag = version
+        self.commit = commit
+        self.directory = directory
         self.repository = Repo()
-        self.repository_url = self.repository.remotes.origin.url
-        super().__init__(*args, **kwargs)
-
-    def process_options(self, options):
-        if not options:
-            raise ValueError('Repository options must be specified.')
-
-        remote = self.repository.remote()
-        remote.fetch()
-
-        # branch
-        if options in remote.refs:
-            self.branch = options
-
-        # tag
-        elif options in self.repository.tags:
-            self.tag = options
-
-        # commit
-        else:
-            for commit in self.repository.iter_commits():
-                if options == commit:
-                    self.commit = commit
-            else:
-                raise ValueError("Branch, tag or commit '{options}' not found.".format(options=options))
-
-        return self.branch or self.tag or self.commit
+        self.repository_url = repository_url or self.repository.remotes.origin.url
 
     def install(self, performer):
         """
@@ -60,18 +33,61 @@ class GitSource(Source):
 
         performer.execute('mkdir -p ~/.ssh')
         performer.send_file('~/.ssh/known_hosts', '~/.ssh/known_hosts')
-        if performer.check_execute('[ -d {directory} ]'.format(directory=self.directory)):
-            performer.check_execute('rm -rf {directory}'.format(directory=self.directory))
+
+        if self.directory:
+            if performer.check_execute('[ -d {directory} ]'.format(directory=self.directory)):
+                performer.check_execute('rm -rf {directory}'.format(directory=self.directory))
+
+        if self.directory:
+            directory = self.directory
+        else:
+            directory = '.'
 
         if self.branch or self.tag:
+
             performer.execute('git clone {url} --branch {object} --single-branch {directory}'.format(
                 url=self.repository_url,
-                directory=self.directory,
+                directory=directory,
                 object=self.branch or self.tag
             ))
         elif self.commit:
-            performer.execute('git init {directory}'.format(directory=self.directory))
-            with performer.change_directory(self.directory):
+            performer.execute('git init {directory}'.format(directory=directory))
+            with performer.change_directory(directory):
                 performer.execute('git remote add origin {url}'.format(url=self.repository_url))
                 performer.execute('git fetch origin {commit}'.format(commit=self.commit))
                 performer.execute('git reset --hard FETCH_HEAD')
+
+
+class GitSource(Source):
+    provider_name = 'git'
+
+    def __init__(self, *args, **kwargs):
+        self.git = Git(directory='directory')
+        super().__init__(*args, **kwargs)
+
+    def process_options(self, options):
+        if not options:
+            raise ValueError('Repository options must be specified.')
+
+        remote = self.git.repository.remote()
+        remote.fetch()
+
+        # branch
+        if options in remote.refs:
+            self.branch = options
+
+        # tag
+        elif options in self.git.repository.tags:
+            self.tag = options
+
+        # commit
+        else:
+            for commit in self.git.repository.iter_commits():
+                if options == commit:
+                    self.commit = commit
+            else:
+                raise ValueError("Branch, tag or commit '{options}' not found.".format(options=options))
+
+        return self.branch or self.tag or self.commit
+
+

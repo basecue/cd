@@ -10,7 +10,21 @@ DESCRIPTION = info.DESCRIPTION
 AUTHOR = info.AUTHOR
 AUTHOR_EMAIL = info.AUTHOR_EMAIL
 URL = info.URL
-VERSION = info.VERSION
+
+
+from git import Repo
+repo = Repo()
+branch = repo.active_branch.name
+
+if branch == 'master':
+    branch_ident = ''
+else:
+    branch_ident = '-{branch}'.format(
+        branch=branch
+    )
+
+VERSION = '{version}{branch_ident}'.format(version=info.VERSION, branch_ident=branch_ident)
+
 REQUIRES = ['click==6.6', 'PyYAML==3.11', 'paramiko==2.0.0', 'colorama==0.3.7', 'GitPython==2.0.2']
 
 cmdclass = {}

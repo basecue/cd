@@ -1,3 +1,4 @@
+from codev.debug import DebugSettings
 from .machines import MachinesProvider
 
 
@@ -21,7 +22,7 @@ class Infrastructure(object):
         raise KeyError(ident)
 
     def machines_groups(self, source=None, create=False):
-        if create:
+        if create and DebugSettings.settings.ssh_copy:
             ssh_key = '%s\n' % self.performer.execute('ssh-add -L')
         else:
             ssh_key = None
