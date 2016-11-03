@@ -4,10 +4,17 @@ from git import Repo
 
 class Git(object):
     def __init__(self, version=None, repository_url=None, directory=None):
-        self.branch, self.commit = self._branch_or_commit(version)
+
         self.directory = directory
-        self.repository = Repo()
-        self.repository_url = repository_url or self.repository.remotes.origin.url
+        self.version = None
+
+        if not repository_url:
+            self.repository = Repo()
+            self.branch, self.commit = self._branch_or_commit(version)
+            self.repository_url = self.repository.remotes.origin.url
+        else:
+            self.repository_url = repository_url
+            self.version = version
 
     def _branch_or_commit(self, version):
         remote = self.repository.remote()
@@ -69,20 +76,30 @@ class Git(object):
                 performer.execute('git remote add origin {url}'.format(url=self.repository_url))
                 performer.execute('git fetch origin {commit}'.format(commit=self.commit))
                 performer.execute('git reset --hard FETCH_HEAD')
+        else:  # if self.version
+            performer.execute('git clone {url} {directory}'.format(
+                url=self.repository_url,
+                directory=directory
+            ))
+            with performer.change_directory(directory):
+                performer.execute('git checkout {version}'.format(
+                    url=self.repository_url,
+                    version=self.version
+                ))
 
 
 class GitSource(Source):
     provider_name = 'git'
 
     def __init__(self, *args, **kwargs):
-        self.git = Git(directory='directory')
         super().__init__(*args, **kwargs)
+        self.git = Git(version=self.options, directory='directory')
 
     def process_options(self, options):
         if not options:
             raise ValueError('Repository options must be specified.')
 
-        return self.options
+        return options
 
     def install(self, performer):
         self.git.install(performer)
