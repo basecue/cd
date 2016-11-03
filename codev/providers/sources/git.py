@@ -90,4 +90,5 @@ class GitSource(Source):
 
         return self.branch or self.tag or self.commit
 
-
+    def install(self, performer):
+        self.git.install(performer)

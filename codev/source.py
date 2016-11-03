@@ -34,9 +34,5 @@ class Source(Provider, ConfigurableProvider):
         return options
 
     @property
-    def id(self):
-        raise NotImplementedError()
-
-    @property
     def directory(self):
         return 'repository'
