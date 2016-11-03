@@ -22,7 +22,7 @@ class AnsibleGitSource(AnsibleSource):
         self.git = Git(
             version=self.settings.version,
             repository_url=self.settings.url,
-            directory='/tmp/ansible_git'
+            directory=self.directory
         )
 
     def install(self):
@@ -30,4 +30,4 @@ class AnsibleGitSource(AnsibleSource):
 
     @property
     def directory(self):
-        return self.git.directory
+        return '/tmp/ansible_git'

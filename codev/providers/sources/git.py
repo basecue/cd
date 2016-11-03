@@ -93,7 +93,7 @@ class GitSource(Source):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.git = Git(version=self.options, directory='directory')
+        self.git = Git(version=self.options, directory=self.directory)
 
     def process_options(self, options):
         if not options:
