@@ -3,13 +3,27 @@ from git import Repo
 
 
 class Git(object):
-    def __init__(self, version=None, commit=None, repository_url=None, directory=None):
-        self.branch = version
-        self.tag = version
-        self.commit = commit
+    def __init__(self, version=None, repository_url=None, directory=None):
+        self.branch, self.commit = self._branch_or_commit(version)
         self.directory = directory
         self.repository = Repo()
         self.repository_url = repository_url or self.repository.remotes.origin.url
+
+    def _branch_or_commit(self, version):
+        remote = self.repository.remote()
+        remote.fetch()
+
+        # branch or tag
+        if version in remote.refs or version in self.repository.tags:
+            return version, None
+
+        # commit
+        else:
+            for commit in self.repository.iter_commits():
+                if version == commit:
+                    return None, commit
+            else:
+                raise ValueError("Branch, tag or commit '{version}' not found.".format(version=version))
 
     def install(self, performer):
         """
@@ -43,12 +57,11 @@ class Git(object):
         else:
             directory = '.'
 
-        if self.branch or self.tag:
-
+        if self.branch:
             performer.execute('git clone {url} --branch {object} --single-branch {directory}'.format(
                 url=self.repository_url,
                 directory=directory,
-                object=self.branch or self.tag
+                object=self.branch
             ))
         elif self.commit:
             performer.execute('git init {directory}'.format(directory=directory))
@@ -69,26 +82,7 @@ class GitSource(Source):
         if not options:
             raise ValueError('Repository options must be specified.')
 
-        remote = self.git.repository.remote()
-        remote.fetch()
-
-        # branch
-        if options in remote.refs:
-            self.branch = options
-
-        # tag
-        elif options in self.git.repository.tags:
-            self.tag = options
-
-        # commit
-        else:
-            for commit in self.git.repository.iter_commits():
-                if options == commit:
-                    self.commit = commit
-            else:
-                raise ValueError("Branch, tag or commit '{options}' not found.".format(options=options))
-
-        return self.branch or self.tag or self.commit
+        return self.options
 
     def install(self, performer):
         self.git.install(performer)

@@ -89,6 +89,7 @@ class Isolation(BaseProxyPerformer):
             logger.info("Install project to isolation...")
             # TODO DRY
             self.current_source.install(self.performer)
+            # load .codev file from source and install codev with specific version
             with self.current_source.open_codev_file(self.performer) as codev_file:
                 self._install_codev(codev_file)
             self.execute_scripts(self.scripts.oncreate, info, logger=command_logger)
@@ -99,6 +100,7 @@ class Isolation(BaseProxyPerformer):
 
                 # TODO DRY
                 self.current_source.install(self.performer)
+                # load .codev file from source and install codev with specific version
                 with self.current_source.open_codev_file(self.performer) as codev_file:
                     self._install_codev(codev_file)
         logger.info("Entering isolation...")
