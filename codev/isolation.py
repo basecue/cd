@@ -16,9 +16,7 @@ class Isolation(BaseProxyPerformer):
     def __init__(self, settings, source, next_source, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.isolator = self.performer
-        self.connectivity = settings.connectivity
-        self.scripts = settings.scripts
-        self.deploy_vars = settings.deploy_vars
+        self.settings = settings
         self.source = source
         self.next_source = next_source
         self.current_source = self.next_source if self.next_source and self.exists() else self.source
@@ -28,7 +26,7 @@ class Isolation(BaseProxyPerformer):
         :param isolation:
         :return:
         """
-        for machine_ident, connectivity_conf in self.connectivity.items():
+        for machine_ident, connectivity_conf in self.settings.connectivity.items():
             machine = infrastructure.get_machine_by_ident(machine_ident)
 
             for source_port, target_port in connectivity_conf.items():
@@ -94,7 +92,7 @@ class Isolation(BaseProxyPerformer):
             # load .codev file from source and install codev with specific version
             with self.current_source.open_codev_file(self.performer) as codev_file:
                 self._install_codev(codev_file)
-            self.execute_scripts(self.scripts.oncreate, info, logger=command_logger)
+            self.execute_scripts(self.settings.scripts.oncreate, info, logger=command_logger)
         else:
             if self.next_source:
                 logger.info("Transition source in isolation...")
@@ -106,12 +104,12 @@ class Isolation(BaseProxyPerformer):
                 with self.current_source.open_codev_file(self.performer) as codev_file:
                     self._install_codev(codev_file)
         logger.info("Entering isolation...")
-        self.execute_scripts(self.scripts.onenter, info, logger=command_logger)
+        self.execute_scripts(self.settings.scripts.onenter, info, logger=command_logger)
 
     def deploy(self, infrastructure, info, vars):
         # TODO python3.5
-        # deploy_vars = {**self.deploy_vars, **vars}
-        deploy_vars = self.deploy_vars.copy()
+        # deploy_vars = {**self.settings.vars, **vars}
+        deploy_vars = self.settings.vars.copy()
         deploy_vars.update(vars)
 
         version = self.performer.execute('pip3 show codev | grep ^Version | cut -d " " -f 2')

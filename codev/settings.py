@@ -88,7 +88,7 @@ class ListDictSettings(OrderedDict):
                         key = list(obj.keys())[0]
                         value = obj[key]
                     else:
-                        raise ValueError('Object {obj} must have length equal to 1.'.format(obj))
+                        raise ValueError('Object {obj} must have length equal to 1.'.format(obj=obj))
                 else:
                     key = obj
                     value = {}
@@ -129,9 +129,9 @@ class IsolationScriptsSettings(BaseSettings):
 
 class IsolationSettings(BaseSettings):
     @property
-    def deploy_vars(self):
+    def vars(self):
         return {
-            var: open(file).read() for var, file in self.data.get('deploy_vars', {})
+            var: open(file).read() for var, file in self.data.get('vars', {}).items()
         }
 
     @property

@@ -28,6 +28,10 @@ class AnsibleProvisionerSettings(BaseSettings):
         return self.data.get('env_vars', {})
 
     @property
+    def vault_password(self):
+        return self.data.get('vault_password', None)
+
+    @property
     def source(self):
         return ProviderSettings(self.data.get('source', {}))
 
@@ -73,6 +77,7 @@ class AnsibleProvisioner(Provisioner):
             'source_directory': self.performer.execute('pwd')
         }
         template_vars.update(info)
+        template_vars.update(vars)
 
         if self.settings.extra_vars:
             extra_vars = ' --extra-vars "{joined_extra_vars}"'.format(
@@ -104,10 +109,10 @@ class AnsibleProvisioner(Provisioner):
 
         writein = None
         if self.settings.vault_password:
-            vault_pass = ' --vault-password-file=/bin/cat'
-            writein=self.settings.vault_password.format(vars)
+            vault_password_file = ' --vault-password-file=/bin/cat'
+            writein = self.settings.vault_password.format(**template_vars)
         else:
-            vault_pass = ''
+            vault_password_file = ''
 
         if self.settings.source.provider:
             source = AnsibleSource(self.settings.source.provider, self.performer, settings_data=self.settings.source.settings_data)
@@ -118,12 +123,12 @@ class AnsibleProvisioner(Provisioner):
 
         with self.isolator.change_directory(source_directory):
             # TODO support for vault pass
-            self.isolator.execute('{env_vars}ansible-playbook -i {inventory} {playbook}{extra_vars}{vault_pass}'.format(
+            self.isolator.execute('{env_vars}ansible-playbook -i {inventory} {playbook}{extra_vars}{vault_password_file}'.format(
                 inventory=inventory_filepath,
                 playbook=self.settings.playbook,
                 extra_vars=extra_vars,
                 env_vars=env_vars,
-                vault_pass=vault_pass
+                vault_password_file=vault_password_file
 
             ), writein=writein)
 

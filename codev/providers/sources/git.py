@@ -7,6 +7,7 @@ class Git(object):
 
         self.directory = directory
         self.version = None
+        self.branch, self.commit = None, None
 
         if not repository_url:
             self.repository = Repo()
