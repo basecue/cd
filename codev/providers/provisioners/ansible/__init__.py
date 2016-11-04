@@ -28,6 +28,10 @@ class AnsibleProvisionerSettings(BaseSettings):
         return self.data.get('env_vars', {})
 
     @property
+    def requirements(self):
+        return self.data.get('requirements', None)
+
+    @property
     def vault_password(self):
         return self.data.get('vault_password', None)
 
@@ -122,7 +126,10 @@ class AnsibleProvisioner(Provisioner):
             source_directory = ''
 
         with self.isolator.change_directory(source_directory):
-            # TODO support for vault pass
+            requirements = self.settings.requirements
+            if requirements:
+                self.isolator.execute('ansible-galaxy install -r {requirements}'.format(requirements=requirements))
+
             self.isolator.execute('{env_vars}ansible-playbook -i {inventory} {playbook}{extra_vars}{vault_password_file}'.format(
                 inventory=inventory_filepath,
                 playbook=self.settings.playbook,
