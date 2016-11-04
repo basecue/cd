@@ -55,7 +55,7 @@ class AnsibleProvisioner(Provisioner):
             version_add = '==%s' % self.settings.version
         self.isolator.execute('pip install --upgrade ansible%s' % version_add)
 
-    def run(self, machines_groups, info):
+    def run(self, machines_groups, info, vars):
         inventory = configparser.ConfigParser(allow_no_value=True, delimiters=('',))
         for machines_group, machines in machines_groups.items():
             inventory.add_section(machines_group)
@@ -102,6 +102,13 @@ class AnsibleProvisioner(Provisioner):
         else:
             env_vars = ''
 
+        writein = None
+        if self.settings.vault_password:
+            vault_pass = ' --vault-password-file=/bin/cat'
+            writein=self.settings.vault_password.format(vars)
+        else:
+            vault_pass = ''
+
         if self.settings.source.provider:
             source = AnsibleSource(self.settings.source.provider, self.performer, settings_data=self.settings.source.settings_data)
             source.install()
@@ -111,11 +118,13 @@ class AnsibleProvisioner(Provisioner):
 
         with self.isolator.change_directory(source_directory):
             # TODO support for vault pass
-            self.isolator.execute('{env_vars}ansible-playbook -i {inventory} {playbook}{extra_vars}'.format(
+            self.isolator.execute('{env_vars}ansible-playbook -i {inventory} {playbook}{extra_vars}{vault_pass}'.format(
                 inventory=inventory_filepath,
                 playbook=self.settings.playbook,
                 extra_vars=extra_vars,
-                env_vars=env_vars
-            ))
+                env_vars=env_vars,
+                vault_pass=vault_pass
+
+            ), writein=writein)
 
         return True

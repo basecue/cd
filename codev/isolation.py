@@ -1,4 +1,5 @@
 from logging import getLogger
+from json import dumps
 
 from .performer import BaseProxyPerformer
 from .logging import logging_config
@@ -17,6 +18,7 @@ class Isolation(BaseProxyPerformer):
         self.isolator = self.performer
         self.connectivity = settings.connectivity
         self.scripts = settings.scripts
+        self.deploy_vars = settings.deploy_vars
         self.source = source
         self.next_source = next_source
         self.current_source = self.next_source if self.next_source and self.exists() else self.source
@@ -106,7 +108,12 @@ class Isolation(BaseProxyPerformer):
         logger.info("Entering isolation...")
         self.execute_scripts(self.scripts.onenter, info, logger=command_logger)
 
-    def deploy(self, infrastructure, info):
+    def deploy(self, infrastructure, info, vars):
+        # TODO python3.5
+        # deploy_vars = {**self.deploy_vars, **vars}
+        deploy_vars = self.deploy_vars.copy()
+        deploy_vars.update(vars)
+
         version = self.performer.execute('pip3 show codev | grep ^Version | cut -d " " -f 2')
         logger.info("Run 'codev {version}' in isolation.".format(version=version))
 
@@ -131,7 +138,7 @@ class Isolation(BaseProxyPerformer):
                     'codev deploy {installation_options} --performer=local --disable-isolation --force {perform_debug}'.format(
                         installation_options=installation_options,
                         perform_debug=perform_debug
-                    ), logger=command_logger)
+                    ), logger=command_logger, writein=dumps(deploy_vars))
         except CommandError as e:
             command_logger.error(e.error)
             logger.error("Installation failed.")

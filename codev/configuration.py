@@ -27,16 +27,18 @@ class Configuration(object):
 
         self.infrastructure = Infrastructure(performer, self.settings.infrastructure)
 
-    def deploy(self, info):
+    def deploy(self, info, vars):
         info.update(self.info)
+
         if self.isolation:
+
             self.isolation.install(info)
 
-            return self.isolation.deploy(self.infrastructure, info)
+            return self.isolation.deploy(self.infrastructure, info, vars)
         else:
             logger.info("Deploying project.")
             deployment = Deployment(self.performer, self.settings.provision)
-            return deployment.deploy(self.infrastructure, self.source, info)
+            return deployment.deploy(self.infrastructure, self.source, info, vars)
 
     def execute_script(self, script, arguments=None):
         executor = self.isolation or self.performer

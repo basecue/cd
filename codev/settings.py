@@ -129,6 +129,12 @@ class IsolationScriptsSettings(BaseSettings):
 
 class IsolationSettings(BaseSettings):
     @property
+    def deploy_vars(self):
+        return {
+            var: open(file).read() for var, file in self.data.get('deploy_vars', {})
+        }
+
+    @property
     def connectivity(self):
         return ListDictSettings(self.data.get('connectivity', {}))
 

@@ -39,7 +39,11 @@ def deploy(installation):
     :return:
     :rtype: bool
     """
-    return installation.deploy()
+    if select.select([sys.stdin,], [], [], 0.0)[0]:
+        load_vars = loads(sys.stdin.read())
+    else:
+        load_vars = {}
+    return installation.deploy(load_vars)
 
 
 @command(help='Execute command in project context in isolation.')
