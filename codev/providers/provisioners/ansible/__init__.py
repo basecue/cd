@@ -5,6 +5,8 @@ from codev.settings import BaseSettings, ProviderSettings
 from codev.isolator import Isolator
 # from os import environ
 import configparser
+from os import mkdir
+import os.path
 
 from logging import getLogger
 logger = getLogger(__name__)
@@ -72,9 +74,10 @@ class AnsibleProvisioner(Provisioner):
                 machine.install_packages('python')
                 inventory.set(machines_group, machine.ip, '')
 
-        inventory_filepath = '/tmp/codev.ansible.inventory'
+        inventory_directory = '/tmp/codev.ansible.inventory'
+        mkdir(inventory_directory)
 
-        with open(inventory_filepath, 'w+') as inventoryfile:
+        with open(os.path.join(inventory_directory, ['codev_hosts']), 'w+') as inventoryfile:
             inventory.write(inventoryfile)
 
         template_vars = {
@@ -111,6 +114,7 @@ class AnsibleProvisioner(Provisioner):
         else:
             env_vars = ''
 
+        # support for vault password - sending via stdin
         writein = None
         if self.settings.vault_password:
             vault_password_file = ' --vault-password-file=/bin/cat'
@@ -118,6 +122,7 @@ class AnsibleProvisioner(Provisioner):
         else:
             vault_password_file = ''
 
+        # support for different source of ansible configuration
         if self.settings.source.provider:
             source = AnsibleSource(self.settings.source.provider, self.performer, settings_data=self.settings.source.settings_data)
             source.install()
@@ -125,14 +130,18 @@ class AnsibleProvisioner(Provisioner):
         else:
             source_directory = ''
 
-        with self.isolator.change_directory(source_directory):
+        with self.performer.change_directory(source_directory):
             requirements = self.settings.requirements
             if requirements:
                 self.isolator.execute('ansible-galaxy install -r {requirements}'.format(requirements=requirements))
+            
+            if self.performer.check_execute('[ -f hosts ]'):
+                self.performer.execute('cp hosts {inventory}')
 
-            self.isolator.execute('{env_vars}ansible-playbook -i {inventory} {playbook}{extra_vars}{vault_password_file}'.format(
-                inventory=inventory_filepath,
+            self.isolator.execute('{env_vars}ansible-playbook -i {inventory} {playbook} --limit={limit} {extra_vars}{vault_password_file}'.format(
+                inventory=inventory_directory,
                 playbook=self.settings.playbook,
+                limit=','.join(machines_groups.keys()),
                 extra_vars=extra_vars,
                 env_vars=env_vars,
                 vault_password_file=vault_password_file
