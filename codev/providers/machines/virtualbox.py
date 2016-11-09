@@ -16,8 +16,6 @@ ubuntu: TODO
 
 
 class VirtualboxMachine(BaseMachine):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
 
     def exists(self):
         return '"{ident}"'.format(ident=self.ident) in self.performer.execute('VBoxManage list vms').split()
