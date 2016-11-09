@@ -57,6 +57,7 @@ class MachinesProvider(Provider, ConfigurableProvider):
 
             yield machine
 
+    @property
     def machines(self):
         for ident in self.idents():
             machine = self.machine_class(self.performer, ident=ident)
