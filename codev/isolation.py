@@ -36,6 +36,9 @@ class Isolation(BaseProxyPerformer):
         version = YAMLSettingsReader().from_yaml(codev_file).version
         self.execute('pip3 install setuptools')
 
+        # uninstall previous version of codev (ignore if not installed)
+        self.check_execute('pip3 uninstall codev -y')
+
         # install proper version of codev
         # TODO requirements - 'python3-pip', 'libffi-dev', 'libssl-dev'
         if not DebugSettings.settings.distfile:
@@ -73,6 +76,13 @@ class Isolation(BaseProxyPerformer):
         with self.change_directory(self.current_source.directory):
             super().execute_script(codev_script, arguments=arguments, logger=logger)
 
+    def _install_project(self):
+        self.current_source.install(self.performer)
+
+        # load .codev file from source and install codev with specific version
+        with self.current_source.open_codev_file(self.performer) as codev_file:
+            self._install_codev(codev_file)
+
     def install(self, info):
         # TODO refactorize - divide?
         if not self.isolator.exists():
@@ -87,22 +97,13 @@ class Isolation(BaseProxyPerformer):
         self.current_source = self.source
         if created:
             logger.info("Install project to isolation...")
-            # TODO DRY
-            self.current_source.install(self.performer)
-            # load .codev file from source and install codev with specific version
-            with self.current_source.open_codev_file(self.performer) as codev_file:
-                self._install_codev(codev_file)
+            self._install_project()
             self.execute_scripts(self.settings.scripts.oncreate, info, logger=command_logger)
         else:
             if self.next_source:
                 logger.info("Transition source in isolation...")
                 self.current_source = self.next_source
-
-                # TODO DRY
-                self.current_source.install(self.performer)
-                # load .codev file from source and install codev with specific version
-                with self.current_source.open_codev_file(self.performer) as codev_file:
-                    self._install_codev(codev_file)
+                self._install_project()
         logger.info("Entering isolation...")
         self.execute_scripts(self.settings.scripts.onenter, info, logger=command_logger)
 
