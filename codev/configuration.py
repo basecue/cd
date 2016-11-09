@@ -38,7 +38,7 @@ class Configuration(object):
         else:
             logger.info("Deploying project.")
             deployment = Deployment(self.performer, self.settings.provision)
-            return deployment.deploy(self.infrastructure, self.source, info, vars)
+            return deployment.deploy(self.infrastructure, info, vars)
 
     def execute_script(self, script, arguments=None):
         executor = self.isolation or self.performer

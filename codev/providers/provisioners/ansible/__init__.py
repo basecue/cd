@@ -65,14 +65,14 @@ class AnsibleProvisioner(Provisioner):
             version_add = '==%s' % self.settings.version
         self.isolator.execute('pip install --upgrade ansible%s' % version_add)
 
-    def run(self, machines_groups, info, vars):
+    def run(self, machines, info, vars):
         inventory = configparser.ConfigParser(allow_no_value=True, delimiters=('',))
-        for machines_group, machines in machines_groups.items():
-            inventory.add_section(machines_group)
-            for machine in machines:
-                # ansible node additional requirements
-                machine.install_packages('python')
-                inventory.set(machines_group, machine.ip, '')
+        for machine in machines:
+            for group in machine.groups:
+                inventory.add_section(machine.group)
+                inventory.set(group, machine.ip, '')
+            # ansible node additional requirements
+            machine.install_packages('python')
 
         inventory_directory = '/tmp/codev.ansible.inventory'
         mkdir(inventory_directory)
@@ -134,14 +134,16 @@ class AnsibleProvisioner(Provisioner):
             requirements = self.settings.requirements
             if requirements:
                 self.isolator.execute('ansible-galaxy install -r {requirements}'.format(requirements=requirements))
-            
+
             if self.performer.check_execute('[ -f hosts ]'):
                 self.performer.execute('cp hosts {inventory}')
+
+            machine_ips = [machine.ip for machine in machines]
 
             self.isolator.execute('{env_vars}ansible-playbook -i {inventory} {playbook} --limit={limit} {extra_vars}{vault_password_file}'.format(
                 inventory=inventory_directory,
                 playbook=self.settings.playbook,
-                limit=','.join(machines_groups.keys()),
+                limit=','.join(machine_ips),
                 extra_vars=extra_vars,
                 env_vars=env_vars,
                 vault_password_file=vault_password_file

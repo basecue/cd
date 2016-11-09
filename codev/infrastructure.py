@@ -1,4 +1,3 @@
-from codev.debug import DebugSettings
 from .machines import MachinesProvider
 
 
@@ -8,35 +7,34 @@ class Infrastructure(object):
         self.settings = settings
 
     def _machines_providers(self):
-        for machines_ident, machines_settings in self.settings.items():
+        for machinegroup_name, machinegroup_settings in self.settings.items():
             yield MachinesProvider(
-                machines_settings.provider,
-                machines_ident, self.performer, settings_data=machines_settings.settings_data
+                machinegroup_settings.provider,
+                self.performer, machinegroup_name, machinegroup_settings.groups, settings_data=machinegroup_settings.settings_data
             )
 
     def get_machine_by_ident(self, ident):
-        for machine_group, machines in self.machines_groups().items():
-            for machine in machines:
-                if ident == machine.ident:
-                    return machine
+        for machine in self.machines():
+            if ident == machine.ident:
+                return machine
         raise KeyError(ident)
 
-    def machines_groups(self, source=None, create=False):
-        if create and DebugSettings.settings.ssh_copy:
-            ssh_key = '%s\n' % self.performer.execute('ssh-add -L')
-        else:
-            ssh_key = None
+    def create_machines(self):
+        for machinegroup_provider in self._machines_providers():
+            yield machinegroup_provider.create_machines()
 
-        return {
-            machines_provider.ident: [
-                machine for machine in machines_provider.machines(source=source, create=create, ssh_key=ssh_key)
-            ] for machines_provider in self._machines_providers()
-        }
+    def machines(self):
+        for machines_provider in self._machines_providers():
+            for machine in machines_provider.machines():
+                yield machine
 
     @property
     def info(self):
-        return {
-            machines_group: [
-                dict(ident=machine.ident, ip=machine.ip) for machine in machines
-            ] for machines_group, machines in self.machines_groups().items()
-        }
+        machine_groups = {}
+        for machine in self.machines():
+            machine_groups.setdefault(machine.group, []).append(machine)
+
+        return machine_groups
+
+
+
