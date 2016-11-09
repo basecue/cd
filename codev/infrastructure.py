@@ -14,7 +14,7 @@ class Infrastructure(object):
             )
 
     def get_machine_by_ident(self, ident):
-        for machine in self.machines():
+        for machine in self.machines:
             if ident == machine.ident:
                 return machine
         raise KeyError(ident)
@@ -23,15 +23,16 @@ class Infrastructure(object):
         for machinegroup_provider in self._machines_providers():
             yield machinegroup_provider.create_machines()
 
+    @property
     def machines(self):
         for machines_provider in self._machines_providers():
-            for machine in machines_provider.machines():
+            for machine in machines_provider.machines:
                 yield machine
 
     @property
     def info(self):
         machine_groups = {}
-        for machine in self.machines():
+        for machine in self.machines:
             machine_groups.setdefault(machine.group, []).append(machine)
 
         return machine_groups
