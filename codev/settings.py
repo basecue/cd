@@ -51,8 +51,8 @@ class ProviderSettings(BaseSettings):
 
 class InfrastructureSettings(ProviderSettings):
     @property
-    def only_one(self):
-        return self.data.get('only_one', False)
+    def groups(self):
+        return self.data.get('groups', [])
 
 
 class DictSettings(OrderedDict):
