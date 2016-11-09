@@ -69,7 +69,7 @@ class AnsibleProvisioner(Provisioner):
         inventory = configparser.ConfigParser(allow_no_value=True, delimiters=('',))
         for machine in machines:
             for group in machine.groups:
-                inventory.add_section(machine.group)
+                inventory.add_section(group)
                 inventory.set(group, machine.ip, '')
             # ansible node additional requirements
             machine.install_packages('python')

@@ -21,7 +21,8 @@ class Infrastructure(object):
 
     def create_machines(self):
         for machinegroup_provider in self._machines_providers():
-            yield machinegroup_provider.create_machines()
+            for machine in machinegroup_provider.create_machines():
+                yield machine
 
     @property
     def machines(self):
@@ -33,9 +34,6 @@ class Infrastructure(object):
     def info(self):
         machine_groups = {}
         for machine in self.machines:
-            machine_groups.setdefault(machine.group, []).append(machine)
+            machine_groups.setdefault(machine.group, []).append(dict(ident=machine.ident, ip=machine.ip))
 
         return machine_groups
-
-
-
