@@ -60,12 +60,9 @@ class MachinesProvider(Provider, ConfigurableProvider):
             elif not machine.is_started():
                 machine.start()
 
-            yield machine
-
     @property
     def machines(self):
         for ident in self.idents():
             machine = self.machine_class(self.performer, ident=ident, group=self.group, groups=self.groups)
-
             if machine.exists():
                 yield machine

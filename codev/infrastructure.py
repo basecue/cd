@@ -10,7 +10,10 @@ class Infrastructure(object):
         for machinegroup_name, machinegroup_settings in self.settings.items():
             yield MachinesProvider(
                 machinegroup_settings.provider,
-                self.performer, machinegroup_name, machinegroup_settings.groups, settings_data=machinegroup_settings.settings_data
+                self.performer,
+                machinegroup_name,
+                machinegroup_settings.groups,
+                settings_data=machinegroup_settings.settings_data
             )
 
     def get_machine_by_ident(self, ident):
@@ -21,8 +24,7 @@ class Infrastructure(object):
 
     def create_machines(self):
         for machinegroup_provider in self._machines_providers():
-            for machine in machinegroup_provider.create_machines():
-                yield machine
+            machinegroup_provider.create_machines()
 
     @property
     def machines(self):
@@ -30,10 +32,24 @@ class Infrastructure(object):
             for machine in machines_provider.machines:
                 yield machine
 
+    # @property
+    # def groups(self):
+    #     groups = {}
+    #     for machine in self.machines:
+    #         for group in machine.groups:
+    #             groups.setdefault(group, []).append(machine)
+    #     return groups
+
+    @property
+    def main_groups(self):
+        groups = {}
+        for machine in self.machines:
+            groups.setdefault(machine.group, []).append(machine)
+        return groups
+
     @property
     def info(self):
-        machine_groups = {}
-        for machine in self.machines:
-            machine_groups.setdefault(machine.group, []).append(dict(ident=machine.ident, ip=machine.ip))
-
-        return machine_groups
+        return {
+            group: [dict(ident=machine.ident, ip=machine.ip) for machine in machines]
+            for group, machines in self.main_groups.items()
+        }
