@@ -35,7 +35,7 @@ class Deployment(BaseProxyExecutor):
         self.execute_scripts(self.scripts.onstart, script_info)
         try:
             logger.info('Creating machines...')
-            machines = infrastructure.create_machines()
+            infrastructure.create_machines()
 
             script_info.update(infrastructure=infrastructure.info)
 
@@ -44,7 +44,7 @@ class Deployment(BaseProxyExecutor):
                 self.provisioner.install()
 
                 logger.info('Configuration...')
-                self.provisioner.run(machines, script_info, vars)
+                self.provisioner.run(infrastructure, script_info, vars)
         except CommandError as e:
             self._onerror(script_info, e)
             return False
