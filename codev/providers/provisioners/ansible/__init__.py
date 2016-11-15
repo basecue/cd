@@ -5,6 +5,7 @@ from codev.settings import BaseSettings, ProviderSettings
 from codev.isolator import Isolator
 # from os import environ
 import configparser
+import os.path
 
 from logging import getLogger
 logger = getLogger(__name__)
@@ -26,6 +27,14 @@ class AnsibleProvisionerSettings(BaseSettings):
     @property
     def env_vars(self):
         return self.data.get('env_vars', {})
+
+    @property
+    def requirements(self):
+        return self.data.get('requirements', None)
+
+    @property
+    def vault_password(self):
+        return self.data.get('vault_password', None)
 
     @property
     def source(self):
@@ -55,24 +64,27 @@ class AnsibleProvisioner(Provisioner):
             version_add = '==%s' % self.settings.version
         self.isolator.execute('pip install --upgrade ansible%s' % version_add)
 
-    def run(self, machines_groups, info):
+    def run(self, infrastructure, info, vars):
         inventory = configparser.ConfigParser(allow_no_value=True, delimiters=('',))
-        for machines_group, machines in machines_groups.items():
-            inventory.add_section(machines_group)
-            for machine in machines:
-                # ansible node additional requirements
-                machine.install_packages('python')
-                inventory.set(machines_group, machine.ip, '')
+        for machine in infrastructure.machines:
+            for group in machine.groups:
+                inventory.add_section(group)
+                inventory.set(group, machine.ip, '')
+            # ansible node additional requirements
+            machine.install_packages('python')
 
-        inventory_filepath = '/tmp/codev.ansible.inventory'
+        inventory_directory = '/tmp/codev.ansible.inventory'
+        if not os.path.exists(inventory_directory):
+            os.makedirs(inventory_directory)
 
-        with open(inventory_filepath, 'w+') as inventoryfile:
+        with open(os.path.join(inventory_directory, 'codev_hosts'), 'w+') as inventoryfile:
             inventory.write(inventoryfile)
 
         template_vars = {
             'source_directory': self.performer.execute('pwd')
         }
         template_vars.update(info)
+        template_vars.update(vars)
 
         if self.settings.extra_vars:
             extra_vars = ' --extra-vars "{joined_extra_vars}"'.format(
@@ -102,6 +114,15 @@ class AnsibleProvisioner(Provisioner):
         else:
             env_vars = ''
 
+        # support for vault password - sending via stdin
+        writein = None
+        if self.settings.vault_password:
+            vault_password_file = ' --vault-password-file=/bin/cat'
+            writein = self.settings.vault_password.format(**template_vars)
+        else:
+            vault_password_file = ''
+
+        # support for different source of ansible configuration
         if self.settings.source.provider:
             source = AnsibleSource(self.settings.source.provider, self.performer, settings_data=self.settings.source.settings_data)
             source.install()
@@ -110,12 +131,23 @@ class AnsibleProvisioner(Provisioner):
             source_directory = ''
 
         with self.isolator.change_directory(source_directory):
-            # TODO support for vault pass
-            self.isolator.execute('{env_vars}ansible-playbook -i {inventory} {playbook}{extra_vars}'.format(
-                inventory=inventory_filepath,
+            requirements = self.settings.requirements
+            if requirements:
+                self.isolator.execute('ansible-galaxy install -r {requirements}'.format(requirements=requirements))
+
+            if self.isolator.check_execute('[ -f hosts ]'):
+                self.isolator.execute('cp hosts {inventory}'.format(inventory=inventory_directory))
+
+            machine_ips = [machine.ip for machine in infrastructure.machines]
+
+            self.isolator.execute('{env_vars}ansible-playbook -vvv -i {inventory} {playbook} --limit={limit} {extra_vars}{vault_password_file}'.format(
+                inventory=inventory_directory,
                 playbook=self.settings.playbook,
+                limit=','.join(machine_ips),
                 extra_vars=extra_vars,
-                env_vars=env_vars
-            ))
+                env_vars=env_vars,
+                vault_password_file=vault_password_file
+
+            ), writein=writein)
 
         return True

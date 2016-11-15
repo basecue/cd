@@ -51,8 +51,8 @@ class ProviderSettings(BaseSettings):
 
 class InfrastructureSettings(ProviderSettings):
     @property
-    def only_one(self):
-        return self.data.get('only_one', False)
+    def groups(self):
+        return self.data.get('groups', [])
 
 
 class DictSettings(OrderedDict):
@@ -88,7 +88,7 @@ class ListDictSettings(OrderedDict):
                         key = list(obj.keys())[0]
                         value = obj[key]
                     else:
-                        raise ValueError('Object {obj} must have length equal to 1.'.format(obj))
+                        raise ValueError('Object {obj} must have length equal to 1.'.format(obj=obj))
                 else:
                     key = obj
                     value = {}
@@ -128,6 +128,12 @@ class IsolationScriptsSettings(BaseSettings):
 
 
 class IsolationSettings(BaseSettings):
+    @property
+    def vars(self):
+        return {
+            var: open(file).read() for var, file in self.data.get('vars', {}).items()
+        }
+
     @property
     def connectivity(self):
         return ListDictSettings(self.data.get('connectivity', {}))

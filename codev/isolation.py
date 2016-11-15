@@ -1,4 +1,5 @@
 from logging import getLogger
+from json import dumps
 
 from .performer import BaseProxyPerformer
 from .logging import logging_config
@@ -15,8 +16,7 @@ class Isolation(BaseProxyPerformer):
     def __init__(self, settings, source, next_source, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.isolator = self.performer
-        self.connectivity = settings.connectivity
-        self.scripts = settings.scripts
+        self.settings = settings
         self.source = source
         self.next_source = next_source
         self.current_source = self.next_source if self.next_source and self.exists() else self.source
@@ -26,7 +26,7 @@ class Isolation(BaseProxyPerformer):
         :param isolation:
         :return:
         """
-        for machine_ident, connectivity_conf in self.connectivity.items():
+        for machine_ident, connectivity_conf in self.settings.connectivity.items():
             machine = infrastructure.get_machine_by_ident(machine_ident)
 
             for source_port, target_port in connectivity_conf.items():
@@ -35,6 +35,9 @@ class Isolation(BaseProxyPerformer):
     def _install_codev(self, codev_file):
         version = YAMLSettingsReader().from_yaml(codev_file).version
         self.execute('pip3 install setuptools')
+
+        # uninstall previous version of codev (ignore if not installed)
+        self.check_execute('pip3 uninstall codev -y')
 
         # install proper version of codev
         # TODO requirements - 'python3-pip', 'libffi-dev', 'libssl-dev'
@@ -73,6 +76,13 @@ class Isolation(BaseProxyPerformer):
         with self.change_directory(self.current_source.directory):
             super().execute_script(codev_script, arguments=arguments, logger=logger)
 
+    def _install_project(self):
+        self.current_source.install(self.performer)
+
+        # load .codev file from source and install codev with specific version
+        with self.current_source.open_codev_file(self.performer) as codev_file:
+            self._install_codev(codev_file)
+
     def install(self, info):
         # TODO refactorize - divide?
         if not self.isolator.exists():
@@ -87,26 +97,22 @@ class Isolation(BaseProxyPerformer):
         self.current_source = self.source
         if created:
             logger.info("Install project to isolation...")
-            # TODO DRY
-            self.current_source.install(self.performer)
-            # load .codev file from source and install codev with specific version
-            with self.current_source.open_codev_file(self.performer) as codev_file:
-                self._install_codev(codev_file)
-            self.execute_scripts(self.scripts.oncreate, info, logger=command_logger)
+            self._install_project()
+            self.execute_scripts(self.settings.scripts.oncreate, info, logger=command_logger)
         else:
             if self.next_source:
                 logger.info("Transition source in isolation...")
                 self.current_source = self.next_source
-
-                # TODO DRY
-                self.current_source.install(self.performer)
-                # load .codev file from source and install codev with specific version
-                with self.current_source.open_codev_file(self.performer) as codev_file:
-                    self._install_codev(codev_file)
+                self._install_project()
         logger.info("Entering isolation...")
-        self.execute_scripts(self.scripts.onenter, info, logger=command_logger)
+        self.execute_scripts(self.settings.scripts.onenter, info, logger=command_logger)
 
-    def deploy(self, infrastructure, info):
+    def deploy(self, infrastructure, info, vars):
+        # TODO python3.5
+        # deploy_vars = {**self.settings.vars, **vars}
+        deploy_vars = self.settings.vars.copy()
+        deploy_vars.update(vars)
+
         version = self.performer.execute('pip3 show codev | grep ^Version | cut -d " " -f 2')
         logger.info("Run 'codev {version}' in isolation.".format(version=version))
 
@@ -131,7 +137,7 @@ class Isolation(BaseProxyPerformer):
                     'codev deploy {installation_options} --performer=local --disable-isolation --force {perform_debug}'.format(
                         installation_options=installation_options,
                         perform_debug=perform_debug
-                    ), logger=command_logger)
+                    ), logger=command_logger, writein=dumps(deploy_vars))
         except CommandError as e:
             command_logger.error(e.error)
             logger.error("Installation failed.")
