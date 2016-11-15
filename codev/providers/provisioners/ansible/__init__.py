@@ -135,12 +135,12 @@ class AnsibleProvisioner(Provisioner):
             if requirements:
                 self.isolator.execute('ansible-galaxy install -r {requirements}'.format(requirements=requirements))
 
-            if self.performer.check_execute('[ -f hosts ]'):
-                self.performer.execute('cp hosts {inventory}')
+            if self.isolator.check_execute('[ -f hosts ]'):
+                self.isolator.execute('cp hosts {inventory}'.format(inventory=inventory_directory))
 
             machine_ips = [machine.ip for machine in infrastructure.machines]
 
-            self.isolator.execute('{env_vars}ansible-playbook -i {inventory} {playbook} --limit={limit} {extra_vars}{vault_password_file}'.format(
+            self.isolator.execute('{env_vars}ansible-playbook -vvv -i {inventory} {playbook} --limit={limit} {extra_vars}{vault_password_file}'.format(
                 inventory=inventory_directory,
                 playbook=self.settings.playbook,
                 limit=','.join(machine_ips),
