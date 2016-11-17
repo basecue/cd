@@ -6,6 +6,7 @@ from codev.isolator import Isolator
 # from os import environ
 import configparser
 import os.path
+import json
 
 from logging import getLogger
 logger = getLogger(__name__)
@@ -25,12 +26,12 @@ class AnsibleProvisionerSettings(BaseSettings):
         return self.data.get('extra_vars', {})
 
     @property
-    def env_vars(self):
-        return self.data.get('env_vars', {})
-
-    @property
     def requirements(self):
         return self.data.get('requirements', None)
+
+    @property
+    def modules(self):
+        return self.data.get('modules', [])
 
     @property
     def vault_password(self):
@@ -62,14 +63,19 @@ class AnsibleProvisioner(Provisioner):
         version_add = ''
         if self.settings.version:
             version_add = '==%s' % self.settings.version
-        self.isolator.execute('pip install --upgrade ansible%s' % version_add)
+        self.isolator.execute('pip install --upgrade ansible{version_add}'.format(version_add=version_add))
+
+        for module in self.settings.modules:
+            self.isolator.execute('pip install --upgrade {module}'.format(module=module))
 
     def run(self, infrastructure, info, vars):
         inventory = configparser.ConfigParser(allow_no_value=True, delimiters=('',))
+
+        # creating inventory
         for machine in infrastructure.machines:
             for group in machine.groups:
                 inventory.add_section(group)
-                inventory.set(group, machine.ip, '')
+                inventory.set(group, machine.ident, '')
             # ansible node additional requirements
             machine.install_packages('python')
 
@@ -79,6 +85,11 @@ class AnsibleProvisioner(Provisioner):
 
         with open(os.path.join(inventory_directory, 'codev_hosts'), 'w+') as inventoryfile:
             inventory.write(inventoryfile)
+
+        ssh_config = '/tmp/codev.ansible.ssh_config'
+        with open(ssh_config, 'w+') as ssh_config_file:
+            for machine in infrastructure.machines:
+                ssh_config_file.write('Host {machine.ident}\n  HostName {machine.ip}\n\n'.format(machine=machine))
 
         template_vars = {
             'source_directory': self.performer.execute('pwd')
@@ -92,7 +103,7 @@ class AnsibleProvisioner(Provisioner):
                     [
                         '{key}={value}'.format(
                             key=key,
-                            value=value.format(**template_vars) if isinstance(value, str) else value
+                            value=json.dumps(value)
                         ) for key, value in self.settings.extra_vars.items()
                     ]
                 )
@@ -100,19 +111,8 @@ class AnsibleProvisioner(Provisioner):
         else:
             extra_vars = ''
 
-        if self.settings.env_vars:
-            env_vars = '{joined_env_vars} '.format(
-                joined_env_vars=' '.join(
-                    [
-                        '{key}="{value}"'.format(
-                            key=key,
-                            value=value.format(**template_vars) if isinstance(value, str) else value
-                        ) for key, value in self.settings.env_vars.items()
-                    ]
-                )
-            )
-        else:
-            env_vars = ''
+        # custom ssh config with proper hostnames
+        env_vars = 'ANSIBLE_SSH_ARGS="-F {ssh_config}" '.format(ssh_config=ssh_config)
 
         # support for vault password - sending via stdin
         writein = None
@@ -138,12 +138,12 @@ class AnsibleProvisioner(Provisioner):
             if self.isolator.check_execute('[ -f hosts ]'):
                 self.isolator.execute('cp hosts {inventory}'.format(inventory=inventory_directory))
 
-            machine_ips = [machine.ip for machine in infrastructure.machines]
+            machine_idents = [machine.ident for machine in infrastructure.machines]
 
             self.isolator.execute('{env_vars}ansible-playbook -vvv -i {inventory} {playbook} --limit={limit} {extra_vars}{vault_password_file}'.format(
                 inventory=inventory_directory,
                 playbook=self.settings.playbook,
-                limit=','.join(machine_ips),
+                limit=','.join(machine_idents),
                 extra_vars=extra_vars,
                 env_vars=env_vars,
                 vault_password_file=vault_password_file
