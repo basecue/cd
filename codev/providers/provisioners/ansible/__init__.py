@@ -30,6 +30,10 @@ class AnsibleProvisionerSettings(BaseSettings):
         return self.data.get('requirements', None)
 
     @property
+    def directory(self):
+        return self.data.get('directory', '')
+
+    @property
     def modules(self):
         return self.data.get('modules', [])
 
@@ -130,7 +134,8 @@ class AnsibleProvisioner(Provisioner):
         else:
             source_directory = ''
 
-        with self.isolator.change_directory(source_directory):
+        directory = os.path.join(source_directory, self.settings.directory)
+        with self.isolator.change_directory(directory):
             requirements = self.settings.requirements
             if requirements:
                 self.isolator.execute('ansible-galaxy install -r {requirements}'.format(requirements=requirements))
