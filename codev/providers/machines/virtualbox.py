@@ -307,7 +307,7 @@ class VirtualboxMachine(BaseMachine):
         # if error appears, delete {name}.vdi and "runvboxmanage closemedium disk {name}.vdi"
 
         # create SATA
-        self.performer.execute('VBoxManage storagectl "{ident}" --name "SATA" --add sata'.format(ident=self.ident))
+        self.performer.execute('VBoxManage storagectl "{ident}" --name "SATA" --add sata --portcount 1'.format(ident=self.ident))
 
         # create IDE
         self.performer.execute('VBoxManage storagectl "{ident}" --name "IDE" --add ide'.format(ident=self.ident))
