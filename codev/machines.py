@@ -44,7 +44,7 @@ class MachinesProvider(Provider, ConfigurableProvider):
 
     def idents(self):
         for i in range(1, self.settings.number + 1):
-            ident = '%s_%000d' % (self.group, i)
+            ident = '%s-%000d' % (self.group.replace('_', '-'), i)
             yield ident
 
     def create_machines(self):
