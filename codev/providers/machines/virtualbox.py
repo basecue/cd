@@ -56,7 +56,7 @@ class VirtualboxMachine(BaseMachine):
 
         self._prepare_ubuntu_iso(
             release_iso, vm_iso,
-            settings.username, settings.password, self.ident.replace('_', '-'),
+            settings.username, settings.password, self.ident,
             device_1=device_1, device_2=device_2,
             packages=packages, ssh_authorized_keys=[ssh_key]
         )

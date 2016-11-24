@@ -26,6 +26,10 @@ class AnsibleProvisionerSettings(BaseSettings):
         return self.data.get('extra_vars', {})
 
     @property
+    def env_vars(self):
+        return self.data.get('env_vars', {})
+
+    @property
     def requirements(self):
         return self.data.get('requirements', None)
 
@@ -96,27 +100,39 @@ class AnsibleProvisioner(Provisioner):
                 ssh_config_file.write('Host {machine.ident}\n  HostName {machine.ip}\n\n'.format(machine=machine))
 
         template_vars = {
-            'source_directory': self.performer.execute('pwd')
+            'source_directory': self.performer.execute('pwd'),
+            'ssh_config': ssh_config,
         }
         template_vars.update(info)
         template_vars.update(vars)
 
+        # extra vars
+
         if self.settings.extra_vars:
-            extra_vars = ' --extra-vars "{joined_extra_vars}"'.format(
-                joined_extra_vars=' '.join(
-                    [
-                        '{key}={value}'.format(
-                            key=key,
-                            value=json.dumps(value)
-                        ) for key, value in self.settings.extra_vars.items()
-                    ]
-                )
+            extra_vars_file = '/tmp/codev.ansible.extra_vars_file'
+            with open(extra_vars_file, 'w+') as extra_vars_fo:
+                extra_vars_fo.write(json.dumps(self.settings.extra_vars))
+
+            extra_vars = ' --extra-vars "@{extra_vars_file}"'.format(
+                extra_vars_file=extra_vars_file
             )
         else:
             extra_vars = ''
 
         # custom ssh config with proper hostnames
-        env_vars = 'ANSIBLE_SSH_ARGS="-F {ssh_config}" '.format(ssh_config=ssh_config)
+        env_vars_dict = dict(ANSIBLE_SSH_ARGS='-F {ssh_config}')
+        env_vars_dict.update(self.settings.env_vars)
+
+        env_vars = '{joined_env_vars} '.format(
+            joined_env_vars=' '.join(
+                [
+                    '{key}="{value}"'.format(
+                        key=key,
+                        value=value.format(**template_vars) if isinstance(value, str) else value
+                    ) for key, value in env_vars_dict.items()
+                ]
+            )
+        )
 
         # support for vault password - sending via stdin
         writein = None
