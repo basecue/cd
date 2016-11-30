@@ -12,6 +12,10 @@ command_logger = getLogger('command')
 
 class Configuration(BaseProxyExecutor):
     def __init__(self, performer, settings, source, next_source=None, disable_isolation=False):
+        self.settings = settings
+        self.source = source
+        self.next_source = next_source
+
         if disable_isolation:
             if next_source:
                 raise ValueError('Next source is not allowed with disabled isolation.')
@@ -23,13 +27,7 @@ class Configuration(BaseProxyExecutor):
 
         super().__init__(self.performer)
 
-        self.settings = settings
-        self.source = source
-        self.next_source = next_source
-        self.isolation = None
-
         self.infrastructure = Infrastructure(performer, self.settings.infrastructure)
-
 
     def deploy(self, info, vars):
         info.update(self.info)
