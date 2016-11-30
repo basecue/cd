@@ -73,6 +73,17 @@ class BaseExecutor(object):
             arguments.update(common_arguments)
             self.execute_script(script, arguments, logger=logger)
 
+    def execute_scripts_onerror(self, scripts, arguments, error, logger=None):
+        logger.error(error)
+        arguments.update(
+            dict(
+                command=error.command,
+                exit_code=error.exit_code,
+                error=error.error
+            )
+        )
+        self.execute_scripts(scripts, arguments)
+
     @property
     def working_dir(self):
         return path.join(self.base_dir, *self.working_dirs)

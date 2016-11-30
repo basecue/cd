@@ -56,10 +56,14 @@ class InfrastructureSettings(ProviderSettings):
 
 
 class DictSettings(OrderedDict):
-    def __init__(self, cls, data, *args, **kwargs):
+    def __init__(self, cls, data, *args, last=None, **kwargs):
         super().__init__()
+
         for name, itemdata in data.items():
             self[name] = cls(itemdata, *args, **kwargs)
+
+        if last:
+            self[''] = cls(last, *args, **kwargs)
 
 
 class ListDictSettings(OrderedDict):
@@ -131,7 +135,7 @@ class IsolationSettings(BaseSettings):
     @property
     def vars(self):
         return {
-            var: open(file).read() for var, file in self.data.get('vars', {}).items()
+            var: open(file).read() for var, file in self.data.get('load_vars', {}).items()
         }
 
     @property
@@ -149,8 +153,12 @@ class ConfigurationSettings(BaseSettings):
         return DictSettings(InfrastructureSettings, self.data.get('infrastructure', {}))
 
     @property
-    def provision(self):
-        return ProvisionSettings(self.data.get('provision', {}))
+    def provisions(self):
+        return DictSettings(
+            ProvisionSettings,
+            self.data.get('provisions', {}),
+            last=self.data.get('provision', {})
+        )
 
     @property
     def isolation(self):

@@ -6,24 +6,10 @@ logger = getLogger(__name__)
 
 
 class Deployment(BaseProxyExecutor):
-    def __init__(self, performer, settings):
+    def __init__(self, performer, provisions):
         super().__init__(performer)
-        if settings.provider:
-            self.provisioner = Provisioner(settings.provider, performer, settings_data=settings.settings_data)
-        else:
-            self.provisioner = None
-        self.scripts = settings.scripts
-
-    def _onerror(self, arguments, error):
-        logger.error(error)
-        arguments.update(
-            dict(
-                command=error.command,
-                exit_code=error.exit_code,
-                error=error.error
-            )
-        )
-        self.execute_scripts(self.scripts.onerror, arguments)
+        self.performer = performer
+        self.provisions = provisions
 
     def deploy(self, infrastructure, script_info, vars):
         """
@@ -32,26 +18,34 @@ class Deployment(BaseProxyExecutor):
         :param script_info: dict
         :return:
         """
-        self.execute_scripts(self.scripts.onstart, script_info)
-        try:
-            logger.info('Creating machines...')
-            infrastructure.create_machines()
 
-            script_info.update(infrastructure=infrastructure.info)
+        logger.info('Creating machines...')
+        infrastructure.create_machines()
 
-            if self.provisioner:
-                logger.info('Installing provisioner...')
-                self.provisioner.install()
+        script_info.update(infrastructure=infrastructure.info)
 
-                logger.info('Configuration...')
-                self.provisioner.run(infrastructure, script_info, vars)
-        except CommandError as e:
-            self._onerror(script_info, e)
-            return False
-        else:
+        for provisioner_name, provisioner_settings in self.provisions.items():
+            scripts = provisioner_settings.scripts
+
             try:
-                self.execute_scripts(self.scripts.onsuccess, script_info)
-                return True
+                self.execute_scripts(scripts.onstart, script_info)
+
+                provisioner = Provisioner(provisioner_settings.provider, self.performer, settings_data=provisioner_settings.settings_data)
+
+                name = " '{}'".format(provisioner_name) if provisioner_name else ''
+                logger.info("Installing provisioner{name}...".format(name=name))
+                provisioner.install()
+
+                logger.info("Running provisioner{name}...".format(name=name))
+                provisioner.run(infrastructure, script_info, vars)
+
             except CommandError as e:
-                self._onerror(script_info, e)
-                return False
+                self.execute_scripts_onerror(scripts.onerror, script_info, e, logger=logger)
+                raise
+            else:
+                try:
+                    self.execute_scripts(scripts.onsuccess, script_info)
+                    return True
+                except CommandError as e:
+                    self.execute_scripts_onerror(scripts.onerror, script_info, e, logger=logger)
+                    raise
