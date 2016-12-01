@@ -147,6 +147,20 @@ class IsolationSettings(BaseSettings):
         return IsolationScriptsSettings(self.data.get('scripts', {}))
 
 
+class ConfigurationScriptsSettings(BaseSettings):
+    @property
+    def onstart(self):
+        return ListDictSettings(self.data.get('onstart', []))
+
+    @property
+    def onsuccess(self):
+        return ListDictSettings(self.data.get('onsuccess', []))
+
+    @property
+    def onerror(self):
+        return ListDictSettings(self.data.get('onerror', []))
+
+
 class ConfigurationSettings(BaseSettings):
     @property
     def infrastructure(self):
@@ -163,6 +177,10 @@ class ConfigurationSettings(BaseSettings):
     @property
     def isolation(self):
         return IsolationSettings(self.data.get('isolation', {}))
+
+    @property
+    def scripts(self):
+        return ConfigurationScriptsSettings(self.data.get('scripts', {}))
 
 
 class EnvironmentSettings(BaseSettings):

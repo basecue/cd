@@ -7,7 +7,6 @@ from .isolation import Isolation
 from .performer import CommandError, BaseProxyExecutor
 
 logger = getLogger(__name__)
-command_logger = getLogger('command')
 
 
 class Configuration(BaseProxyExecutor):
@@ -23,7 +22,7 @@ class Configuration(BaseProxyExecutor):
         else:
             self.isolation = Isolation(self.settings.isolation, self.source, self.next_source, performer)
 
-        self.performer = self.isolation or self.performer
+        self.performer = self.isolation or performer
 
         super().__init__(self.performer)
 
@@ -58,6 +57,13 @@ class Configuration(BaseProxyExecutor):
                 except CommandError as e:
                     self.execute_scripts_onerror(scripts.onerror, info, e, logger=logger)
                     return False
+
+    def execute_script(self, script, arguments=None, logger=None):
+        if arguments is None:
+            arguments = {}
+
+        arguments.update(self.info)
+        return super().execute_script(script, arguments=arguments, logger=arguments)
 
     @property
     def info(self):

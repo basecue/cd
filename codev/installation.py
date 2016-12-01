@@ -7,6 +7,7 @@ from .isolator import Isolator
 from logging import getLogger
 
 logger = getLogger(__name__)
+command_logger = getLogger('command')
 
 
 class Installation(object):
@@ -131,24 +132,24 @@ class Installation(object):
         """
         return self.configuration.deploy(self.info, vars)
 
-    # def execute(self, script, arguments=None):
-    #     """
-    #     Run script.
-    #
-    #     :param script: Script to execute
-    #     :type script: str
-    #     :param arguments: Arguments passed to script
-    #     # :return: True if executed command returns 0
-    #     :rtype: bool
-    #     """
-    #     logging_config(control_perform=True)
-    #     try:
-    #         self.configuration.execute_script(script, arguments)
-    #     except CommandError as e:
-    #         logger.error(e)
-    #         return False
-    #     else:
-    #         return True
+    def execute(self, script, arguments=None):
+        """
+        Run script.
+
+        :param script: Script to execute
+        :type script: str
+        :param arguments: Arguments passed to script
+        # :return: True if executed command returns 0
+        :rtype: bool
+        """
+        logging_config(control_perform=True)
+        try:
+            self.configuration.execute_script(script, arguments, logger=command_logger)
+        except CommandError as e:
+            logger.error(e)
+            return False
+        else:
+            return True
 
     def destroy(self):
         """
