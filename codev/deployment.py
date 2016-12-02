@@ -45,7 +45,6 @@ class Deployment(BaseProxyExecutor):
             else:
                 try:
                     self.execute_scripts(scripts.onsuccess, script_info)
-                    return True
                 except CommandError as e:
                     self.execute_scripts_onerror(scripts.onerror, script_info, e, logger=logger)
                     raise
