@@ -1,15 +1,14 @@
 from logging import getLogger
 from .provisioner import Provisioner
-from .performer import BaseProxyExecutor, CommandError
+from .performer import ScriptExecutor, CommandError
 
 logger = getLogger(__name__)
 
 
-class Deployment(BaseProxyExecutor):
+class Deployment(ScriptExecutor):
     def __init__(self, performer, provisions):
-        super().__init__(performer)
-        self.performer = performer
         self.provisions = provisions
+        super().__init__(performer)
 
     def deploy(self, infrastructure, script_info, vars):
         """
@@ -30,7 +29,7 @@ class Deployment(BaseProxyExecutor):
             try:
                 self.execute_scripts(scripts.onstart, script_info)
 
-                provisioner = Provisioner(provisioner_settings.provider, self.performer, settings_data=provisioner_settings.settings_data)
+                provisioner = Provisioner(provisioner_settings.provider, self.executor, settings_data=provisioner_settings.settings_data)
 
                 name = " '{}'".format(provisioner_name) if provisioner_name else ''
                 logger.info("Installing provisioner{name}...".format(name=name))

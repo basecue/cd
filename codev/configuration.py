@@ -4,12 +4,12 @@ from .deployment import Deployment
 
 from .infrastructure import Infrastructure
 from .isolation import Isolation
-from .performer import CommandError, BaseProxyExecutor
+from .performer import CommandError, ScriptExecutor
 
 logger = getLogger(__name__)
 
 
-class Configuration(BaseProxyExecutor):
+class Configuration(ScriptExecutor):
     def __init__(self, performer, settings, source, next_source=None, disable_isolation=False):
         self.settings = settings
         self.source = source
@@ -24,9 +24,8 @@ class Configuration(BaseProxyExecutor):
 
         self.performer = self.isolation or performer
 
-        super().__init__(self.performer)
-
         self.infrastructure = Infrastructure(performer, self.settings.infrastructure)
+        super().__init__(self.performer)
 
     def deploy(self, info, vars):
         info.update(self.info)

@@ -84,6 +84,7 @@ class VirtualboxMachine(BaseMachine):
         self.start()
 
     def execute(self, command, logger=None, writein=None, max_lines=None):
+
         return Performer('ssh', settings_data={'hostname': self.ip, 'username': 'root'}).execute(
             self._prepare_command(command), logger=logger, writein=writein, max_lines=max_lines
         )

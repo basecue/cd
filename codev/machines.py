@@ -4,9 +4,10 @@ from codev.debug import DebugSettings
 
 
 class BaseMachine(BaseProxyPerformer):
-    def __init__(self, *args, group=None, groups=None, **kwargs):
+    def __init__(self, *args, ident=None, group=None, groups=None, **kwargs):
         self.group = group
         self.groups = groups
+        self.ident = ident
         super().__init__(*args, **kwargs)
 
     def exists(self):

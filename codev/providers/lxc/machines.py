@@ -250,11 +250,16 @@ class LXCMachine(BaseMachine):
             'LANG': 'C.UTF-8',
             'LC_ALL':  'C.UTF-8'
         })
-        return self.performer.execute('lxc-attach {env} -n {container_name} -- {command}'.format(
-            container_name=self.ident,
-            command=self._prepare_command(command, wrap=True),
-            env=' '.join('-v {var}={value}'.format(var=var, value=value) for var, value in env.items())
-        ), logger=logger, writein=writein, max_lines=max_lines)
+        return self.performer.execute_wrapper(
+            'lxc-attach {env} -n {container_name} -- {{command}}'.format(
+                container_name=self.ident,
+                env=' '.join('-v {var}={value}'.format(var=var, value=value) for var, value in env.items())
+            ),
+            command,
+            logger=logger,
+            writein=writein,
+            max_lines=max_lines
+        )
 
     def share(self, source, target, bidirectional=False):
         share_target = '{share_directory}/{target}'.format(
