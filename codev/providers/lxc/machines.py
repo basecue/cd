@@ -13,12 +13,13 @@ logger = getLogger(__name__)
 
 
 class LXCMachine(BaseMachine):
+    base_dir = '/root'
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__container_directory = None
         self.__share_directory = None
         self.__gateway = None
-        self.base_dir = '/root'
 
     def exists(self):
         output = self.performer.execute('lxc-ls')
@@ -284,7 +285,7 @@ class LXCMachine(BaseMachine):
             )
 
         source_target_background_runner = BackgroundExecutor(
-            self.performer, ident='share_{ident}'.format(
+            performer=self.performer, ident='share_{ident}'.format(
                 ident=self.ident
             )
         )
@@ -318,7 +319,7 @@ class LXCMachine(BaseMachine):
 
         if bidirectional:
             target_source_background_runner = BackgroundExecutor(
-                self.performer, ident='share_back_{ident}'.format(
+                performer=self.performer, ident='share_back_{ident}'.format(
                     ident=self.ident
                 )
             )

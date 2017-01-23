@@ -10,7 +10,8 @@ logger = getLogger(__name__)
 
 
 class Configuration(ScriptExecutor):
-    def __init__(self, settings, source, performer=None, next_source=None, disable_isolation=False):
+    def __init__(self, settings, source, next_source=None, disable_isolation=False, **kwargs):
+        performer = kwargs.get('performer')  # required
         self.settings = settings
         self.source = source
         self.next_source = next_source

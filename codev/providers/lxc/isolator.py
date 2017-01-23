@@ -107,8 +107,8 @@ class LXCIsolator(Isolator):
                 ssh_auth_sock_local=ssh_auth_sock_local
             )
         ):
-            performer_background_runner = BackgroundExecutor(self.performer)
-            machine_background_runner = BackgroundExecutor(self.machine)
+            performer_background_runner = BackgroundExecutor(performer=self.performer)
+            machine_background_runner = BackgroundExecutor(performer=self.machine)
 
             ssh_auth_sock_remote = '/tmp/{ident}-ssh-agent-sock'.format(ident=machine_background_runner.ident)
 

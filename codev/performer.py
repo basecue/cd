@@ -10,8 +10,9 @@ COMMON_SCRIPTS_PATH = '{directory}/scripts'.format(directory=path.dirname(__file
 
 
 class BaseExecutor(object):
+    base_dir = ''
+
     def __init__(self, *args, **kwargs):
-        self.base_dir = ''
         self.working_dirs = []
         self.output_logger = getLogger('command_output')
         super().__init__()
