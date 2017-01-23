@@ -12,7 +12,7 @@ class LXCIsolator(Isolator):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.machine = LXCMachine(self.performer, ident=self.ident)
+        self.machine = LXCMachine(performer=self.performer, ident=self.ident)
         self.logger = getLogger(__name__)
 
     def _get_id_mapping(self):
@@ -137,7 +137,7 @@ class LXCIsolator(Isolator):
 
     def execute(self, command, logger=None, writein=None, max_lines=None):
         with self._environment() as env:
-            return self.machine.execute(command, logger=logger, writein=writein, max_lines=max_lines)
+            return self.machine.execute(command, env=env, logger=logger, writein=writein, max_lines=max_lines)
 
     @contextmanager
     def change_directory(self, directory):

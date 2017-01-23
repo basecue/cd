@@ -4,13 +4,13 @@ from .deployment import Deployment
 
 from .infrastructure import Infrastructure
 from .isolation import Isolation
-from .performer import CommandError, ScriptExecutor
+from .performer import CommandError, ScriptExecutor, ProxyPerformer
 
 logger = getLogger(__name__)
 
 
 class Configuration(ScriptExecutor):
-    def __init__(self, performer, settings, source, next_source=None, disable_isolation=False):
+    def __init__(self, settings, source, performer=None, next_source=None, disable_isolation=False):
         self.settings = settings
         self.source = source
         self.next_source = next_source
@@ -20,12 +20,12 @@ class Configuration(ScriptExecutor):
                 raise ValueError('Next source is not allowed with disabled isolation.')
             self.isolation = None
         else:
-            self.isolation = Isolation(self.settings.isolation, self.source, self.next_source, performer)
+            self.isolation = Isolation(self.settings.isolation, self.source, self.next_source, performer=performer)
 
         self.performer = self.isolation or performer
 
         self.infrastructure = Infrastructure(performer, self.settings.infrastructure)
-        super().__init__(self.performer)
+        super().__init__(performer=self.performer)
 
     def deploy(self, info, vars):
         info.update(self.info)
@@ -43,7 +43,7 @@ class Configuration(ScriptExecutor):
             try:
                 self.execute_scripts(scripts.onstart, info)
 
-                deployment = Deployment(self.performer, self.settings.provisions)
+                deployment = Deployment(self.settings.provisions, performer=self.performer)
                 deployment.deploy(self.infrastructure, info, vars)
 
             except CommandError as e:

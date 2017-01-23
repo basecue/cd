@@ -1,9 +1,9 @@
 from .provider import Provider, ConfigurableProvider
-from .performer import BaseProxyPerformer
+from .performer import ProxyPerformer
 from codev.debug import DebugSettings
 
 
-class BaseMachine(BaseProxyPerformer):
+class BaseMachine(ProxyPerformer):
     def __init__(self, *args, ident=None, group=None, groups=None, **kwargs):
         self.group = group
         self.groups = groups
@@ -55,7 +55,7 @@ class MachinesProvider(Provider, ConfigurableProvider):
             ssh_key = None
 
         for ident in self.idents():
-            machine = self.machine_class(self.performer, ident=ident, group=self.group, groups=self.groups)
+            machine = self.machine_class(performer=self.performer, ident=ident, group=self.group, groups=self.groups)
             if not machine.exists():
                 machine.create(self.settings, install_ssh_server=True, ssh_key=ssh_key)
             elif not machine.is_started():
@@ -64,6 +64,6 @@ class MachinesProvider(Provider, ConfigurableProvider):
     @property
     def machines(self):
         for ident in self.idents():
-            machine = self.machine_class(self.performer, ident=ident, group=self.group, groups=self.groups)
+            machine = self.machine_class(performer=self.performer, ident=ident, group=self.group, groups=self.groups)
             if machine.exists():
                 yield machine

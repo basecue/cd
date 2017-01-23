@@ -2,10 +2,10 @@ from hashlib import md5
 from time import time
 
 from .provider import Provider, ConfigurableProvider
-from .performer import BaseProxyPerformer
+from .performer import ProxyPerformer
 
 
-class Isolator(Provider, BaseProxyPerformer, ConfigurableProvider):
+class Isolator(Provider, ProxyPerformer, ConfigurableProvider):
     def __init__(self, *args, ident=None, **kwargs):
         ident = str(ident or time())
         self.ident = md5(ident.encode()).hexdigest()

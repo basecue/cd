@@ -111,7 +111,7 @@ class Installation(object):
                 next_source_ident=next_source.ident if next_source else ''
             ).items()))
 
-            self.performer = Isolator(isolator_provider, performer, settings_data=isolator_settings_data, ident=ident)
+            self.performer = Isolator(isolator_provider, performer=performer, settings_data=isolator_settings_data, ident=ident)
         else:
             logging_config(perform=True)
             self.performer = performer
@@ -120,7 +120,10 @@ class Installation(object):
         configuration_settings = environment_settings.configurations[configuration_name]
         self.configuration_name = configuration_name
         self.configuration = Configuration(
-            self.performer, configuration_settings, source, next_source, disable_isolation
+            configuration_settings, source,
+            next_source=next_source,
+            disable_isolation=disable_isolation,
+            performer=self.performer
         )
 
     def deploy(self, vars):
