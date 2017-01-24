@@ -39,10 +39,12 @@ class VirtualenvIsolator(Isolator):
         self.performer.execute('rm -rf {env_dir}'.format(env_dir=self._env_dir))
 
     def execute(self, command, logger=None, writein=None, max_lines=None):
+        command = 'source {env_dir}/bin/activate && {command}'.format(
+            env_dir=self._env_dir,
+            command=command
+        )
         return self.performer.execute_wrapper(
-            'bash -c "source {env_dir}/bin/activate && {{command}}"'.format(
-                env_dir=self._env_dir,
-            ), command, logger=logger, writein=writein, max_lines=max_lines
+            '{command}', command, logger=logger, writein=writein, max_lines=max_lines
         )
 
 
