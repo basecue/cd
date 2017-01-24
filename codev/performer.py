@@ -10,19 +10,11 @@ COMMON_SCRIPTS_PATH = '{directory}/scripts'.format(directory=path.dirname(__file
 
 
 class BaseExecutor(object):
-    base_dir = ''
-
     def __init__(self, *args, **kwargs):
+        self.base_dir = ''
         self.working_dirs = []
         self.output_logger = getLogger('command_output')
         super().__init__()
-
-    def check_execute(self, command):
-        try:
-            self.execute(command)
-            return True
-        except CommandError:
-            return False
 
     @property
     def working_dir(self):
@@ -41,41 +33,6 @@ class BaseExecutor(object):
         yield
         self.working_dirs.pop()
 
-    def _include_command(self, command):
-        return command.replace('\\', '\\\\').replace('$', '\$').replace('"', '\\"')
-
-    def _prepare_command(self, command):
-        working_dir = self.working_dir
-        if working_dir:
-            command = 'cd {working_dir} && {command}'.format(
-                working_dir=working_dir,
-                command=command
-            )
-
-        return 'bash -c "{command}"'.format(
-            command=self._include_command(command)
-        )
-
-    def _sanitize_path(self, path):
-        if path.startswith('~/'):
-            path = '{base_dir}/{path}'.format(
-                base_dir=self.base_dir,
-                path=path[2:]
-            )
-
-        if not path.startswith('/'):
-            path = '{working_dir}/{path}'.format(
-                working_dir=self.working_dir,
-                path=path
-            )
-        return path
-
-    def execute_wrapper(self, wrapper_command, command, logger=None, writein=None, max_lines=None):
-        final_command = wrapper_command.format(
-            command=self._prepare_command(command)
-        )
-        return self.execute(final_command, logger=logger, writein=writein, max_lines=max_lines)
-
 
 DISTRIBUTION_ISSUES = {
     'debian': 'Debian',
@@ -84,9 +41,9 @@ DISTRIBUTION_ISSUES = {
 }
 
 
-class BasePerformer(BaseExecutor):
+class BasePerformer(object):
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super().__init__()
         self.__cache_packages = False
         self.__distribution = None
 
@@ -137,8 +94,50 @@ class BasePerformer(BaseExecutor):
         except CommandError:
             return False
 
+    def check_execute(self, command):
+        try:
+            self.execute(command)
+            return True
+        except CommandError:
+            return False
 
-class Performer(Provider, BasePerformer, ConfigurableProvider):
+    def _include_command(self, command):
+        return command.replace('\\', '\\\\').replace('$', '\$').replace('"', '\\"')
+
+    def _prepare_command(self, command):
+        working_dir = self.working_dir
+        if working_dir:
+            command = 'cd {working_dir} && {command}'.format(
+                working_dir=working_dir,
+                command=command
+            )
+
+        return 'bash -c "{command}"'.format(
+            command=self._include_command(command)
+        )
+
+    def _sanitize_path(self, path):
+        if path.startswith('~/'):
+            path = '{base_dir}/{path}'.format(
+                base_dir=self.base_dir,
+                path=path[2:]
+            )
+
+        if not path.startswith('/'):
+            path = '{working_dir}/{path}'.format(
+                working_dir=self.working_dir,
+                path=path
+            )
+        return path
+
+    def execute_wrapper(self, wrapper_command, command, logger=None, writein=None, max_lines=None):
+        final_command = wrapper_command.format(
+            command=self._prepare_command(command)
+        )
+        return self.execute(final_command, logger=logger, writein=writein, max_lines=max_lines)
+
+
+class Performer(Provider, BasePerformer, BaseExecutor, ConfigurableProvider):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # TODO move to future authentication module
@@ -158,7 +157,7 @@ class Performer(Provider, BasePerformer, ConfigurableProvider):
 
 class ProxyPerformer(BasePerformer):
     def __init__(self, *args, **kwargs):
-        self.performer = kwargs.get('performer')
+        self.performer = kwargs['performer']
         super().__init__(*args, **kwargs)
 
     def __getattr__(self, name):
