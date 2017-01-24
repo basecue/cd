@@ -14,7 +14,7 @@ class BaseExecutor(object):
         self.base_dir = ''
         self.working_dirs = []
         self.output_logger = getLogger('command_output')
-        super().__init__()
+        super().__init__(*args, **kwargs)
 
     @property
     def working_dir(self):
@@ -137,7 +137,7 @@ class BasePerformer(object):
         return self.execute(final_command, logger=logger, writein=writein, max_lines=max_lines)
 
 
-class Performer(Provider, BasePerformer, BaseExecutor, ConfigurableProvider):
+class Performer(Provider, ConfigurableProvider, BasePerformer, BaseExecutor):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # TODO move to future authentication module

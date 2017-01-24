@@ -5,7 +5,7 @@ from .provider import Provider, ConfigurableProvider
 from .performer import ProxyPerformer
 
 
-class Isolator(Provider, ProxyPerformer, ConfigurableProvider):
+class Isolator(Provider, ConfigurableProvider, ProxyPerformer):
     def __init__(self, *args, ident=None, **kwargs):
         ident = str(ident or time())
         self.ident = md5(ident.encode()).hexdigest()
