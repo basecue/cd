@@ -65,8 +65,8 @@ class AnsibleProvisioner(Provisioner):
     def install(self):
         # TODO requirements - python-dev, python-virtualenv
         self.isolator.create()
-        self.isolator.execute('pip install setuptools')
-        self.isolator.execute('pip install --upgrade markupsafe paramiko PyYAML Jinja2 httplib2 six ecdsa==0.11')
+        self.isolator.execute('pip install --upgrade setuptools==32.0.0')
+        self.isolator.execute('pip install --upgrade markupsafe==0.23 PyYAML==3.11 cffi==1.4.1 cryptography==1.1 paramiko==2.0.0 Jinja2==2.9.4 httplib2==0.9.2 six==1.10.0 ecdsa==0.11')
 
         version_add = ''
         if self.settings.version:

@@ -1,5 +1,6 @@
 from .settings import BaseSettings
 from ast import literal_eval
+import json
 
 
 class DebugSettings(BaseSettings):
@@ -21,6 +22,10 @@ class DebugSettings(BaseSettings):
     @property
     def show_client_exception(self):
         return literal_eval(self.data.get('show_client_exception', 'True'))
+
+    @property
+    def load_vars(self):
+        return json.loads(self.data.get('load_vars', '{}'))
 
 
 DebugSettings.settings = DebugSettings()

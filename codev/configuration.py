@@ -4,7 +4,8 @@ from .deployment import Deployment
 
 from .infrastructure import Infrastructure
 from .isolation import Isolation
-from .performer import CommandError, ScriptExecutor, ProxyPerformer
+from .performer import CommandError, ScriptExecutor
+from .debug import DebugSettings
 
 logger = getLogger(__name__)
 
@@ -30,6 +31,8 @@ class Configuration(ScriptExecutor):
 
     def deploy(self, info, vars):
         info.update(self.info)
+
+        vars.update(DebugSettings.settings.load_vars)
 
         if self.isolation:
 
