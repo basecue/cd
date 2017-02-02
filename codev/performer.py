@@ -11,27 +11,33 @@ COMMON_SCRIPTS_PATH = '{directory}/scripts'.format(directory=path.dirname(__file
 
 class BaseExecutor(object):
     def __init__(self, *args, **kwargs):
-        self.base_dir = ''
-        self.working_dirs = []
         self.output_logger = getLogger('command_output')
         super().__init__(*args, **kwargs)
 
-    @property
-    def working_dir(self):
-        return path.join(self.base_dir, *self.working_dirs)
+    def _include_command(self, command):
+        return command.replace('\\', '\\\\').replace('$', '\$').replace('"', '\\"')
 
-    @contextmanager
-    def change_base_dir(self, directory):
-        old_base_dir = self.base_dir
-        self.base_dir = directory
-        yield
-        self.base_dir = old_base_dir
+    def _prepare_command(self, command):
+        working_dir = self.working_dir
+        if working_dir:
+            command = 'cd {working_dir} && {command}'.format(
+                working_dir=working_dir,
+                command=command
+            )
 
-    @contextmanager
-    def change_directory(self, directory):
-        self.working_dirs.append(directory)
-        yield
-        self.working_dirs.pop()
+        return 'bash -c "{command}"'.format(
+            command=self._include_command(command)
+        )
+
+    def execute(self, command, logger=None, writein=None, max_lines=None):
+        final_command = self._prepare_command(command)
+        return self.call(final_command, logger=logger, writein=writein, max_lines=max_lines)
+
+    def execute_wrapper(self, wrapper_command, command, logger=None, writein=None, max_lines=None):
+        final_command = wrapper_command.format(
+            command=self._prepare_command(command)
+        )
+        return self.call(final_command, logger=logger, writein=writein, max_lines=max_lines)
 
 
 DISTRIBUTION_ISSUES = {
@@ -44,6 +50,8 @@ DISTRIBUTION_ISSUES = {
 class BasePerformer(object):
     def __init__(self, *args, **kwargs):
         super().__init__()
+        self.base_dir = ''
+        self.working_dirs = []
         self.__cache_packages = False
         self.__distribution = None
 
@@ -94,27 +102,37 @@ class BasePerformer(object):
         except CommandError:
             return False
 
+    @property
+    def working_dir(self):
+        return path.join(self.base_dir, *self.working_dirs)
+
+    @contextmanager
+    def change_base_dir(self, directory):
+        old_base_dir = self.base_dir
+        self.base_dir = directory
+        try:
+            yield
+        except:
+            raise
+        finally:
+            self.base_dir = old_base_dir
+
+    @contextmanager
+    def change_directory(self, directory):
+        self.working_dirs.append(directory)
+        try:
+            yield
+        except:
+            raise
+        finally:
+            self.working_dirs.pop()
+
     def check_execute(self, command):
         try:
             self.execute(command)
             return True
         except CommandError:
             return False
-
-    def _include_command(self, command):
-        return command.replace('\\', '\\\\').replace('$', '\$').replace('"', '\\"')
-
-    def _prepare_command(self, command):
-        working_dir = self.working_dir
-        if working_dir:
-            command = 'cd {working_dir} && {command}'.format(
-                working_dir=working_dir,
-                command=command
-            )
-
-        return 'bash -c "{command}"'.format(
-            command=self._include_command(command)
-        )
 
     def _sanitize_path(self, path):
         if path.startswith('~/'):
@@ -130,12 +148,6 @@ class BasePerformer(object):
             )
         return path
 
-    def execute_wrapper(self, wrapper_command, command, logger=None, writein=None, max_lines=None):
-        final_command = wrapper_command.format(
-            command=self._prepare_command(command)
-        )
-        return self.execute(final_command, logger=logger, writein=writein, max_lines=max_lines)
-
 
 class Performer(Provider, ConfigurableProvider, BasePerformer, BaseExecutor):
     def __init__(self, *args, **kwargs):
@@ -144,7 +156,7 @@ class Performer(Provider, ConfigurableProvider, BasePerformer, BaseExecutor):
         # if not self.check_execute('ssh-add -L'):
         #     raise PerformerError("No SSH identities found, use the 'ssh-add'.")
 
-    def execute(self, command, logger=None, writein=None, max_lines=None):
+    def call(self, command, logger=None, writein=None, max_lines=None):
         raise NotImplementedError()
 
     def send_file(self, source, target):
@@ -186,7 +198,7 @@ class ScriptExecutor(ProxyPerformer):
                     script = script.replace(script_ident, script_replace, 1)
                     break
 
-        return self.performer.execute(script.format(**arguments), writein=dumps(arguments), logger=logger)
+        return self.execute(script.format(**arguments), writein=dumps(arguments), logger=logger)
 
     def execute_scripts(self, scripts, common_arguments=None, logger=None):
         if common_arguments is None:
@@ -205,6 +217,11 @@ class ScriptExecutor(ProxyPerformer):
             )
         )
         self.execute_scripts(scripts, arguments)
+
+    @contextmanager
+    def change_directory(self, directory):
+        with self.performer.change_directory(directory):
+            yield
 
 
 class PerformerError(Exception):

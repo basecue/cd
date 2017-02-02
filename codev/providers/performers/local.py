@@ -14,7 +14,7 @@ class LocalPerformer(Performer):
         self.logger = getLogger(__name__)
         super().__init__(*args, **kwargs)
 
-    def execute(self, command, logger=None, writein=None, max_lines=None):
+    def call(self, command, logger=None, writein=None, max_lines=None):
         self.logger.debug("Execute command: '%s'" % command)
         process = Popen(command, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=True)
 

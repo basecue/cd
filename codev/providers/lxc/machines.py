@@ -19,6 +19,7 @@ class LXCMachine(BaseMachine):
         self.__container_directory = None
         self.__share_directory = None
         self.__gateway = None
+        self.base_dir = '/root'
 
     def exists(self):
         output = self.performer.execute('lxc-ls')
@@ -246,11 +247,12 @@ class LXCMachine(BaseMachine):
         if env is None:
             env = {}
         env.update({
-            'HOME': self.base_dir,
+            'HOME': '/root',
             'LANG': 'C.UTF-8',
             'LC_ALL':  'C.UTF-8'
         })
-        with self.performer.change_base_dir('/root'):
+
+        with self.performer.change_directory(self.working_dir):
             return self.performer.execute_wrapper(
                 'lxc-attach {env} -n {container_name} -- {{command}}'.format(
                     container_name=self.ident,

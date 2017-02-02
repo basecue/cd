@@ -43,9 +43,10 @@ class VirtualenvIsolator(Isolator):
             env_dir=self._env_dir,
             command=command
         )
-        return self.performer.execute_wrapper(
-            '{command}', command, logger=logger, writein=writein, max_lines=max_lines
-        )
+        with self.performer.change_directory(self.working_dir):
+            return self.performer.execute_wrapper(
+                '{command}', command, logger=logger, writein=writein, max_lines=max_lines
+            )
 
 
 class VirtualenvDirectoryIsolator(DirectoryIsolator, VirtualenvIsolator):
@@ -67,5 +68,5 @@ class VirtualenvDirectoryIsolator(DirectoryIsolator, VirtualenvIsolator):
         VirtualenvIsolator.destroy(self)
 
     def execute(self, command, logger=None, writein=None, max_lines=None):
-        with self.change_base_dir(self.base_dir):
+        with self.change_directory(self.base_dir):
             return VirtualenvIsolator.execute(self, command, logger=logger, writein=writein, max_lines=max_lines)
