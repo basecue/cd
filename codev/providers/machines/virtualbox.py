@@ -67,7 +67,13 @@ class VirtualboxMachine(BaseMachine):
         lower_ip = '192.168.77.100'
         upper_ip = '192.168.77.200'
         iface = self._create_vbox_iface(iface_ip, dhcp_ip, netmask, lower_ip, upper_ip)
-        self._create_vm(hostonly_iface=iface, memory=settings.memory, hdd=settings.hdd)
+        self._create_vm(
+            ostype='Ubuntu_64',
+            memory=settings.memory,
+            hdd=settings.hdd,
+            share=settings.share,
+            hostonly_iface=iface
+        )
 
         self._install_vm(vm_iso)
 
@@ -281,9 +287,13 @@ class VirtualboxMachine(BaseMachine):
             raise RuntimeError('Error during creating virtualbox network host-only interface.')
         return iface
 
-    def _create_vm(self, ostype='Ubuntu_64', hdd=20000, memory=1024, hostonly_iface=''):
+    def _create_vm(self, ostype, hdd, memory, share, hostonly_iface):
         # create VM
-        self.performer.execute('VBoxManage createvm --name "{ident}" --ostype "Ubuntu_64" --register'.format(ident=self.ident))
+        self.performer.execute(
+            'VBoxManage createvm --name "{ident}" --ostype "{ostype}" --register'.format(
+                ident=self.ident, ostype=ostype
+            )
+        )
 
         # setup VM + ifaces
         self.performer.execute(
@@ -320,6 +330,16 @@ class VirtualboxMachine(BaseMachine):
                 medium=medium
             )
         )
+
+        #create shared points
+        for name, directory in share.items():
+            self.performer.execute(
+                'VBoxManage sharedfolder add "{ident}" --name "{name}" --hostpath "{directory}"'.format(
+                    ident=self.ident,
+                    name=name,
+                    directory=directory
+                )
+            )
 
     def _install_vm(self, install_iso):
         # attach install iso
@@ -389,6 +409,10 @@ class VirtualboxMachinesSettings(BaseSettings):
     @property
     def hdd(self):
         return self.data.get('hdd', 1024)
+
+    @property
+    def share(self):
+        return self.data.get('share', {})
 
 
 class VirtualboxMachinesProvider(MachinesProvider):

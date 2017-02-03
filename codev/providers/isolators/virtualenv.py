@@ -49,24 +49,28 @@ class VirtualenvIsolator(Isolator):
             )
 
 
-class VirtualenvDirectoryIsolator(DirectoryIsolator, VirtualenvIsolator):
+class VirtualenvDirectoryIsolator(DirectoryIsolator):
     provider_name = 'virtualenvdirectory'
     settings_class = VirtualenvIsolatorSettings
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.isolator = VirtualenvIsolator(performer=self.performer)
+
     def exists(self):
-        return DirectoryIsolator.exists(self) and VirtualenvIsolator.exists(self)
+        return super().exists() and self.isolator.exists()
 
     def create(self):
-        DirectoryIsolator.create(self)
-        VirtualenvIsolator.create(self)
+        super().create()
+        self.isolator.create()
 
     def is_started(self):
         return self.exists()
 
     def destroy(self):
-        DirectoryIsolator.destroy(self)
-        VirtualenvIsolator.destroy(self)
+        super().destroy()
+        self.isolator.destroy()
 
     def execute(self, command, logger=None, writein=None, max_lines=None):
-        with self.change_directory(self.base_dir):
-            return VirtualenvIsolator.execute(self, command, logger=logger, writein=writein, max_lines=max_lines)
+        with self.isolator.change_directory(self.working_dir):
+            return self.isolator.execute(command, logger=logger, writein=writein, max_lines=max_lines)

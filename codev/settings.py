@@ -1,4 +1,3 @@
-from .info import VERSION
 from os import path
 import yaml
 
@@ -220,8 +219,9 @@ class Settings(BaseSettings):
 
     @property
     def default_data(self):
+        from . import __version__
         return OrderedDict((
-            ('version', VERSION),
+            ('version', __version__),
             ('project', path.basename(path.abspath(path.curdir))),
             ('environments', {})
         ))

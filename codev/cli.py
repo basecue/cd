@@ -6,7 +6,7 @@ from .settings import YAMLSettingsReader
 from .installation import Installation
 from .debug import DebugSettings
 from .logging import logging_config
-from .info import VERSION
+from . import __version__
 from os import chdir
 import sys
 
@@ -259,7 +259,7 @@ def bool_exit_enable(func):
 @click.pass_context
 def main(ctx, version):
     if version:
-        click.echo(VERSION)
+        click.echo(__version__)
     elif not ctx.invoked_subcommand:
         click.echo(ctx.get_help())
 
