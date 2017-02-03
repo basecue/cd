@@ -1,7 +1,7 @@
 from logging import getLogger
 from json import dumps
 
-from .performer import BaseProxyPerformer
+from .performer import ScriptExecutor
 from .logging import logging_config
 from .performer import CommandError
 from .debug import DebugSettings
@@ -12,7 +12,7 @@ command_logger = getLogger('command')
 debug_logger = getLogger('debug')
 
 
-class Isolation(BaseProxyPerformer):
+class Isolation(ScriptExecutor):
     def __init__(self, settings, source, next_source, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.isolator = self.performer
@@ -113,7 +113,7 @@ class Isolation(BaseProxyPerformer):
         deploy_vars = self.settings.vars.copy()
         deploy_vars.update(vars)
 
-        version = self.performer.execute('pip3 show codev | grep ^Version | cut -d " " -f 2')
+        version = self.execute('pip3 show codev | grep ^Version | cut -d " " -f 2')
         logger.info("Run 'codev {version}' in isolation.".format(version=version))
 
         if DebugSettings.perform_settings:
@@ -132,8 +132,8 @@ class Isolation(BaseProxyPerformer):
                 current_source=self.current_source,
                 **info
             )
-            with self.performer.change_directory(self.current_source.directory):
-                self.performer.execute(
+            with self.change_directory(self.current_source.directory):
+                self.execute(
                     'codev deploy {installation_options} --performer=local --disable-isolation --force {perform_debug}'.format(
                         installation_options=installation_options,
                         perform_debug=perform_debug

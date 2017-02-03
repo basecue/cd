@@ -28,7 +28,7 @@ class FabricProvisioner(Provisioner):
         super().__init__(*args, **kwargs)
         self.isolator = Isolator(
             'virtualenv',
-            self.performer,
+            performer=self.performer,
             settings_data=dict(python='2'),
             ident='codev_fabric')
 

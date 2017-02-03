@@ -1,29 +1,13 @@
 # -*- coding: utf-8 -*-
-import imp
-from os import path
+import ast
+import re
 from setuptools import setup, find_packages
 
-info = imp.load_source('info', path.join('.', 'codev', 'info.py'))
+_version_re = re.compile(r'__version__\s+=\s+(.*)')
 
-NAME = info.NAME
-DESCRIPTION = info.DESCRIPTION
-AUTHOR = info.AUTHOR
-AUTHOR_EMAIL = info.AUTHOR_EMAIL
-URL = info.URL
-
-
-from git import Repo
-repo = Repo()
-branch = repo.active_branch.name
-
-if branch == 'master':
-    branch_ident = ''
-else:
-    branch_ident = '-{branch}'.format(
-        branch=branch
-    )
-
-VERSION = '{version}{branch_ident}'.format(version=info.VERSION, branch_ident=branch_ident)
+with open('codev/__init__.py', 'rb') as f:
+    version = str(ast.literal_eval(_version_re.search(
+        f.read().decode('utf-8')).group(1)))
 
 REQUIRES = ['click==6.6', 'PyYAML==3.11', 'paramiko==2.0.0', 'colorama==0.3.7', 'GitPython==2.0.2']
 
@@ -31,13 +15,13 @@ cmdclass = {}
 ext_modules = []
 
 setup(
-    name=NAME,
-    version=VERSION,
-    description=DESCRIPTION,
-    author=AUTHOR,
-    author_email=AUTHOR_EMAIL,
+    name='codev',
+    version=version,
+    description="Continuous delivery tool",
+    author="Jan Češpivo (http://www.baseclue.com/)",
+    author_email="jan.cespivo@gmail.com",
     license="Apache 2.0",
-    url=URL,
+    url="http://www.baseclue.com/codev/",
     packages=find_packages(exclude=['tests']),
     include_package_data=True,
     scripts=['codev/bin/codev'],

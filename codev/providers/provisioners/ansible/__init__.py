@@ -58,15 +58,15 @@ class AnsibleProvisioner(Provisioner):
         super().__init__(*args, **kwargs)
         self.isolator = Isolator(
             'virtualenv',
-            self.performer,
+            performer=self.performer,
             settings_data=dict(python='2'),
             ident='codev_ansible')
 
     def install(self):
         # TODO requirements - python-dev, python-virtualenv
         self.isolator.create()
-        self.isolator.execute('pip install setuptools')
-        self.isolator.execute('pip install --upgrade markupsafe paramiko PyYAML Jinja2 httplib2 six ecdsa==0.11')
+        self.isolator.execute('pip install --upgrade setuptools==34.0.2')
+        self.isolator.execute('pip install --upgrade pycrypto==2.6.1 cffi==1.9.1 markupsafe==0.23 PyYAML==3.12 cffi==1.9.1 cryptography==1.7.1 paramiko==2.1.1 Jinja2==2.9.4 httplib2==0.9.2 six==1.10.0 ecdsa==0.11')
 
         version_add = ''
         if self.settings.version:

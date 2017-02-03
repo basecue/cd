@@ -12,7 +12,7 @@ class LXCIsolator(Isolator):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.machine = LXCMachine(self.performer, ident=self.ident)
+        self.machine = LXCMachine(performer=self.performer, ident=self.ident)
         self.logger = getLogger(__name__)
 
     def _get_id_mapping(self):
@@ -107,8 +107,8 @@ class LXCIsolator(Isolator):
                 ssh_auth_sock_local=ssh_auth_sock_local
             )
         ):
-            performer_background_runner = BackgroundExecutor(self.performer)
-            machine_background_runner = BackgroundExecutor(self.machine)
+            performer_background_runner = BackgroundExecutor(performer=self.performer)
+            machine_background_runner = BackgroundExecutor(performer=self.machine)
 
             ssh_auth_sock_remote = '/tmp/{ident}-ssh-agent-sock'.format(ident=machine_background_runner.ident)
 

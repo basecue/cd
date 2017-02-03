@@ -4,31 +4,35 @@ from .deployment import Deployment
 
 from .infrastructure import Infrastructure
 from .isolation import Isolation
-
+from .performer import CommandError, ScriptExecutor
+from .debug import DebugSettings
 
 logger = getLogger(__name__)
-command_logger = getLogger('command')
 
 
-class Configuration(object):
-    def __init__(self, performer, settings, source, next_source=None, disable_isolation=False):
+class Configuration(ScriptExecutor):
+    def __init__(self, settings, source, next_source=None, disable_isolation=False, **kwargs):
+        performer = kwargs['performer']
         self.settings = settings
-        self.performer = performer
         self.source = source
         self.next_source = next_source
-        self.isolation = None
 
         if disable_isolation:
             if next_source:
                 raise ValueError('Next source is not allowed with disabled isolation.')
             self.isolation = None
         else:
-            self.isolation = Isolation(self.settings.isolation, self.source, self.next_source, performer)
+            self.isolation = Isolation(self.settings.isolation, self.source, self.next_source, performer=performer)
+
+        self.performer = self.isolation or performer
 
         self.infrastructure = Infrastructure(performer, self.settings.infrastructure)
+        super().__init__(performer=self.performer)
 
     def deploy(self, info, vars):
         info.update(self.info)
+
+        vars.update(DebugSettings.settings.load_vars)
 
         if self.isolation:
 
@@ -37,16 +41,32 @@ class Configuration(object):
             return self.isolation.deploy(self.infrastructure, info, vars)
         else:
             logger.info("Deploying project.")
-            deployment = Deployment(self.performer, self.settings.provision)
-            return deployment.deploy(self.infrastructure, info, vars)
 
-    def execute_script(self, script, arguments=None):
-        executor = self.isolation or self.performer
+            scripts = self.settings.scripts
 
+            try:
+                self.execute_scripts(scripts.onstart, info)
+
+                deployment = Deployment(self.settings.provisions, performer=self.performer)
+                deployment.deploy(self.infrastructure, info, vars)
+
+            except CommandError as e:
+                self.execute_scripts_onerror(scripts.onerror, info, e, logger=logger)
+                return False
+            else:
+                try:
+                    self.execute_scripts(scripts.onsuccess, info)
+                    return True
+                except CommandError as e:
+                    self.execute_scripts_onerror(scripts.onerror, info, e, logger=logger)
+                    return False
+
+    def execute_script(self, script, arguments=None, logger=None):
         if arguments is None:
             arguments = {}
+
         arguments.update(self.info)
-        executor.execute_script(script, arguments=arguments, logger=command_logger)
+        return super().execute_script(script, arguments=arguments, logger=arguments)
 
     @property
     def info(self):

@@ -5,18 +5,127 @@ from json import dumps
 from codev.scripts import COMMON_SCRIPTS
 
 
-# TODO - codev/ -> common/ ?
 COMMON_SCRIPTS_PREFIX = 'codev/'
 COMMON_SCRIPTS_PATH = '{directory}/scripts'.format(directory=path.dirname(__file__))
 
 
 class BaseExecutor(object):
-    def __init__(self, *args, ident=None, **kwargs):
-        self.base_dir = ''
-        self.working_dirs = []
-        self.ident = ident
+    def __init__(self, *args, **kwargs):
         self.output_logger = getLogger('command_output')
         super().__init__(*args, **kwargs)
+
+    def _include_command(self, command):
+        return command.replace('\\', '\\\\').replace('$', '\$').replace('"', '\\"')
+
+    def _prepare_command(self, command):
+        working_dir = self.working_dir
+        if working_dir:
+            command = 'cd {working_dir} && {command}'.format(
+                working_dir=working_dir,
+                command=command
+            )
+
+        return 'bash -c "{command}"'.format(
+            command=self._include_command(command)
+        )
+
+    def execute(self, command, logger=None, writein=None, max_lines=None):
+        final_command = self._prepare_command(command)
+        return self.call(final_command, logger=logger, writein=writein, max_lines=max_lines)
+
+    def execute_wrapper(self, wrapper_command, command, logger=None, writein=None, max_lines=None):
+        final_command = wrapper_command.format(
+            command=self._prepare_command(command)
+        )
+        return self.call(final_command, logger=logger, writein=writein, max_lines=max_lines)
+
+
+DISTRIBUTION_ISSUES = {
+    'debian': 'Debian',
+    'ubuntu': 'Ubuntu',
+    'arch': 'Arch Linux',
+}
+
+
+class BasePerformer(object):
+    def __init__(self, *args, **kwargs):
+        super().__init__()
+        self.base_dir = ''
+        self.working_dirs = []
+        self.__cache_packages = False
+        self.__distribution = None
+
+    def install_packages(self, *packages):
+        # TODO make this os independent
+        not_installed_packages = [package for package in packages if not self._is_package_installed(package)]
+        if not_installed_packages:
+            self._cache_packages()
+            if self._distribution() in ('debian', 'ubuntu'):
+                self.execute(
+                    'DEBIAN_FRONTEND=noninteractive apt-get install {packages} -y --force-yes'.format(
+                        packages=' '.join(not_installed_packages)
+                    )
+                )
+            elif self._distribution() == 'arch':
+                self.execute(
+                    'pacman -S {packages} --noconfirm'.format(
+                        packages=' '.join(not_installed_packages)
+                    )
+                )
+
+    def _distribution(self):
+        if not self.__distribution:
+            issue = self.execute('cat /etc/issue')
+            for distribution, issue_start in DISTRIBUTION_ISSUES.items():
+                if issue.startswith(issue_start):
+                    self.__distribution = distribution
+                    break
+            else:
+                raise PerformerError('Unknown distribution')
+        return self.__distribution
+
+    def _cache_packages(self):
+        if not self.__cache_packages:
+            if self._distribution() in ('debian', 'ubuntu'):
+                self.execute('apt-get update')
+        self.__cache_packages = True
+
+    def _is_package_installed(self, package):
+        # http://www.cyberciti.biz/faq/find-out-if-package-is-installed-in-linux/
+        # TODO make this os independent
+        try:
+            if self._distribution() in ('debian', 'ubuntu'):
+                return 'install ok installed' == self.execute(
+                    "dpkg-query -W -f='${{Status}}' {package}".format(package=package))
+            elif self._distribution() == 'arch':
+                return self.check_execute("pacman -Qi {package}".format(package=package))
+        except CommandError:
+            return False
+
+    @property
+    def working_dir(self):
+        return path.join(self.base_dir, *self.working_dirs)
+
+    @contextmanager
+    def change_base_dir(self, directory):
+        old_base_dir = self.base_dir
+        self.base_dir = directory
+        try:
+            yield
+        except:
+            raise
+        finally:
+            self.base_dir = old_base_dir
+
+    @contextmanager
+    def change_directory(self, directory):
+        self.working_dirs.append(directory)
+        try:
+            yield
+        except:
+            raise
+        finally:
+            self.working_dirs.pop()
 
     def check_execute(self, command):
         try:
@@ -25,44 +134,69 @@ class BaseExecutor(object):
         except CommandError:
             return False
 
-    def _include_command(self, command):
-        return command.replace('\\', '\\\\').replace('$', '\$').replace('"', '\\"')
-
-    def _prepare_command(self, command, wrap=False):
-        working_dir = self.working_dir
-        if working_dir:
-            return 'bash -c "cd {working_dir} && {command}"'.format(
-                working_dir=working_dir,
-                command=self._include_command(command)
+    def _sanitize_path(self, path):
+        if path.startswith('~/'):
+            path = '{base_dir}/{path}'.format(
+                base_dir=self.base_dir,
+                path=path[2:]
             )
-        elif wrap:
-            return 'bash -c "{command}"'.format(
-                command=self._include_command(command)
-            )
-        else:
-            return command
 
-    def execute(self, command, logger=None, writein=None, max_lines=None):
+        if not path.startswith('/'):
+            path = '{working_dir}/{path}'.format(
+                working_dir=self.working_dir,
+                path=path
+            )
+        return path
+
+
+class Performer(Provider, ConfigurableProvider, BasePerformer, BaseExecutor):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # TODO move to future authentication module
+        # if not self.check_execute('ssh-add -L'):
+        #     raise PerformerError("No SSH identities found, use the 'ssh-add'.")
+
+    def call(self, command, logger=None, writein=None, max_lines=None):
         raise NotImplementedError()
-        # return self._execute(self._prepare_command(command), logger=logger, writein=writein, max_lines=max_lines, **kwargs)
+
+    def send_file(self, source, target):
+        raise NotImplementedError()
+
+    @contextmanager
+    def get_fo(self, remote_path):
+        yield NotImplementedError()
+
+
+class ProxyPerformer(BasePerformer):
+    def __init__(self, *args, **kwargs):
+        self.performer = kwargs['performer']
+        super().__init__(*args, **kwargs)
+
+    def __getattr__(self, name):
+        return getattr(self.performer, name)
+
+
+class ScriptExecutor(ProxyPerformer):
 
     def execute_script(self, script, arguments=None, logger=None):
         if arguments is None:
             arguments = {}
 
         # common scripts
-        for common_script, script_path in COMMON_SCRIPTS.items():
-            script_ident = '{prefix}{common_script}'.format(
-                prefix=COMMON_SCRIPTS_PREFIX,
-                common_script=common_script
-            )
-            if script.startswith(script_ident):
-                script_replace = '{common_scripts_path}/{script_path}'.format(
-                    common_scripts_path=COMMON_SCRIPTS_PATH,
-                    script_path=script_path
+        if not path.isfile(script): # custom scripts have higher priority
+            for common_script, script_path in COMMON_SCRIPTS.items():
+                script_ident = '{prefix}{common_script}'.format(
+                    prefix=COMMON_SCRIPTS_PREFIX,
+                    common_script=common_script
                 )
-                script = script.replace(script_ident, script_replace, 1)
-                break
+
+                if script.startswith(script_ident):
+                    script_replace = '{common_scripts_path}/{script_path}'.format(
+                        common_scripts_path=COMMON_SCRIPTS_PATH,
+                        script_path=script_path
+                    )
+                    script = script.replace(script_ident, script_replace, 1)
+                    break
 
         return self.execute(script.format(**arguments), writein=dumps(arguments), logger=logger)
 
@@ -73,22 +207,21 @@ class BaseExecutor(object):
             arguments.update(common_arguments)
             self.execute_script(script, arguments, logger=logger)
 
-    @property
-    def working_dir(self):
-        return path.join(self.base_dir, *self.working_dirs)
-
-    @contextmanager
-    def change_base_dir(self, directory):
-        old_base_dir = self.base_dir
-        self.base_dir = directory
-        yield
-        self.base_dir = old_base_dir
+    def execute_scripts_onerror(self, scripts, arguments, error, logger=None):
+        logger.error(error)
+        arguments.update(
+            dict(
+                command=error.command,
+                exit_code=error.exit_code,
+                error=error.error
+            )
+        )
+        self.execute_scripts(scripts, arguments)
 
     @contextmanager
     def change_directory(self, directory):
-        self.working_dirs.append(directory)
-        yield
-        self.working_dirs.pop()
+        with self.performer.change_directory(directory):
+            yield
 
 
 class PerformerError(Exception):
@@ -139,125 +272,6 @@ class OutputReader(object):
         return '\n'.join(self._output_lines)
 
 
-DISTRIBUTION_ISSUES = {
-    'debian': 'Debian',
-    'ubuntu': 'Ubuntu',
-    'arch': 'Arch Linux',
-}
-
-
-class BasePerformer(BaseExecutor):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.__cache_packages = False
-        self.__distribution = None
-
-    def _distribution(self):
-        if not self.__distribution:
-            issue = self.execute('cat /etc/issue')
-            for distribution, issue_start in DISTRIBUTION_ISSUES.items():
-                if issue.startswith(issue_start):
-                    self.__distribution = distribution
-                    break
-            else:
-                raise PerformerError('Unknown distribution')
-        return self.__distribution
-
-    def install_packages(self, *packages):
-        # TODO make this os independent
-        not_installed_packages = [package for package in packages if not self._is_package_installed(package)]
-        if not_installed_packages:
-            self._cache_packages()
-            if self._distribution() in ('debian', 'ubuntu'):
-                self.execute(
-                    'DEBIAN_FRONTEND=noninteractive apt-get install {packages} -y --force-yes'.format(
-                        packages=' '.join(not_installed_packages)
-                    )
-                )
-            elif self._distribution() == 'arch':
-                self.execute(
-                    'pacman -S {packages} --noconfirm'.format(
-                        packages=' '.join(not_installed_packages)
-                    )
-                )
-
-    def _cache_packages(self):
-        if not self.__cache_packages:
-            if self._distribution() in ('debian', 'ubuntu'):
-                self.execute('apt-get update')
-        self.__cache_packages = True
-
-    def _is_package_installed(self, package):
-        # http://www.cyberciti.biz/faq/find-out-if-package-is-installed-in-linux/
-        # TODO make this os independent
-        try:
-            if self._distribution() in ('debian', 'ubuntu'):
-                return 'install ok installed' == self.execute(
-                    "dpkg-query -W -f='${{Status}}' {package}".format(package=package))
-            elif self._distribution() == 'arch':
-                return self.check_execute("pacman -Qi {package}".format(package=package))
-        except CommandError:
-            return False
-
-    def _sanitize_path(self, path):
-        if path.startswith('~/'):
-            path = '{base_dir}/{path}'.format(
-                base_dir=self.base_dir,
-                path=path[2:]
-            )
-
-        if not path.startswith('/'):
-            path = '{working_dir}/{path}'.format(
-                working_dir=self.working_dir,
-                path=path
-            )
-        return path
-
-    def send_file(self, source, target):
-        raise NotImplementedError()
-
-    @contextmanager
-    def get_fo(self, remote_path):
-        yield NotImplementedError()
-
-
-class Performer(Provider, BasePerformer, ConfigurableProvider):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # TODO move to future authentication module
-        # if not self.check_execute('ssh-add -L'):
-        #     raise PerformerError("No SSH identities found, use the 'ssh-add'.")
-
-
-class BaseProxyExecutor(BaseExecutor):
-    def __init__(self, executor, *args, **kwargs):
-        self.executor = executor
-        super().__init__(*args, **kwargs)
-
-    @contextmanager
-    def change_directory(self, directory):
-        with super().change_directory(directory):
-            with self.executor.change_directory(directory):
-                yield
-
-    def execute(self, command, logger=None, writein=None, max_lines=None):
-        return self.executor.execute(command, logger=logger, writein=writein, max_lines=max_lines)
-
-
-class BaseProxyPerformer(BaseProxyExecutor, BasePerformer):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.performer = self.executor
-
-    def send_file(self, source, target):
-        return self.performer.send_file(source, target)
-
-    @contextmanager
-    def get_fo(self, remote_path):
-        with self.performer.get_fo(remote_path) as fo:
-            yield fo
-
-
 """
 background runner
 """
@@ -280,21 +294,20 @@ TEMP_FILE = 'codev.temp'
 from time import time
 
 
-class BackgroundExecutor(BaseProxyExecutor):
+class BackgroundExecutor(ProxyPerformer):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._isolation_cache = None
         self.__isolation_directory = None
         self.logger = getLogger(__name__)
-        if not self.ident:
-            self.ident = str(time())
+        self.ident = kwargs.pop('ident', str(time()))
 
     @property
     def _isolation_directory(self):
         if not self.__isolation_directory:
             # if not self.ident:
-            #     ssh_info = self.executor.execute('echo $SSH_CLIENT')
+            #     ssh_info = self.performer.execute('echo $SSH_CLIENT')
             #     ip, remote_port, local_port = ssh_info.split()
             #     self.ident = 'control_{ip}_{remote_port}_{local_port}'.format(
             #         ip=ip, remote_port=remote_port, local_port=local_port
@@ -307,7 +320,7 @@ class BackgroundExecutor(BaseProxyExecutor):
         return self.__isolation_directory
 
     def _create_isolation(self):
-        self.executor.execute('mkdir -p %s' % self._isolation_directory)
+        self.performer.execute('mkdir -p %s' % self._isolation_directory)
 
         output_file, error_file, exitcode_file, command_file, pid_file, temp_file = map(
             lambda f: '%s/%s' % (self._isolation_directory, f),
@@ -330,16 +343,16 @@ class BackgroundExecutor(BaseProxyExecutor):
         return self._isolation_cache
 
     def _clean(self):
-        self.executor.execute('rm -rf %s' % self._isolation_directory)
+        self.performer.execute('rm -rf %s' % self._isolation_directory)
 
     def _file_exists(self, filepath):
-        return self.executor.check_execute('[ -f %s ]' % filepath)
+        return self.performer.check_execute('[ -f %s ]' % filepath)
 
     def _bg_check(self, pid):
-        return self.executor.check_execute('ps -p %s -o pid=' % pid)
+        return self.performer.check_execute('ps -p %s -o pid=' % pid)
 
     def _bg_log(self, logger, skip_lines):
-        output = self.executor.execute('tail {output_file} -n+{skip_lines}'.format(
+        output = self.performer.execute('tail {output_file} -n+{skip_lines}'.format(
             output_file=self._isolation.output_file,
             skip_lines=skip_lines)
         )
@@ -360,7 +373,7 @@ class BackgroundExecutor(BaseProxyExecutor):
         self._clean()
 
     def _bg_signal(self, pid, signal=None):
-        return self.executor.execute(
+        return self.performer.execute(
             'pkill {signal}-P {pid}'.format(
                 pid=pid,
                 signal='-%s ' % signal if signal else ''
@@ -376,7 +389,7 @@ class BackgroundExecutor(BaseProxyExecutor):
         self._bg_log(logger, skip_lines)
 
     def _cat_file(self, catfile):
-        return self.executor.execute('cat %s' % catfile)
+        return self.performer.execute('cat %s' % catfile)
 
     def _get_bg_running_pid(self):
         return self._cat_file(self._isolation.pid_file)
@@ -391,11 +404,11 @@ class BackgroundExecutor(BaseProxyExecutor):
                 if pid and self._bg_check(pid):
                     raise PerformerError('Another process is running.')
 
-        self.executor.execute('echo "" > {output_file} > {error_file} > {exitcode_file} > {pid_file}'.format(
+        self.performer.execute('echo "" > {output_file} > {error_file} > {exitcode_file} > {pid_file}'.format(
             **isolation._asdict()
         ))
 
-        self.executor.execute(
+        self.performer.execute(
             'tee {command_file} > /dev/null && chmod +x {command_file}'.format(
                 **isolation._asdict()
             ),
@@ -410,7 +423,7 @@ class BackgroundExecutor(BaseProxyExecutor):
         )
 
         # max lines against readline hang
-        pid = self.executor.execute(bg_command, writein=writein, max_lines=1)
+        pid = self.performer.execute(bg_command, writein=writein, max_lines=1)
 
         if not pid.isdigit():
             raise ValueError('not a pid %s' % pid)

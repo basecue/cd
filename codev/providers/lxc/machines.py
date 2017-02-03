@@ -13,6 +13,7 @@ logger = getLogger(__name__)
 
 
 class LXCMachine(BaseMachine):
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__container_directory = None
@@ -246,15 +247,22 @@ class LXCMachine(BaseMachine):
         if env is None:
             env = {}
         env.update({
-            'HOME': self.base_dir,
+            'HOME': '/root',
             'LANG': 'C.UTF-8',
             'LC_ALL':  'C.UTF-8'
         })
-        return self.performer.execute('lxc-attach {env} -n {container_name} -- {command}'.format(
-            container_name=self.ident,
-            command=self._prepare_command(command, wrap=True),
-            env=' '.join('-v {var}={value}'.format(var=var, value=value) for var, value in env.items())
-        ), logger=logger, writein=writein, max_lines=max_lines)
+
+        with self.performer.change_directory(self.working_dir):
+            return self.performer.execute_wrapper(
+                'lxc-attach {env} -n {container_name} -- {{command}}'.format(
+                    container_name=self.ident,
+                    env=' '.join('-v {var}={value}'.format(var=var, value=value) for var, value in env.items())
+                ),
+                command,
+                logger=logger,
+                writein=writein,
+                max_lines=max_lines
+            )
 
     def share(self, source, target, bidirectional=False):
         share_target = '{share_directory}/{target}'.format(
@@ -279,7 +287,7 @@ class LXCMachine(BaseMachine):
             )
 
         source_target_background_runner = BackgroundExecutor(
-            self.performer, ident='share_{ident}'.format(
+            performer=self.performer, ident='share_{ident}'.format(
                 ident=self.ident
             )
         )
@@ -313,7 +321,7 @@ class LXCMachine(BaseMachine):
 
         if bidirectional:
             target_source_background_runner = BackgroundExecutor(
-                self.performer, ident='share_back_{ident}'.format(
+                performer=self.performer, ident='share_back_{ident}'.format(
                     ident=self.ident
                 )
             )

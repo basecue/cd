@@ -2,14 +2,14 @@ from hashlib import md5
 from time import time
 
 from .provider import Provider, ConfigurableProvider
-from .performer import BaseProxyPerformer
+from .performer import ProxyPerformer
 
 
-class Isolator(Provider, BaseProxyPerformer, ConfigurableProvider):
+class Isolator(Provider, ConfigurableProvider, ProxyPerformer):
     def __init__(self, *args, ident=None, **kwargs):
         ident = str(ident or time())
-        ident = md5(ident.encode()).hexdigest()
-        super().__init__(*args, ident=ident, **kwargs)
+        self.ident = md5(ident.encode()).hexdigest()
+        super().__init__(*args, **kwargs)
 
     def exists(self):
         raise NotImplementedError()
