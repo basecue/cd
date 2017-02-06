@@ -297,7 +297,7 @@ class VirtualboxMachine(BaseMachine):
 
         # setup VM + ifaces
         self.performer.execute(
-            'VBoxManage modifyvm "{ident}" --memory {memory} --acpi on --vram 10 --boot1 dvd --nic1 nat --nictype1 Am79C973 --nic2 hostonly --nictype2 Am79C970A --hostonlyadapter2 {hostonly_iface}'.format(
+            'VBoxManage modifyvm "{ident}" --memory {memory} --acpi on --vram 16 --boot1 dvd --nic1 nat --nictype1 Am79C973 --nic2 hostonly --nictype2 Am79C970A --hostonlyadapter2 {hostonly_iface}'.format(
                 ident=self.ident,
                 memory=memory,
                 hostonly_iface=hostonly_iface
