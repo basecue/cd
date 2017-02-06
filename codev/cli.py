@@ -2,6 +2,7 @@ import click
 from colorama import Fore as color, Style as style
 from functools import wraps
 
+from codev.utils import parse_options
 from .settings import YAMLSettingsReader
 from .installation import Installation
 from .debug import DebugSettings
@@ -83,19 +84,11 @@ def confirmation_message(message):
     return decorator
 
 
-def parse_source(inp):
-    parsed = inp.split(':', 1)
-    name = parsed[0]
-    options = parsed[1] if len(parsed) == 2 else ''
-    return name, options
-
-
 def installation_options(func):
     @wraps(func)
     def installation_wrapper(
             settings,
-            environment,
-            configuration,
+            environment_configuration,
             source,
             next_source,
             same_source,
@@ -108,18 +101,19 @@ def installation_options(func):
                 raise click.BadOptionUsage('Parameter "-st" is not allowed to use together with "-s" / "--source" or "-t" / "--next-source" parameters.')
             else:
                 source = next_source = same_source
-        elif not source:
-            raise click.BadOptionUsage('Missing option "-s" / "--source" or "-st"')
+        # elif not source:
+        #     raise click.BadOptionUsage('Missing option "-s" / "--source" or "-st"')
 
-        source_name, source_options = parse_source(source)
-        next_source_name, next_source_options = parse_source(next_source)
+        source_name, source_options = parse_options(source)
+        next_source_name, next_source_options = parse_options(next_source)
+        environment, configuration = parse_options(environment_configuration)
 
         installation = Installation(
             settings,
             environment,
-            configuration,
-            source_name,
-            source_options,
+            configuration_name=configuration,
+            source_name=source_name,
+            source_options=source_options,
             next_source_name=next_source_name,
             next_source_options=next_source_options,
             performer_provider=performer,
@@ -128,17 +122,10 @@ def installation_options(func):
         )
         return func(installation, **kwargs)
 
-    f = click.option(
-        '-e', '--environment',
-        metavar='<environment>',
-        required=True,
-        help='environment')(installation_wrapper)
-
-    f = click.option(
-        '-c', '--configuration',
-        metavar='<configuration>',
-        required=True,
-        help='configuration')(f)
+    f = click.argument(
+        'environment_configuration',
+        metavar='<environment:configuration>',
+        required=True)(installation_wrapper)
 
     f = click.option(
         '-s', '--source',

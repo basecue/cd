@@ -18,9 +18,9 @@ class Installation(object):
             self,
             settings,
             environment_name,
-            configuration_name,
-            source_name,
-            source_options,
+            configuration_name='',
+            source_name='',
+            source_options='',
             next_source_name='',
             next_source_options='',
             performer_provider=None,
@@ -56,16 +56,20 @@ class Installation(object):
         self.project_name = settings.project
 
         # source
-        try:
-            source_settings = environment_settings.sources[source_name]
-        except KeyError as e:
-            raise ValueError(
-                "Source '{source_name}' is not allowed source for environment '{environment_name}'.".format(
-                    source_name=source_name,
-                    environment_name=environment_name,
-                    project_name=self.project_name
-                )
-            ) from e
+        if source_name:
+            try:
+                source_settings = environment_settings.sources[source_name]
+            except KeyError as e:
+                raise ValueError(
+                    "Source '{source_name}' is not allowed source for environment '{environment_name}'.".format(
+                        source_name=source_name,
+                        environment_name=environment_name,
+                        project_name=self.project_name
+                    )
+                ) from e
+        else:
+            source_name, source_settings = list(environment_settings.sources.items())[0]
+
         source = Source(
             source_name,
             source_options,
@@ -117,7 +121,12 @@ class Installation(object):
             self.performer = performer
 
         # configuration
-        configuration_settings = environment_settings.configurations[configuration_name]
+        if configuration_name:
+            configuration_settings = environment_settings.configurations[configuration_name]
+        else:
+            # default configuration is the first configuration in environment
+            configuration_name, configuration_settings = list(environment_settings.configurations.items())[0]
+
         self.configuration_name = configuration_name
         self.configuration = Configuration(
             configuration_settings, source,

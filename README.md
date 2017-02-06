@@ -46,7 +46,7 @@ At first create `.codev` file in the main directory of your git repository and c
 ### Initiate installation project in isolation and start deployment:
 
 ```bash
-$ codev deploy -e <environment> -c <configuration> -s <source>
+$ codev deploy <environment>:<configuration> -s <source>
 ```
 
 ### Create transition from one version of source to another.
@@ -55,7 +55,7 @@ The first use will install the `<source>` and next time it will use `<next sourc
 You can identify this mode in output messages via special 'transition' information `<source> -> <next source>` where current source is highlighted.
 
 ```bash
-$ codev deploy -e <environment> -c <configuration> -s <source> -t <next source>
+$ codev deploy <environment>:<configuration> -s <source> -t <next source>
 ```
  
 ## Versioning
