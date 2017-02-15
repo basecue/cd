@@ -65,7 +65,7 @@ class Isolation(ScriptExecutor):
         else:
             perform_debug = ''
         arguments.update(self.info)
-        codev_script = 'codev execute -e {environment} -c {configuration} -s {source}:{source_options} --performer=local --disable-isolation {perform_debug} -- {script}'.format(
+        codev_script = 'codev execute {environment}:{configuration} -s {source}:{source_options} --performer=local --disable-isolation {perform_debug} -- {script}'.format(
             script=script,
             environment=arguments['environment'],
             configuration=arguments['configuration'],
