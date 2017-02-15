@@ -128,7 +128,7 @@ class Isolation(ScriptExecutor):
 
         logging_config(control_perform=True)
         try:
-            installation_options = '-e {environment} -c {configuration} -s {current_source.provider_name}:{current_source.options}'.format(
+            installation_options = '{environment}:{configuration} -s {current_source.provider_name}:{current_source.options}'.format(
                 current_source=self.current_source,
                 **info
             )
