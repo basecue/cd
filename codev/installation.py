@@ -180,10 +180,10 @@ class Installation(object):
         :return: installation status
         :rtype: dict
         """
-        info = dict(
+        status = dict(
             project=self.project_name,
             environment=self.environment_name,
             configuration=self.configuration_name,
         )
-        info.update(self.configuration.info)
-        return info
+        status.update(self.configuration.status)
+        return status

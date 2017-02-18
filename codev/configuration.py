@@ -29,70 +29,70 @@ class Configuration(ScriptExecutor):
         self.infrastructure = Infrastructure(performer, self.settings.infrastructure)
         super().__init__(performer=self.performer)
 
-    def deploy(self, info, input_vars):
-        info.update(self.info)
+    def deploy(self, status, input_vars):
+        status.update(self.status)
 
         input_vars.update(DebugSettings.settings.load_vars)
 
         if self.isolation:
 
-            self.isolation.install(info)
+            self.isolation.install(status)
 
-            return self.isolation.deploy(self.infrastructure, info, input_vars)
+            return self.isolation.deploy(self.infrastructure, status, input_vars)
         else:
             logger.info("Deploying project.")
 
             scripts = self.settings.scripts
 
             try:
-                self.execute_scripts(scripts.onstart, info)
+                self.execute_scripts(scripts.onstart, status)
 
                 deployment = Deployment(self.settings.provisions, performer=self.performer)
-                deployment.deploy(self.infrastructure, info, input_vars)
+                deployment.deploy(self.infrastructure, status, input_vars)
 
             except CommandError as e:
-                self.execute_scripts_onerror(scripts.onerror, info, e, logger=logger)
+                self.execute_scripts_onerror(scripts.onerror, status, e, logger=logger)
                 return False
             else:
                 try:
-                    self.execute_scripts(scripts.onsuccess, info)
+                    self.execute_scripts(scripts.onsuccess, status)
                     return True
                 except CommandError as e:
-                    self.execute_scripts_onerror(scripts.onerror, info, e, logger=logger)
+                    self.execute_scripts_onerror(scripts.onerror, status, e, logger=logger)
                     return False
 
     def execute_script(self, script, arguments=None, logger=None):
         if arguments is None:
             arguments = {}
 
-        arguments.update(self.info)
+        arguments.update(self.status)
         return super().execute_script(script, arguments=arguments, logger=arguments)
 
     @property
-    def info(self):
+    def status(self):
         """
         Information about configuration (and isolation if exists)
         :return: configuration status
         :rtype: dict
         """
         if not self.isolation or self.isolation.exists():
-            infrastructure_info = self.infrastructure.info
+            infrastructure_status = self.infrastructure.status
         else:
-            infrastructure_info = {}
+            infrastructure_status = {}
 
-        info = dict(
+        status = dict(
             source=self.source.name,
             source_options=self.source.options,
             source_ident=self.source.ident,
             next_source=self.next_source.name if self.next_source else '',
             next_source_options=self.next_source.options if self.next_source else '',
             next_source_ident=self.next_source.ident if self.next_source else '',
-            infrastructure=infrastructure_info
+            infrastructure=infrastructure_status
         )
         if self.isolation:
-            info.update(isolation=self.isolation.info)
+            status.update(isolation=self.isolation.status)
 
-        return info
+        return status
 
     def destroy(self):
         if self.isolation and self.isolation.exists():

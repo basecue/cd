@@ -64,7 +64,7 @@ class Isolation(ScriptExecutor):
             )
         else:
             perform_debug = ''
-        arguments.update(self.info)
+        arguments.update(self.status)
         codev_script = 'codev execute {environment}:{configuration} -s {source}:{source_options} --performer=local --disable-isolation {perform_debug} -- {script}'.format(
             script=script,
             environment=arguments['environment'],
@@ -83,7 +83,7 @@ class Isolation(ScriptExecutor):
         with self.current_source.open_codev_file(self.performer) as codev_file:
             self._install_codev(codev_file)
 
-    def install(self, info):
+    def install(self, status):
         # TODO refactorize - divide?
         if not self.isolator.exists():
             logger.info("Creating isolation...")
@@ -98,16 +98,16 @@ class Isolation(ScriptExecutor):
         if created:
             logger.info("Install project to isolation...")
             self._install_project()
-            self.execute_scripts(self.settings.scripts.oncreate, info, logger=command_logger)
+            self.execute_scripts(self.settings.scripts.oncreate, status, logger=command_logger)
         else:
             if self.next_source:
                 logger.info("Transition source in isolation...")
                 self.current_source = self.next_source
                 self._install_project()
         logger.info("Entering isolation...")
-        self.execute_scripts(self.settings.scripts.onenter, info, logger=command_logger)
+        self.execute_scripts(self.settings.scripts.onenter, status, logger=command_logger)
 
-    def deploy(self, infrastructure, info, input_vars):
+    def deploy(self, infrastructure, status, input_vars):
         # TODO python3.5
         # deploy_vars = {**self.settings.loaded_vars, **input_vars}
         deploy_vars = self.settings.loaded_vars.copy()
@@ -130,7 +130,7 @@ class Isolation(ScriptExecutor):
         try:
             installation_options = '{environment}:{configuration} -s {current_source.provider_name}:{current_source.options}'.format(
                 current_source=self.current_source,
-                **info
+                **status
             )
             with self.change_directory(self.current_source.directory):
                 self.execute(
@@ -157,12 +157,12 @@ class Isolation(ScriptExecutor):
         return self.isolator.destroy()
 
     @property
-    def info(self):
-        info = dict(
+    def status(self):
+        status = dict(
             current_source=self.current_source.name,
             current_source_options=self.current_source.options,
             current_source_ident=self.current_source.ident,
         )
         if self.isolator.exists():
-            info.update(dict(ident=self.isolator.ident, ip=self.isolator.ip))
-        return info
+            status.update(dict(ident=self.isolator.ident, ip=self.isolator.ip))
+        return status

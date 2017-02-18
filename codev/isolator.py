@@ -33,7 +33,7 @@ class Isolator(Provider, ConfigurableProvider, ProxyPerformer):
         raise NotImplementedError()
 
     @property
-    def info(self):
+    def status(self):
         return {}
 
     @property
