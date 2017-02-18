@@ -41,25 +41,11 @@ class Isolator(Provider, ConfigurableProvider, ProxyPerformer):
         return '127.0.0.1'
 
     def redirect(self, source_ip, source_port, target_port):
-        redirection = dict(
-            source_port=source_port,
-            target_port=target_port,
-            source_ip=source_ip,
-            target_ip=self.ip
-        )
-
         self.execute(
-            'iptables -t nat -A PREROUTING --dst {target_ip} -p tcp --dport {target_port} -j DNAT --to-destination {source_ip}:{source_port}'.format(
-                **redirection
+            'iptables -t nat -A PREROUTING -p tcp --dport {source_port} -j DNAT --to-destination {ip}:{target_port}'.format(
+                source_port=source_port,
+                target_port=target_port,
+                ip=source_ip
             )
         )
-        self.execute(
-            'iptables -t nat -A POSTROUTING -p tcp --dst {source_ip} --dport {source_port} -j SNAT --to-source {target_ip}'.format(
-                **redirection
-            )
-        )
-        self.execute(
-            'iptables -t nat -A OUTPUT --dst {target_ip} -p tcp --dport {target_port} -j DNAT --to-destination {source_ip}:{source_port}'.format(
-                **redirection
-            )
-        )
+        self.execute('iptables -t nat -A POSTROUTING -j MASQUERADE')
