@@ -12,14 +12,14 @@ from os import chdir
 import sys
 
 
-def source_transition(installation_info):
+def source_transition(installation_status):
     """
-    :param installation_info:
+    :param installation_status:
     :return:
     """
     # TODO deploy vs destroy (different highlited source in transition)
-    next_source_available = bool(installation_info['next_source_ident'])
-    isolation_exists = 'ident' in installation_info.get('isolation', {})
+    next_source_available = bool(installation_status['next_source_ident'])
+    isolation_exists = 'ident' in installation_status.get('isolation', {})
 
     color_options = dict(
         color_source=color.GREEN,
@@ -40,9 +40,9 @@ def source_transition(installation_info):
         ))
 
         final = {}
-        final.update(installation_info)
+        final.update(installation_status)
         final.update(color_options)
-        # TODO in python 3.5 use **installation_info, **color_options
+        # TODO in python 3.5 use **installation_status, **color_options
         transition = ' -> {color_next_source}{next_source}:{next_source_options}{color_reset}'.format(
             **final
         )
@@ -50,9 +50,9 @@ def source_transition(installation_info):
         transition = ''
 
     final2 = {}
-    final2.update(installation_info)
+    final2.update(installation_status)
     final2.update(color_options)
-    # TODO in python 3.5 use **installation_info, **color_options
+    # TODO in python 3.5 use **installation_status, **color_options
     return '{color_source}{source}:{source_options}{color_reset}{transition}'.format(
         transition=transition,
         **final2
@@ -64,11 +64,11 @@ def confirmation_message(message):
         @wraps(f)
         def confirmation_wrapper(installation, force, **kwargs):
             if not force:
-                installation_info = installation.status
+                installation_status = installation.status
                 if not click.confirm(
                         message.format(
-                            source_transition=source_transition(installation_info),
-                            **installation_info
+                            source_transition=source_transition(installation_status),
+                            **installation_status
                         )
                 ):
                     raise click.Abort()
