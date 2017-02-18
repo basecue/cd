@@ -80,18 +80,18 @@ def destroy(installation):
 
 
 @command(help='Show info about the installation.')
-def info(installation):
+def status(installation):
     """
     :param installation:
     :type installation: codev.installation.Installation
     :return:
     :rtype: bool
     """
-    info = installation.info
+    status = installation.status
     from pprint import pformat
-    click.echo(pformat(info))
+    click.echo(pformat(status))
     # formatter = click.HelpFormatter(indent_increment=4)
-    # isolation = info.get('isolation', {})
+    # isolation = status.get('isolation', {})
     # if isolation:
     #     isolation_ident = isolation.get('ident', '')
     #     if isolation_ident:
@@ -101,7 +101,7 @@ def info(installation):
     #             formatter.write_text('      ip: {ip}'.format(ip=isolation['ip']))
     #
     # formatter.write_text('Infrastructure:')
-    # for machine_group_name, machines in info['infrastructure'].items():
+    # for machine_group_name, machines in status['infrastructure'].items():
     #     with formatter.indentation():
     #         formatter.write_text('{name}'.format(name=machine_group_name))
     #         for machine in machines:

@@ -1,4 +1,4 @@
 from . import logging
 from .providers import *
 
-__version__ = '0.6.0a1'
+__version__ = '0.6.1a2'

@@ -64,7 +64,7 @@ def confirmation_message(message):
         @wraps(f)
         def confirmation_wrapper(installation, force, **kwargs):
             if not force:
-                installation_info = installation.info
+                installation_info = installation.status
                 if not click.confirm(
                         message.format(
                             source_transition=source_transition(installation_info),

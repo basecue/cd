@@ -72,7 +72,7 @@ class Configuration(ScriptExecutor):
     def info(self):
         """
         Information about configuration (and isolation if exists)
-        :return: configuration info
+        :return: configuration status
         :rtype: dict
         """
         if not self.isolation or self.isolation.exists():

@@ -142,7 +142,7 @@ class Installation(object):
         :return: True if deployment is successfully realized
         :rtype: bool
         """
-        return self.configuration.deploy(self.info, input_vars)
+        return self.configuration.deploy(self.status, input_vars)
 
     def execute(self, script, arguments=None):
         """
@@ -173,11 +173,11 @@ class Installation(object):
         return self.configuration.destroy()
 
     @property
-    def info(self):
+    def status(self):
         """
         Info about installation
 
-        :return: installation info
+        :return: installation status
         :rtype: dict
         """
         info = dict(
