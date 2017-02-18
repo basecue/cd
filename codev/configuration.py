@@ -29,16 +29,16 @@ class Configuration(ScriptExecutor):
         self.infrastructure = Infrastructure(performer, self.settings.infrastructure)
         super().__init__(performer=self.performer)
 
-    def deploy(self, info, vars):
+    def deploy(self, info, input_vars):
         info.update(self.info)
 
-        vars.update(DebugSettings.settings.load_vars)
+        input_vars.update(DebugSettings.settings.load_vars)
 
         if self.isolation:
 
             self.isolation.install(info)
 
-            return self.isolation.deploy(self.infrastructure, info, vars)
+            return self.isolation.deploy(self.infrastructure, info, input_vars)
         else:
             logger.info("Deploying project.")
 
@@ -48,7 +48,7 @@ class Configuration(ScriptExecutor):
                 self.execute_scripts(scripts.onstart, info)
 
                 deployment = Deployment(self.settings.provisions, performer=self.performer)
-                deployment.deploy(self.infrastructure, info, vars)
+                deployment.deploy(self.infrastructure, info, input_vars)
 
             except CommandError as e:
                 self.execute_scripts_onerror(scripts.onerror, info, e, logger=logger)

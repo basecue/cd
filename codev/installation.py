@@ -135,14 +135,14 @@ class Installation(object):
             performer=self.performer
         )
 
-    def deploy(self, vars):
+    def deploy(self, input_vars):
         """
         Create machines, install and run provisioner
 
         :return: True if deployment is successfully realized
         :rtype: bool
         """
-        return self.configuration.deploy(self.info, vars)
+        return self.configuration.deploy(self.info, input_vars)
 
     def execute(self, script, arguments=None):
         """

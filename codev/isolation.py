@@ -107,11 +107,11 @@ class Isolation(ScriptExecutor):
         logger.info("Entering isolation...")
         self.execute_scripts(self.settings.scripts.onenter, info, logger=command_logger)
 
-    def deploy(self, infrastructure, info, vars):
+    def deploy(self, infrastructure, info, input_vars):
         # TODO python3.5
-        # deploy_vars = {**self.settings.vars, **vars}
-        deploy_vars = self.settings.vars.copy()
-        deploy_vars.update(vars)
+        # deploy_vars = {**self.settings.loaded_vars, **input_vars}
+        deploy_vars = self.settings.loaded_vars.copy()
+        deploy_vars.update(input_vars)
 
         version = self.execute('pip3 show codev | grep ^Version | cut -d " " -f 2')
         logger.info("Run 'codev {version}' in isolation.".format(version=version))
