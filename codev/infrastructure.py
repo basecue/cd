@@ -48,7 +48,7 @@ class Infrastructure(object):
         return groups
 
     @property
-    def info(self):
+    def status(self):
         return {
             group: [dict(ident=machine.ident, ip=machine.ip) for machine in machines]
             for group, machines in self.main_groups.items()

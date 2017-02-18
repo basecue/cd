@@ -33,33 +33,20 @@ class Isolator(Provider, ConfigurableProvider, ProxyPerformer):
         raise NotImplementedError()
 
     @property
-    def info(self):
+    def status(self):
         return {}
 
     @property
     def ip(self):
         return '127.0.0.1'
 
-    def redirect(self, source_ip, source_port, target_port):
-        redirection = dict(
-            source_port=source_port,
-            target_port=target_port,
-            source_ip=source_ip,
-            target_ip=self.ip
-        )
-
+    def redirect(self, machine_ip, isolator_port, machine_port):
         self.execute(
-            'iptables -t nat -A PREROUTING --dst {target_ip} -p tcp --dport {target_port} -j DNAT --to-destination {source_ip}:{source_port}'.format(
-                **redirection
+            'iptables -t nat -A PREROUTING -p tcp --dport {isolator_port} -j DNAT -d {isolator_ip} --to-destination {machine_ip}:{machine_port}'.format(
+                isolator_port=isolator_port,
+                machine_port=machine_port,
+                isolator_ip=self.ip,
+                machine_ip=machine_ip
             )
         )
-        self.execute(
-            'iptables -t nat -A POSTROUTING -p tcp --dst {source_ip} --dport {source_port} -j SNAT --to-source {target_ip}'.format(
-                **redirection
-            )
-        )
-        self.execute(
-            'iptables -t nat -A OUTPUT --dst {target_ip} -p tcp --dport {target_port} -j DNAT --to-destination {source_ip}:{source_port}'.format(
-                **redirection
-            )
-        )
+        self.execute('iptables -t nat -A POSTROUTING -j MASQUERADE')

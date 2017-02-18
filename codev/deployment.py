@@ -10,7 +10,7 @@ class Deployment(ScriptExecutor):
         self.provisions = provisions
         super().__init__(*args, **kwargs)
 
-    def deploy(self, infrastructure, script_info, vars):
+    def deploy(self, infrastructure, script_info, input_vars):
         """
 
         :param infrastructure: infrastructure.Infrastructure
@@ -21,7 +21,7 @@ class Deployment(ScriptExecutor):
         logger.info('Creating machines...')
         infrastructure.create_machines()
 
-        script_info.update(infrastructure=infrastructure.info)
+        script_info.update(infrastructure=infrastructure.status)
 
         for provisioner_name, provisioner_settings in self.provisions.items():
             scripts = provisioner_settings.scripts
@@ -36,7 +36,7 @@ class Deployment(ScriptExecutor):
                 provisioner.install()
 
                 logger.info("Running provisioner{name}...".format(name=name))
-                provisioner.run(infrastructure, script_info, vars)
+                provisioner.run(infrastructure, script_info, input_vars)
 
             except CommandError as e:
                 self.execute_scripts_onerror(scripts.onerror, script_info, e, logger=logger)

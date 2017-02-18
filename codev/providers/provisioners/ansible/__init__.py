@@ -76,7 +76,7 @@ class AnsibleProvisioner(Provisioner):
         for module in self.settings.modules:
             self.isolator.execute('pip install --upgrade {module}'.format(module=module))
 
-    def run(self, infrastructure, info, vars):
+    def run(self, infrastructure, status, input_vars):
         inventory = configparser.ConfigParser(allow_no_value=True, delimiters=('',))
 
         # creating inventory
@@ -103,8 +103,8 @@ class AnsibleProvisioner(Provisioner):
             'source_directory': self.performer.execute('pwd'),
             'ssh_config': ssh_config,
         }
-        template_vars.update(info)
-        template_vars.update(vars)
+        template_vars.update(status)
+        template_vars.update(input_vars)
 
         # extra vars
 

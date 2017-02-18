@@ -10,6 +10,6 @@ class Provisioner(Provider, ConfigurableProvider):
     def install(self):
         raise NotImplementedError()
 
-    def run(self, infrastructure, script_info, vars):
+    def run(self, infrastructure, script_info, input_vars):
         raise NotImplementedError()
 

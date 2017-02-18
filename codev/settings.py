@@ -132,7 +132,7 @@ class IsolationScriptsSettings(BaseSettings):
 
 class IsolationSettings(BaseSettings):
     @property
-    def vars(self):
+    def loaded_vars(self):
         return {
             var: open(file).read() for var, file in self.data.get('load_vars', {}).items()
         }
