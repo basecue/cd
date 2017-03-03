@@ -1,6 +1,7 @@
-from .settings import BaseSettings
 from ast import literal_eval
 import json
+
+from .settings import BaseSettings
 
 
 class DebugSettings(BaseSettings):

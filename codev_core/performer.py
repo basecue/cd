@@ -2,7 +2,8 @@ from .provider import Provider, ConfigurableProvider
 from contextlib import contextmanager
 from os import path
 from json import dumps
-from codev.scripts import COMMON_SCRIPTS
+
+from .scripts import COMMON_SCRIPTS
 
 
 COMMON_SCRIPTS_PREFIX = 'codev/'

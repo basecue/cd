@@ -1,13 +1,12 @@
 import re
-
 from time import sleep
-from codev.settings import BaseSettings
-from codev.machines import MachinesProvider, BaseMachine
 from contextlib import contextmanager
 from logging import getLogger
 from os import path
 
-from codev.performer import BackgroundExecutor, PerformerError
+from codev_core.settings import BaseSettings
+from codev_core.machines import MachinesProvider, BaseMachine
+from codev_core.performer import BackgroundExecutor, PerformerError
 
 logger = getLogger(__name__)
 

@@ -1,11 +1,11 @@
 from logging import getLogger
 from json import dumps
 
-from .performer import ScriptExecutor
-from .logging import logging_config
-from .performer import CommandError
-from .debug import DebugSettings
-from .settings import YAMLSettingsReader
+from codev_core.performer import ScriptExecutor
+from codev_core.logging import logging_config
+from codev_core.performer import CommandError
+from codev_core.debug import DebugSettings
+from codev_core.settings import YAMLSettingsReader
 
 logger = getLogger(__name__)
 command_logger = getLogger('command')
@@ -65,7 +65,7 @@ class Isolation(ScriptExecutor):
         else:
             perform_debug = ''
         arguments.update(self.status)
-        codev_script = 'codev execute {environment}:{configuration} -s {source}:{source_options} --performer=local --disable-isolation {perform_debug} -- {script}'.format(
+        codev_script = 'codev-perform execute {environment}:{configuration} -s {source}:{source_options} {perform_debug} -- {script}'.format(
             script=script,
             environment=arguments['environment'],
             configuration=arguments['configuration'],
@@ -134,7 +134,7 @@ class Isolation(ScriptExecutor):
             )
             with self.change_directory(self.current_source.directory):
                 self.execute(
-                    'codev deploy {installation_options} --performer=local --disable-isolation --force {perform_debug}'.format(
+                    'codev-perform {installation_options} --force {perform_debug}'.format(
                         installation_options=installation_options,
                         perform_debug=perform_debug
                     ), logger=command_logger, writein=dumps(deploy_vars))

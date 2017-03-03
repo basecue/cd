@@ -1,6 +1,6 @@
 from .provider import Provider, ConfigurableProvider
 from .performer import ProxyPerformer
-from codev.debug import DebugSettings
+from .debug import DebugSettings
 
 
 class BaseMachine(ProxyPerformer):

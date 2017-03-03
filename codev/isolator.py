@@ -1,8 +1,8 @@
 from hashlib import md5
 from time import time
 
-from .provider import Provider, ConfigurableProvider
-from .performer import ProxyPerformer
+from codev_core.provider import Provider, ConfigurableProvider
+from codev_core.performer import ProxyPerformer
 
 
 class Isolator(Provider, ConfigurableProvider, ProxyPerformer):

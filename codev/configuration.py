@@ -1,32 +1,23 @@
 from logging import getLogger
 
-from .deployment import Deployment
+from codev_core.performer import ScriptExecutor
+from codev_core.infrastructure import Infrastructure
+from codev_core.debug import DebugSettings
 
-from .infrastructure import Infrastructure
 from .isolation import Isolation
-from .performer import CommandError, ScriptExecutor
-from .debug import DebugSettings
+
 
 logger = getLogger(__name__)
 
 
 class Configuration(ScriptExecutor):
-    def __init__(self, settings, source, next_source=None, disable_isolation=False, **kwargs):
+    def __init__(self, settings, source, next_source=None, **kwargs):
         performer = kwargs['performer']
         self.settings = settings
         self.source = source
         self.next_source = next_source
-
-        if disable_isolation:
-            if next_source:
-                raise ValueError('Next source is not allowed with disabled isolation.')
-            self.isolation = None
-        else:
-            self.isolation = Isolation(self.settings.isolation, self.source, self.next_source, performer=performer)
-
-        self.performer = self.isolation or performer
-
-        self.infrastructure = Infrastructure(performer, self.settings.infrastructure)
+        self.isolation = Isolation(self.settings.isolation, self.source, self.next_source, performer=performer)
+        self.infrastructure = Infrastructure(self.isolation, self.settings.infrastructure)
         super().__init__(performer=self.performer)
 
     def deploy(self, status, input_vars):
@@ -34,39 +25,9 @@ class Configuration(ScriptExecutor):
 
         input_vars.update(DebugSettings.settings.load_vars)
 
-        if self.isolation:
+        self.isolation.install(status)
 
-            self.isolation.install(status)
-
-            return self.isolation.deploy(self.infrastructure, status, input_vars)
-        else:
-            logger.info("Deploying project.")
-
-            scripts = self.settings.scripts
-
-            try:
-                self.execute_scripts(scripts.onstart, status)
-
-                deployment = Deployment(self.settings.provisions, performer=self.performer)
-                deployment.deploy(self.infrastructure, status, input_vars)
-
-            except CommandError as e:
-                self.execute_scripts_onerror(scripts.onerror, status, e, logger=logger)
-                return False
-            else:
-                try:
-                    self.execute_scripts(scripts.onsuccess, status)
-                    return True
-                except CommandError as e:
-                    self.execute_scripts_onerror(scripts.onerror, status, e, logger=logger)
-                    return False
-
-    def execute_script(self, script, arguments=None, logger=None):
-        if arguments is None:
-            arguments = {}
-
-        arguments.update(self.status)
-        return super().execute_script(script, arguments=arguments, logger=arguments)
+        return self.isolation.deploy(self.infrastructure, status, input_vars)
 
     @property
     def status(self):
@@ -75,7 +36,7 @@ class Configuration(ScriptExecutor):
         :return: configuration status
         :rtype: dict
         """
-        if not self.isolation or self.isolation.exists():
+        if self.isolation.exists():
             infrastructure_status = self.infrastructure.status
         else:
             infrastructure_status = {}
@@ -87,15 +48,14 @@ class Configuration(ScriptExecutor):
             next_source=self.next_source.name if self.next_source else '',
             next_source_options=self.next_source.options if self.next_source else '',
             next_source_ident=self.next_source.ident if self.next_source else '',
-            infrastructure=infrastructure_status
+            infrastructure=infrastructure_status,
+            isolation=self.isolation.status
         )
-        if self.isolation:
-            status.update(isolation=self.isolation.status)
 
         return status
 
     def destroy(self):
-        if self.isolation and self.isolation.exists():
+        if self.isolation.exists():
             self.isolation.destroy()
             logger.info('Isolation has been destroyed.')
             return True

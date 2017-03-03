@@ -1,66 +1,15 @@
-from functools import wraps
-from os import chdir
-import sys
-
 import click
 from colorama import Fore as color, Style as style
+from functools import wraps
 
-from codev_core.utils import parse_options
-from codev_core.settings import YAMLSettingsReader
-from codev_core.debug import DebugSettings
-from codev_core.logging import logging_config
-
+from codev.utils import parse_options
+from .settings import YAMLSettingsReader
 from .installation import Installation
-
+from .debug import DebugSettings
+from .logging import logging_config
 from . import __version__
-
-
-
-def source_transition(installation_status):
-    """
-    :param installation_status:
-    :return:
-    """
-    # TODO deploy vs destroy (different highlited source in transition)
-    next_source_available = bool(installation_status['next_source_ident'])
-    isolation_exists = 'ident' in installation_status.get('isolation', {})
-
-    color_options = dict(
-        color_source=color.GREEN,
-        color_reset=color.RESET + style.RESET_ALL
-    )
-
-    if next_source_available:
-        if not isolation_exists:
-            color_source = color.GREEN + style.BRIGHT
-            color_next_source = color.GREEN
-        else:
-            color_source = color.GREEN
-            color_next_source = color.GREEN + style.BRIGHT
-
-        color_options.update(dict(
-            color_source=color_source,
-            color_next_source=color_next_source,
-        ))
-
-        final = {}
-        final.update(installation_status)
-        final.update(color_options)
-        # TODO in python 3.5 use **installation_status, **color_options
-        transition = ' -> {color_next_source}{next_source}:{next_source_options}{color_reset}'.format(
-            **final
-        )
-    else:
-        transition = ''
-
-    final2 = {}
-    final2.update(installation_status)
-    final2.update(color_options)
-    # TODO in python 3.5 use **installation_status, **color_options
-    return '{color_source}{source}:{source_options}{color_reset}{transition}'.format(
-        transition=transition,
-        **final2
-    )
+from os import chdir
+import sys
 
 
 def confirmation_message(message):
@@ -71,7 +20,6 @@ def confirmation_message(message):
                 installation_status = installation.status
                 if not click.confirm(
                         message.format(
-                            source_transition=source_transition(installation_status),
                             **installation_status
                         )
                 ):
@@ -88,60 +36,26 @@ def confirmation_message(message):
     return decorator
 
 
-def installation_options(func):
+def basic_options(func):
     @wraps(func)
     def installation_wrapper(
             settings,
             environment_configuration,
-            source,
-            next_source,
-            same_source,
             **kwargs):
 
-        if same_source:
-            if source or next_source:
-                raise click.BadOptionUsage('Parameter "-st" is not allowed to use together with "-s" / "--source" or "-t" / "--next-source" parameters.')
-            else:
-                source = next_source = same_source
-        # elif not source:
-        #     raise click.BadOptionUsage('Missing option "-s" / "--source" or "-st"')
-
-        source_name, source_options = parse_options(source)
-        next_source_name, next_source_options = parse_options(next_source)
         environment, configuration = parse_options(environment_configuration)
 
         installation = Installation(
             settings,
             environment,
             configuration_name=configuration,
-            source_name=source_name,
-            source_options=source_options,
-            next_source_name=next_source_name,
-            next_source_options=next_source_options
         )
         return func(installation, **kwargs)
 
-    f = click.argument(
+    return click.argument(
         'environment_configuration',
         metavar='<environment:configuration>',
         required=True)(installation_wrapper)
-
-    f = click.option(
-        '-s', '--source',
-        metavar='<source installation>',
-        help='Source')(f)
-
-    f = click.option(
-        '-t', '--next-source',
-        default='',
-        metavar='<next source>',
-        help='Next source')(f)
-
-    return click.option(
-        '-st', 'same_source',
-        default='',
-        metavar='<source>',
-        help='Shortcut for same source and next source')(f)
 
 
 def nice_exception(func):
@@ -183,23 +97,13 @@ def debug_option(func):
 
         return func(**kwargs)
 
-    f = click.option(
-        '--debug-perform',
+    return click.option(
+        '--debug',
         type=click.Tuple([str, str]),
         multiple=True,
         metavar='<variable> <value>',
-        help='Debug perform options.'
-    )
-
-    return f(
-        click.option(
-            '--debug',
-            type=click.Tuple([str, str]),
-            multiple=True,
-            metavar='<variable> <value>',
-            help='Debug options.'
-        )(debug_wrapper)
-    )
+        help='Debug options.'
+    )(debug_wrapper)
 
 
 def bool_exit_enable(func):
@@ -228,7 +132,7 @@ def command(confirmation=None, bool_exit=True, **kwargs):
     def decorator(func):
         if confirmation:
             func = confirmation_message(confirmation)(func)
-        func = installation_options(func)
+        func = basic_options(func)
         func = nice_exception(func)
         func = path_option(func)
         func = debug_option(func)
