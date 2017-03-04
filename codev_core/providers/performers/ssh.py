@@ -1,12 +1,12 @@
 from contextlib import contextmanager
+from os.path import expanduser
+from logging import getLogger
+
 from paramiko.client import SSHClient, AutoAddPolicy, NoValidConnectionsError
 from paramiko.agent import AgentRequestHandler
 
-from logging import getLogger
-
-from codev.performer import Performer, PerformerError, CommandError, OutputReader
-from codev.settings import BaseSettings
-from os.path import expanduser
+from codev_core.performer import Performer, PerformerError, CommandError, OutputReader
+from codev_core.settings import BaseSettings
 
 
 class SSHPerformerSettings(BaseSettings):

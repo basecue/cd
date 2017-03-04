@@ -18,7 +18,7 @@ class Configuration(ScriptExecutor):
         self.next_source = next_source
         self.isolation = Isolation(self.settings.isolation, self.source, self.next_source, performer=performer)
         self.infrastructure = Infrastructure(self.isolation, self.settings.infrastructure)
-        super().__init__(performer=self.performer)
+        super().__init__(performer=performer)
 
     def deploy(self, status, input_vars):
         status.update(self.status)

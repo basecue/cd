@@ -1,11 +1,12 @@
-from codev.settings import BaseSettings
-from codev.machines import MachinesProvider, BaseMachine
-from codev.performer import Performer
 import re
 from os import urandom, path
 from crypt import crypt
 from base64 import b64encode
 from time import sleep
+
+from codev_core.settings import BaseSettings
+from codev_core.machines import MachinesProvider, BaseMachine
+from codev_core.performer import Performer
 
 
 """

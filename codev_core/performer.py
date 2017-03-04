@@ -1,8 +1,8 @@
-from .provider import Provider, ConfigurableProvider
 from contextlib import contextmanager
 from os import path
 from json import dumps
 
+from .provider import Provider, ConfigurableProvider
 from .scripts import COMMON_SCRIPTS
 
 

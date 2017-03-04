@@ -2,7 +2,7 @@ from logging import getLogger
 from json import dumps
 
 from codev_core.performer import ScriptExecutor
-from codev_core.logging import logging_config
+from codev_core.log import logging_config
 from codev_core.performer import CommandError
 from codev_core.debug import DebugSettings
 from codev_core.settings import YAMLSettingsReader

@@ -1,6 +1,8 @@
 import logging
-from colorama import Fore as color
 import sys
+
+from colorama import Fore as color
+
 
 LOGLEVELS = {
     'info': logging.INFO,

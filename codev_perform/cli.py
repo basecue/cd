@@ -2,12 +2,14 @@ import click
 from colorama import Fore as color, Style as style
 from functools import wraps
 
-from codev.utils import parse_options
-from .settings import YAMLSettingsReader
+from codev_core import __version__
+from codev_core.utils import parse_options
+from codev_core.settings import YAMLSettingsReader
+from codev_core.debug import DebugSettings
+from codev_core.logging import logging_config
+
 from .installation import Installation
-from .debug import DebugSettings
-from .logging import logging_config
-from . import __version__
+
 from os import chdir
 import sys
 

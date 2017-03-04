@@ -1,10 +1,10 @@
 from contextlib import contextmanager
 from logging import getLogger
 
-from codev.isolator import Isolator
-from codev_core.performer import BackgroundExecutor, PerformerError
+from codev_core.performer import BackgroundExecutor
+from codev_core.providers.machines.lxc import LXCMachine, LXCMachinesSettings
 
-from codev_core.machines import LXCMachine, LXCMachinesSettings
+from codev.isolator import Isolator
 
 
 class LXCIsolator(Isolator):

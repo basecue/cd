@@ -1,5 +1,6 @@
-from codev.source import Source
 from git import Repo
+
+from codev_core.source import Source
 
 
 class Git(object):

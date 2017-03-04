@@ -5,15 +5,13 @@ import sys
 import click
 from colorama import Fore as color, Style as style
 
+from codev_core import __version__
 from codev_core.utils import parse_options
 from codev_core.settings import YAMLSettingsReader
 from codev_core.debug import DebugSettings
-from codev_core.logging import logging_config
+from codev_core.log import logging_config
 
 from .installation import Installation
-
-from . import __version__
-
 
 
 def source_transition(installation_status):

@@ -1,10 +1,9 @@
 from contextlib import contextmanager
 from subprocess import Popen, PIPE, call
 from os.path import expanduser
-
-from codev.performer import CommandError, Performer, OutputReader
-
 from logging import getLogger
+
+from codev_core.performer import CommandError, Performer, OutputReader
 
 
 class LocalPerformer(Performer):

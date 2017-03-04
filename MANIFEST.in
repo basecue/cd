@@ -3,5 +3,7 @@ include MANIFEST.in
 recursive-exclude docs *
 recursive-exclude tests *
 recursive-include codev *
+recursive-include codev_core *
+recursive-include codev_perform *
 recursive-exclude * __pycache__
 recursive-exclude * *.py[co]

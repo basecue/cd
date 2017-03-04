@@ -1,7 +1,7 @@
 from os import path
-import yaml
-
 from collections import OrderedDict
+
+import yaml
 
 """
 YAML OrderedDict mapping

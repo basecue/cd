@@ -1,8 +1,9 @@
-from codev.source import Source
 from contextlib import contextmanager
 import shutil
 from time import time
 from uuid import uuid1
+
+from codev_core.source import Source
 
 
 class ActualSource(Source):

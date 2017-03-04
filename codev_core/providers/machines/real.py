@@ -1,5 +1,5 @@
-from codev.settings import BaseSettings
-from codev.machines import MachinesProvider, BaseMachine
+from codev_core.settings import BaseSettings
+from codev_core.machines import MachinesProvider, BaseMachine
 
 
 class RealMachine(BaseMachine):
