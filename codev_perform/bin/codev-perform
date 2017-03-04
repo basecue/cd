@@ -17,13 +17,13 @@ codev stop [environment] [configuration] [version]
 
 codev run [script] [environment] [configuration] [version]
 """
-
-import click
-
-from codev.cli import command, main
 from json import loads
 import sys
 import select
+
+import click
+
+from codev_perform.cli import command, main
 
 
 @command(

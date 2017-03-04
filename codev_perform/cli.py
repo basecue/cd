@@ -89,13 +89,10 @@ def path_option(func):
 
 def debug_option(func):
     @wraps(func)
-    def debug_wrapper(debug, debug_perform, **kwargs):
+    def debug_wrapper(debug, **kwargs):
         if debug:
             DebugSettings.settings = DebugSettings(dict(debug))
             logging_config(DebugSettings.settings.loglevel)
-
-        if debug_perform:
-            DebugSettings.perform_settings = DebugSettings(dict(debug_perform))
 
         return func(**kwargs)
 

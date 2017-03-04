@@ -1,6 +1,7 @@
+from codev_core.settings import BaseSettings
+from codev_core.providers.sources.git import Git
+
 from ..source import AnsibleSource
-from codev.settings import BaseSettings
-from ....sources.git import Git
 
 
 class AnsibleGitSourceSettings(BaseSettings):

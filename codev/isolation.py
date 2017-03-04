@@ -65,7 +65,7 @@ class Isolation(ScriptExecutor):
         else:
             perform_debug = ''
         arguments.update(self.status)
-        codev_script = 'codev-perform execute {environment}:{configuration} -s {source}:{source_options} {perform_debug} -- {script}'.format(
+        codev_script = 'codev-perform execute {environment}:{configuration} {perform_debug} -- {script}'.format(
             script=script,
             environment=arguments['environment'],
             configuration=arguments['configuration'],
@@ -128,13 +128,13 @@ class Isolation(ScriptExecutor):
 
         logging_config(control_perform=True)
         try:
-            installation_options = '{environment}:{configuration} -s {current_source.provider_name}:{current_source.options}'.format(
+            installation_options = '{environment}:{configuration}'.format(
                 current_source=self.current_source,
                 **status
             )
             with self.change_directory(self.current_source.directory):
                 self.execute(
-                    'codev-perform {installation_options} --force {perform_debug}'.format(
+                    'codev-perform deploy {installation_options} --force {perform_debug}'.format(
                         installation_options=installation_options,
                         perform_debug=perform_debug
                     ), logger=command_logger, writein=dumps(deploy_vars))
