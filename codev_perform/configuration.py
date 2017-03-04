@@ -1,23 +1,24 @@
 from logging import getLogger
 
+from codev_core.infrastructure import Infrastructure
+from codev_core.performer import CommandError, ScriptExecutor
+from codev_core.debug import DebugSettings
+from codev_core.providers.performers.local import LocalPerformer
+
 from .deployment import Deployment
 
-from .infrastructure import Infrastructure
-from .performer import CommandError, ScriptExecutor
-from .debug import DebugSettings
 
 logger = getLogger(__name__)
 
 
 class Configuration(ScriptExecutor):
     def __init__(self, settings, **kwargs):
-        performer = kwargs['performer']
         self.settings = settings
 
-        self.performer = LocalPerformer()  # TODO
+        performer = LocalPerformer()
 
         self.infrastructure = Infrastructure(performer, self.settings.infrastructure)
-        super().__init__(performer=self.performer)
+        super().__init__(performer=performer)
 
     def deploy(self, status, input_vars):
         status.update(self.status)

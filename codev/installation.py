@@ -2,9 +2,9 @@ from logging import getLogger
 
 from codev_core.performer import Performer
 from codev_core.source import Source
+from codev_core.isolator import Isolator
 
 from .configuration import Configuration
-from .isolator import Isolator
 
 
 logger = getLogger(__name__)

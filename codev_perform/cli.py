@@ -1,17 +1,17 @@
+from os import chdir
+import sys
+from functools import wraps
+
 import click
 from colorama import Fore as color, Style as style
-from functools import wraps
 
 from codev_core import __version__
 from codev_core.utils import parse_options
 from codev_core.settings import YAMLSettingsReader
 from codev_core.debug import DebugSettings
-from codev_core.logging import logging_config
+from codev_core.log import logging_config
 
 from .installation import Installation
-
-from os import chdir
-import sys
 
 
 def confirmation_message(message):

@@ -1,4 +1,4 @@
-from codev.provider import Provider, ConfigurableProvider
+from codev_core.provider import Provider, ConfigurableProvider
 
 
 class AnsibleSource(Provider, ConfigurableProvider):

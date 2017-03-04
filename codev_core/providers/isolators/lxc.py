@@ -3,8 +3,7 @@ from logging import getLogger
 
 from codev_core.performer import BackgroundExecutor
 from codev_core.providers.machines.lxc import LXCMachine, LXCMachinesSettings
-
-from codev.isolator import Isolator
+from codev_core.isolator import Isolator
 
 
 class LXCIsolator(Isolator):

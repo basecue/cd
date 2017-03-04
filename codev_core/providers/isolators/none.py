@@ -1,4 +1,4 @@
-from codev.isolator import Isolator
+from codev_core.isolator import Isolator
 
 
 class NoneIsolator(Isolator):

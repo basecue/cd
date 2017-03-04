@@ -1,6 +1,9 @@
 from logging import getLogger
+
+from codev_core.performer import ScriptExecutor, CommandError
+
 from .provisioner import Provisioner
-from .performer import ScriptExecutor, CommandError, ProxyPerformer
+
 
 logger = getLogger(__name__)
 

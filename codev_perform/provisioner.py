@@ -1,5 +1,4 @@
-from .provider import Provider, ConfigurableProvider
-# from .performer import ProxyPerformer
+from codev_core.provider import Provider, ConfigurableProvider
 
 
 class Provisioner(Provider, ConfigurableProvider):

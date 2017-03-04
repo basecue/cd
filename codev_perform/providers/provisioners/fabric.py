@@ -1,6 +1,7 @@
-from codev.provisioner import Provisioner
-from codev.settings import BaseSettings, SettingsError
-from codev.isolator import Isolator
+from codev_core.settings import BaseSettings, SettingsError
+from codev_core.isolator import Isolator
+
+from codev_perform.provisioner import Provisioner
 
 
 class FabricProvisionerSettings(BaseSettings):
