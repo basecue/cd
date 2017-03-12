@@ -18,12 +18,13 @@ codev stop [environment] [configuration] [version]
 codev run [script] [environment] [configuration] [version]
 """
 
+import select
+import sys
+from json import loads
+
 import click
 
-from codev.cli import command, main
-from json import loads
-import sys
-import select
+from codev.control.cli import command, main
 
 
 @command(

@@ -1,2 +1,1 @@
-from codev_core import log
-from codev.providers import *
+__version__ = '0.7.0a0'
