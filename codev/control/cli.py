@@ -10,7 +10,8 @@ from codev.core.log import logging_config
 from codev.core.settings import YAMLSettingsReader
 from codev.core.utils import parse_options
 from codev.core.debug import DebugSettings
-from .configuration import Configuration
+
+from . import CodevControl
 
 
 def source_transition(installation_status):
@@ -85,9 +86,9 @@ def confirmation_message(message):
     return decorator
 
 
-def installation_options(func):
+def codev_control_options(func):
     @wraps(func)
-    def installation_wrapper(
+    def codev_control_wrapper(
             settings,
             environment_configuration,
             source,
@@ -107,7 +108,7 @@ def installation_options(func):
         next_source_name, next_source_options = parse_options(next_source)
         environment, configuration = parse_options(environment_configuration)
 
-        installation = Configuration(
+        codev_control = CodevControl(
             settings,
             environment,
             configuration_name=configuration,
@@ -116,12 +117,12 @@ def installation_options(func):
             next_source_name=next_source_name,
             next_source_options=next_source_options
         )
-        return func(installation, **kwargs)
+        return func(codev_control, **kwargs)
 
     f = click.argument(
         'environment_configuration',
         metavar='<environment:configuration>',
-        required=True)(installation_wrapper)
+        required=True)(codev_control_wrapper)
 
     f = click.option(
         '-s', '--source',
@@ -225,7 +226,7 @@ def command(confirmation=None, bool_exit=True, **kwargs):
     def decorator(func):
         if confirmation:
             func = confirmation_message(confirmation)(func)
-        func = installation_options(func)
+        func = codev_control_options(func)
         func = nice_exception(func)
         func = path_option(func)
         func = debug_option(func)

@@ -8,12 +8,31 @@ from .provisioner import Provisioner
 logger = getLogger(__name__)
 
 
-class Deployment(ScriptExecutor):
+class Provisioning(ScriptExecutor):
     def __init__(self, provisions, *args, **kwargs):
         self.provisions = provisions
         super().__init__(*args, **kwargs)
 
-    def deploy(self, infrastructure, script_info, input_vars):
+    def provision(self, status, input_vars):
+        scripts = self.settings.scripts
+
+        try:
+            self.execute_scripts(scripts.onstart, status)
+
+            self._deploy(self.infrastructure, status, input_vars)
+
+        except CommandError as e:
+            self.execute_scripts_onerror(scripts.onerror, status, e, logger=logger)
+            return False
+        else:
+            try:
+                self.execute_scripts(scripts.onsuccess, status)
+                return True
+            except CommandError as e:
+                self.execute_scripts_onerror(scripts.onerror, status, e, logger=logger)
+                return False
+
+    def _deploy(self, infrastructure, script_info, input_vars):
         """
 
         :param infrastructure: infrastructure.Infrastructure
@@ -50,3 +69,10 @@ class Deployment(ScriptExecutor):
                 except CommandError as e:
                     self.execute_scripts_onerror(scripts.onerror, script_info, e, logger=logger)
                     raise
+
+    def execute_script(self, script, arguments=None, logger=None):
+        if arguments is None:
+            arguments = {}
+
+        arguments.update(self.status)
+        return super().execute_script(script, arguments=arguments, logger=arguments)

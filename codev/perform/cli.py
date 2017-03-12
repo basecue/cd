@@ -10,22 +10,21 @@ from codev.core.settings import YAMLSettingsReader
 from codev.core.utils import parse_options
 from codev.core.debug import DebugSettings
 
-from .installation import Installation
+from . import CodevPerform
 
 
 def confirmation_message(message):
     def decorator(f):
         @wraps(f)
-        def confirmation_wrapper(installation, force, **kwargs):
+        def confirmation_wrapper(codev_perform, force, **kwargs):
             if not force:
-                installation_status = installation.status
                 if not click.confirm(
                         message.format(
-                            **installation_status
+                            **codev_perform.status
                         )
                 ):
                     raise click.Abort()
-            return f(installation, **kwargs)
+            return f(codev_perform, **kwargs)
 
         return click.option(
             '-f',
@@ -37,26 +36,26 @@ def confirmation_message(message):
     return decorator
 
 
-def basic_options(func):
+def codev_perform_options(func):
     @wraps(func)
-    def installation_wrapper(
+    def codev_perform_wrapper(
             settings,
             environment_configuration,
             **kwargs):
 
         environment, configuration = parse_options(environment_configuration)
 
-        installation = Installation(
+        codev_perform = CodevPerform(
             settings,
             environment,
             configuration_name=configuration,
         )
-        return func(installation, **kwargs)
+        return func(codev_perform, **kwargs)
 
     return click.argument(
         'environment_configuration',
         metavar='<environment:configuration>',
-        required=True)(installation_wrapper)
+        required=True)(codev_perform_wrapper)
 
 
 def nice_exception(func):
@@ -130,7 +129,7 @@ def command(confirmation=None, bool_exit=True, **kwargs):
     def decorator(func):
         if confirmation:
             func = confirmation_message(confirmation)(func)
-        func = basic_options(func)
+        func = codev_perform_options(func)
         func = nice_exception(func)
         func = path_option(func)
         func = debug_option(func)
