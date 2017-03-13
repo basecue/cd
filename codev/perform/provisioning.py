@@ -9,8 +9,9 @@ logger = getLogger(__name__)
 
 
 class Provisioning(ScriptExecutor):
-    def __init__(self, provisions, *args, **kwargs):
+    def __init__(self, provisions, infrastrucure, *args, **kwargs):
         self.provisions = provisions
+        self.infrastructure = infrastrucure
         super().__init__(*args, **kwargs)
 
     def provision(self, status, input_vars):

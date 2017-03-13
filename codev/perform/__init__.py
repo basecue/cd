@@ -40,9 +40,9 @@ class CodevPerform(object):
 
         self.configuration_name = configuration_name
 
-        super().__init__(performer=LocalPerformer())
-        self.infrastructure = Infrastructure(self.performer, configuration_settings.infrastructure)
-        self.provisioning = Provisioning(self.settings.provisions, performer=self.performer)
+        performer = LocalPerformer()
+        self.infrastructure = Infrastructure(performer, configuration_settings.infrastructure)
+        self.provisioning = Provisioning(settings.provisions, self.infrastructure, performer=performer)
 
     def deploy(self, input_vars):
         """
@@ -64,7 +64,7 @@ class CodevPerform(object):
         :param script: Script to execute
         :type script: str
         :param arguments: Arguments passed to script
-        # :return: True if executed command returns 0
+        :return: True if executed command returns 0
         :rtype: bool
         """
         logging_config(control_perform=True)
