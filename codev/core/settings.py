@@ -132,7 +132,7 @@ class IsolationScriptsSettings(BaseSettings):
         return ListDictSettings(self.data.get('onenter', []))
 
 
-class IsolationSettings(BaseSettings):
+class IsolationSettings(ProviderSettings):
     @property
     def loaded_vars(self):
         return {
@@ -163,6 +163,14 @@ class ConfigurationScriptsSettings(BaseSettings):
 
 
 class ConfigurationSettings(BaseSettings):
+    def __init__(self, data, default_sources):
+        super().__init__(data)
+        self.default_sources = default_sources
+
+    @property
+    def performer(self):
+        return ProviderSettings(self.data.get('performer', {}))
+
     @property
     def infrastructure(self):
         return DictSettings(InfrastructureSettings, self.data.get('infrastructure', {}))
@@ -180,36 +188,15 @@ class ConfigurationSettings(BaseSettings):
         return IsolationSettings(self.data.get('isolation', {}))
 
     @property
-    def scripts(self):
-        return ConfigurationScriptsSettings(self.data.get('scripts', {}))
-
-
-class EnvironmentSettings(BaseSettings):
-    def __init__(self, data, default_sources):
-        super().__init__(data)
-        self.default_sources = default_sources
-
-    @property
-    def performer(self):
-        return ProviderSettings(self.data.get('performer', {}))
-
-    @property
-    def isolator(self):
-        return ProviderSettings(self.data.get('isolator', {}))
-
-    @property
-    def configurations(self):
-        return DictSettings(
-            ConfigurationSettings,
-            self.data.get('configurations', {}),
-        )
-
-    @property
     def sources(self):
         return ListDictSettings(
             self.data.get('sources', []),
             intersect_default=self.default_sources
         )
+
+    @property
+    def scripts(self):
+        return ConfigurationScriptsSettings(self.data.get('scripts', {}))
 
 
 class Settings(BaseSettings):
@@ -236,10 +223,10 @@ class Settings(BaseSettings):
         return self.data['project']
 
     @property
-    def environments(self):
+    def configurations(self):
         return DictSettings(
-            EnvironmentSettings,
-            self.data['environments'],
+            ConfigurationSettings,
+            self.data['configurations'],
             default_sources=self.sources
         )
 

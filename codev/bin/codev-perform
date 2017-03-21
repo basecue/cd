@@ -27,8 +27,8 @@ from codev.perform.cli import command, main
 
 
 @command(
-    help='Deploy project.',
-    confirmation="Deploy project '{project}' to environment '{environment}' in configuration '{configuration}' at source '{source_transition}'?"
+    help='Run configuration.',
+    confirmation="Run configuration '{configuration}' of '{project}'?"
 )
 def run(codev_perform):
     """
@@ -46,7 +46,7 @@ def run(codev_perform):
     return codev_perform.run(load_vars)
 
 
-@command(help='Execute command in project context in isol ation.')
+@command(help='Execute command in project context in isolation.')
 @click.argument('command', nargs=-1)
 def execute(codev_perform, command):
     """

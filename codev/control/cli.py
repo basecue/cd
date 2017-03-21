@@ -11,7 +11,6 @@ from codev.core.utils import parse_options
 from codev.core.debug import DebugSettings
 
 from . import CodevControl
-from .log import logging_config
 
 
 def source_transition(installation_status):
@@ -90,7 +89,7 @@ def codev_control_options(func):
     @wraps(func)
     def codev_control_wrapper(
             settings,
-            environment_configuration,
+            configuration,
             source,
             next_source,
             same_source,
@@ -106,12 +105,12 @@ def codev_control_options(func):
 
         source_name, source_options = parse_options(source)
         next_source_name, next_source_options = parse_options(next_source)
-        environment, configuration = parse_options(environment_configuration)
+        configuration_name, configuration_option = parse_options(configuration)
 
         codev_control = CodevControl(
             settings,
-            environment,
-            configuration_name=configuration,
+            configuration_name,
+            configuration_option=configuration_option,
             source_name=source_name,
             source_options=source_options,
             next_source_name=next_source_name,
@@ -120,8 +119,8 @@ def codev_control_options(func):
         return func(codev_control, **kwargs)
 
     f = click.argument(
-        'environment_configuration',
-        metavar='<environment:configuration>',
+        'configuration',
+        metavar='configuration:option>',
         required=True)(codev_control_wrapper)
 
     f = click.option(

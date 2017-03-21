@@ -39,21 +39,21 @@ def codev_perform_options(func):
     @wraps(func)
     def codev_perform_wrapper(
             settings,
-            environment_configuration,
+            configuration,
             **kwargs):
 
-        environment, configuration = parse_options(environment_configuration)
+        configuration_name, configuration_option = parse_options(configuration)
 
         codev_perform = CodevPerform(
             settings,
-            environment,
-            configuration_name=configuration,
+            configuration_name,
+            configuration_option=configuration_option,
         )
         return func(codev_perform, **kwargs)
 
     return click.argument(
-        'environment_configuration',
-        metavar='<environment:configuration>',
+        'configuration',
+        metavar='<configuration:option>',
         required=True)(codev_perform_wrapper)
 
 

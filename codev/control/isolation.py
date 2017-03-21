@@ -2,9 +2,11 @@ from json import dumps
 from logging import getLogger
 
 from codev.core.performer import CommandError
-from codev.core.performer import ScriptExecutor
 from codev.core.settings import YAMLSettingsReader
 from codev.core.debug import DebugSettings
+
+from codev.core.isolator import Isolator
+from codev.core.infrastructure import Infrastructure
 
 from .log import logging_config
 
@@ -13,38 +15,40 @@ command_logger = getLogger('command')
 debug_logger = getLogger('debug')
 
 
-class Isolation(ScriptExecutor):
-    def __init__(self, settings, source, next_source, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.isolator = self.performer
-        self.settings = settings
+class Isolation(object):
+    def __init__(self, isolation_settings, infrastructure_settings, source, next_source, performer, ident):
+
+        self.isolator = Isolator(isolation_settings.provider, performer=performer, settings_data=isolation_settings.settings_data, ident=ident)
+        self.settings = isolation_settings
         self.source = source
         self.next_source = next_source
         self.current_source = self.next_source if self.next_source and self.exists() else self.source
 
-    def connect(self, infrastructure):
+        self.infrastructure = Infrastructure(self.isolator, infrastructure_settings)
+
+    def connect(self):
         """
         :param isolation:
         :return:
         """
         for machine_ident, connectivity_conf in self.settings.connectivity.items():
-            machine = infrastructure.get_machine_by_ident(machine_ident)
+            machine = self.infrastructure.get_machine_by_ident(machine_ident)
 
             for source_port, target_port in connectivity_conf.items():
                 self.isolator.redirect(machine.ip, source_port, target_port)
 
     def _install_codev(self, codev_file):
         version = YAMLSettingsReader().from_yaml(codev_file).version
-        self.execute('pip3 install setuptools')
+        self.isolator.execute('pip3 install setuptools')
 
         # uninstall previous version of codev (ignore if not installed)
-        self.check_execute('pip3 uninstall codev -y')
+        self.isolator.check_execute('pip3 uninstall codev -y')
 
         # install proper version of codev
         # TODO requirements - 'python3-pip', 'libffi-dev', 'libssl-dev'
         if not DebugSettings.settings.distfile:
             logger.debug("Install codev version '{version}' to isolation.".format(version=version))
-            self.execute('pip3 install --upgrade codev=={version}'.format(version=version))
+            self.isolator.execute('pip3 install --upgrade codev=={version}'.format(version=version))
         else:
             distfile = DebugSettings.settings.distfile.format(version=version)
             debug_logger.info('Install codev {distfile}'.format(distfile=distfile))
@@ -52,8 +56,8 @@ class Isolation(ScriptExecutor):
             from os.path import basename
             remote_distfile = '/tmp/{distfile}'.format(distfile=basename(distfile))
 
-            self.send_file(distfile, remote_distfile)
-            self.execute('pip3 install --upgrade {distfile}'.format(distfile=remote_distfile))
+            self.isolator.send_file(distfile, remote_distfile)
+            self.isolator.execute('pip3 install --upgrade {distfile}'.format(distfile=remote_distfile))
 
     # def execute_script(self, script, arguments=None, logger=None):
     #     if DebugSettings.perform_settings:
@@ -78,10 +82,10 @@ class Isolation(ScriptExecutor):
     #         super().execute_script(codev_script, arguments=arguments, logger=logger)
 
     def _install_project(self):
-        self.current_source.install(self.performer)
+        self.current_source.install(self.isolator)
 
         # load .codev file from source and install codev with specific version
-        with self.current_source.open_codev_file(self.performer) as codev_file:
+        with self.current_source.open_codev_file(self.isolator) as codev_file:
             self._install_codev(codev_file)
 
     def install(self, status):
@@ -110,13 +114,13 @@ class Isolation(ScriptExecutor):
         # TODO
         # self.execute_scripts(self.settings.scripts.onenter, status, logger=command_logger)
 
-    def run(self, infrastructure, status, input_vars):
+    def run(self, status, input_vars):
         # TODO python3.5
         # deploy_vars = {**self.settings.loaded_vars, **input_vars}
         load_vars = self.settings.loaded_vars.copy()
         load_vars.update(input_vars)
 
-        version = self.execute('pip3 show codev | grep ^Version | cut -d " " -f 2')
+        version = self.isolator.execute('pip3 show codev | grep ^Version | cut -d " " -f 2')
         logger.info("Run 'codev {version}' in isolation.".format(version=version))
 
         if DebugSettings.perform_settings:
@@ -135,8 +139,8 @@ class Isolation(ScriptExecutor):
                 current_source=self.current_source,
                 **status
             )
-            with self.change_directory(self.current_source.directory):
-                self.execute(
+            with self.isolator.change_directory(self.current_source.directory):
+                self.isolator.execute(
                     'codev-perform run {installation_options} --force {perform_debug}'.format(
                         installation_options=installation_options,
                         perform_debug=perform_debug
@@ -147,24 +151,30 @@ class Isolation(ScriptExecutor):
             return False
         else:
             logger.info("Setting up connectivity.")
-            self.connect(infrastructure)
+            self.connect()
             logger.info("Installation has been successfully completed.")
             return True
-
-    def exists(self):
-        return self.isolator.exists() and self.isolator.is_started()
 
     def destroy(self):
         if self.isolator.is_started():
             self.isolator.stop()
         return self.isolator.destroy()
 
+    def exists(self):
+        return self.isolator.exists() and self.isolator.is_started()
+
     @property
     def status(self):
+        if self.exists():
+            infrastructure_status = self.infrastructure.status
+        else:
+            infrastructure_status = {}
+
         status = dict(
             current_source=self.current_source.name,
             current_source_options=self.current_source.options,
             current_source_ident=self.current_source.ident,
+            infrastructure=infrastructure_status
         )
         if self.isolator.exists():
             status.update(dict(ident=self.isolator.ident, ip=self.isolator.ip))

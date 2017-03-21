@@ -22,8 +22,8 @@ class CodevControl(object):
     def __init__(
             self,
             settings,
-            environment_name,
-            configuration_name='',
+            configuration_name,
+            configuration_option='',
             source_name='',
             source_options='',
             next_source_name='',
@@ -31,25 +31,28 @@ class CodevControl(object):
     ):
         logging_config(DebugSettings.settings.loglevel)
 
+        # TODO if not in configurations
+        configuration_settings = settings.configurations[configuration_name]
 
-        environment_settings = settings.environments[environment_name]
-        self.environment_name = environment_name
+        # TODO support for options
+
+        self.configuration_name = configuration_name
         self.project_name = settings.project
 
         # source
         if source_name:
             try:
-                source_settings = environment_settings.sources[source_name]
+                source_settings = configuration_settings.sources[source_name]
             except KeyError as e:
                 raise ValueError(
-                    "Source '{source_name}' is not allowed source for environment '{environment_name}'.".format(
+                    "Source '{source_name}' is not allowed source for configuration '{configuration_name}'.".format(
                         source_name=source_name,
-                        environment_name=environment_name,
+                        configuration_name=configuration_name,
                         project_name=self.project_name
                     )
                 ) from e
         else:
-            source_name, source_settings = list(environment_settings.sources.items())[0]
+            source_name, source_settings = list(configuration_settings.sources.items())[0]
 
         source = Source(
             source_name,
@@ -68,7 +71,7 @@ class CodevControl(object):
             next_source = None
 
         # performer
-        performer_settings = environment_settings.performer
+        performer_settings = configuration_settings.performer
         performer_provider = performer_settings.provider
         performer_settings_data = performer_settings.settings_data
 
@@ -77,34 +80,24 @@ class CodevControl(object):
             settings_data=performer_settings_data
         )
 
-        isolator_settings = environment_settings.isolator
-        isolator_provider = isolator_settings.provider
-        isolator_settings_data = isolator_settings.settings_data
-
         # TODO add codev version?
         ident = sorted(list(dict(
             project=settings.project,
-            environment=environment_name,
             configuration=configuration_name,
             source_ident=source.ident,
             next_source_ident=next_source.ident if next_source else ''
         ).items()))
 
-        self.performer = Isolator(isolator_provider, performer=performer, settings_data=isolator_settings_data, ident=ident)
-
-        # configuration
-        if configuration_name:
-            configuration_settings = environment_settings.configurations[configuration_name]
-        else:
-            # default configuration is the first configuration in environment
-            configuration_name, configuration_settings = list(environment_settings.configurations.items())[0]
-
-        self.configuration_name = configuration_name
-
         self.source = source
         self.next_source = next_source
-        self.isolation = Isolation(configuration_settings.isolation, self.source, self.next_source, performer=self.performer)
-        self.infrastructure = Infrastructure(self.isolation, configuration_settings.infrastructure)
+        self.isolation = Isolation(
+            isolation_settings=configuration_settings.isolation,
+            infrastructure_settings=configuration_settings.infrastructure,
+            source=self.source,
+            next_source=self.next_source,
+            performer=performer,
+            ident=ident
+        )
 
     def run(self, input_vars):
         """
@@ -116,7 +109,7 @@ class CodevControl(object):
 
         input_vars.update(DebugSettings.settings.load_vars)
         self.isolation.install(self.status)
-        return self.isolation.run(self.infrastructure, self.status, input_vars)
+        return self.isolation.run(self.status, input_vars)
 
     def destroy(self):
         """
@@ -142,14 +135,8 @@ class CodevControl(object):
         :rtype: dict
         """
 
-        if self.isolation.exists():
-            infrastructure_status = self.infrastructure.status
-        else:
-            infrastructure_status = {}
-
         status = dict(
             project=self.project_name,
-            environment=self.environment_name,
             configuration=self.configuration_name,
             source=self.source.name,
             source_options=self.source.options,
@@ -157,7 +144,6 @@ class CodevControl(object):
             next_source=self.next_source.name if self.next_source else '',
             next_source_options=self.next_source.options if self.next_source else '',
             next_source_ident=self.next_source.ident if self.next_source else '',
-            infrastructure=infrastructure_status,
             isolation=self.isolation.status
         )
 

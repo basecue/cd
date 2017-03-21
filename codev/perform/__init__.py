@@ -21,24 +21,14 @@ class CodevPerform(object):
     def __init__(
             self,
             settings,
-            environment_name,
-            configuration_name='',
+            configuration_name,
+            configuration_option=''
     ):
         logging_config(DebugSettings.settings.loglevel)
 
-        environment_settings = settings.environments[environment_name]
-        self.environment_name = environment_name
-        self.project_name = settings.project
-
-
-        # configuration
-        if configuration_name:
-            configuration_settings = environment_settings.configurations[configuration_name]
-        else:
-            # default configuration is the first configuration in environment
-            configuration_name, configuration_settings = list(environment_settings.configurations.items())[0]
-
+        configuration_settings = settings.configurations[configuration_name]
         self.configuration_name = configuration_name
+        self.project_name = settings.project
 
         performer = LocalPerformer()
         self.infrastructure = Infrastructure(performer, configuration_settings.infrastructure)
@@ -86,7 +76,6 @@ class CodevPerform(object):
         """
         status = dict(
             project=self.project_name,
-            environment=self.environment_name,
             configuration=self.configuration_name,
             infrastructure=self.infrastructure.status
         )
