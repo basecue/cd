@@ -6,12 +6,12 @@ from functools import wraps
 from os import chdir
 
 from codev import __version__
-from codev.core.log import logging_config
 from codev.core.settings import YAMLSettingsReader
 from codev.core.utils import parse_options
 from codev.core.debug import DebugSettings
 
 from . import CodevControl
+from .log import logging_config
 
 
 def source_transition(installation_status):
@@ -174,7 +174,6 @@ def debug_option(func):
     def debug_wrapper(debug, debug_perform, **kwargs):
         if debug:
             DebugSettings.settings = DebugSettings(dict(debug))
-            logging_config(DebugSettings.settings.loglevel)
 
         if debug_perform:
             DebugSettings.perform_settings = DebugSettings(dict(debug_perform))

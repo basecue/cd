@@ -5,9 +5,10 @@ from logging import getLogger
 
 import os.path
 
-from codev.core import BaseSettings, ProviderSettings
 from codev.core import Isolator
-from perform.provisioner import Provisioner
+from codev.core.settings import BaseSettings, ProviderSettings
+
+from codev.perform.provisioner import Provisioner
 from .source import AnsibleSource
 from .sources import *
 

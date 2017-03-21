@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 
 _version_re = re.compile(r'__version__\s+=\s+(.*)')
 
-with open('codev_core/__init__.py', 'rb') as f:
+with open('codev/__init__.py', 'rb') as f:
     version = str(ast.literal_eval(_version_re.search(
         f.read().decode('utf-8')).group(1)))
 
@@ -24,7 +24,7 @@ setup(
     url="http://www.baseclue.com/codev/",
     packages=find_packages(exclude=['tests']),
     include_package_data=True,
-    scripts=['codev/bin/codev', 'codev_perform/bin/codev-perform'],
+    scripts=['codev/bin/codev', 'codev/bin/codev-perform'],
     classifiers=[
         'Development Status :: 4 - Beta',
         'Environment :: Console',

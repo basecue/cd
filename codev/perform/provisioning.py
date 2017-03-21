@@ -9,31 +9,36 @@ logger = getLogger(__name__)
 
 
 class Provisioning(ScriptExecutor):
-    def __init__(self, provisions, infrastrucure, *args, **kwargs):
+    def __init__(self, provisions, infrastructure, *args, **kwargs):
         self.provisions = provisions
-        self.infrastructure = infrastrucure
+        self.infrastructure = infrastructure
         super().__init__(*args, **kwargs)
 
-    def provision(self, status, input_vars):
-        scripts = self.settings.scripts
+    def run(self, status, input_vars):
+        # TODO
+        # scripts = self.settings.scripts
 
         try:
-            self.execute_scripts(scripts.onstart, status)
+            # TODO
+            # self.execute_scripts(scripts.onstart, status)
 
-            self._deploy(self.infrastructure, status, input_vars)
+            self._run(self.infrastructure, status, input_vars)
 
         except CommandError as e:
-            self.execute_scripts_onerror(scripts.onerror, status, e, logger=logger)
+            # TODO
+            # self.execute_scripts_onerror(scripts.onerror, status, e, logger=logger)
             return False
         else:
             try:
-                self.execute_scripts(scripts.onsuccess, status)
+                # TODO
+                # self.execute_scripts(scripts.onsuccess, status)
                 return True
             except CommandError as e:
-                self.execute_scripts_onerror(scripts.onerror, status, e, logger=logger)
+                # TODO
+                # self.execute_scripts_onerror(scripts.onerror, status, e, logger=logger)
                 return False
 
-    def _deploy(self, infrastructure, script_info, input_vars):
+    def _run(self, infrastructure, script_info, input_vars):
         """
 
         :param infrastructure: infrastructure.Infrastructure
@@ -47,10 +52,12 @@ class Provisioning(ScriptExecutor):
         script_info.update(infrastructure=infrastructure.status)
 
         for provisioner_name, provisioner_settings in self.provisions.items():
-            scripts = provisioner_settings.scripts
+            # TODO
+            # scripts = provisioner_settings.scripts
 
             try:
-                self.execute_scripts(scripts.onstart, script_info)
+                # TODO
+                # self.execute_scripts(scripts.onstart, script_info)
 
                 provisioner = Provisioner(provisioner_settings.provider, performer=self.performer, settings_data=provisioner_settings.settings_data)
 
@@ -62,18 +69,15 @@ class Provisioning(ScriptExecutor):
                 provisioner.run(infrastructure, script_info, input_vars)
 
             except CommandError as e:
-                self.execute_scripts_onerror(scripts.onerror, script_info, e, logger=logger)
+                # TODO
+                # self.execute_scripts_onerror(scripts.onerror, script_info, e, logger=logger)
                 raise
             else:
                 try:
-                    self.execute_scripts(scripts.onsuccess, script_info)
+                    # TODO
+                    # self.execute_scripts(scripts.onsuccess, script_info)
+                    pass
                 except CommandError as e:
-                    self.execute_scripts_onerror(scripts.onerror, script_info, e, logger=logger)
+                    # TODO
+                    # self.execute_scripts_onerror(scripts.onerror, script_info, e, logger=logger)
                     raise
-
-    def execute_script(self, script, arguments=None, logger=None):
-        if arguments is None:
-            arguments = {}
-
-        arguments.update(self.status)
-        return super().execute_script(script, arguments=arguments, logger=arguments)

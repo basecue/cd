@@ -1,5 +1,5 @@
-from codev.core import BaseSettings
-from providers.sources import Git
+from codev.core.settings import BaseSettings
+from codev.core.providers.sources import Git
 
 from ..source import AnsibleSource
 

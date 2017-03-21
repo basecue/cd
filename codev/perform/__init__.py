@@ -1,13 +1,14 @@
 from logging import getLogger
 
-from codev.core.log import logging_config
 from codev.core.infrastructure import Infrastructure
-from codev.core.performer import CommandError, ScriptExecutor
+from codev.core.performer import CommandError
 from codev.core.providers.performers.local import LocalPerformer
 from codev.core.debug import DebugSettings
 
+from .providers import *
 from .provisioning import Provisioning
 
+from .log import logging_config
 
 logger = getLogger(__name__)
 command_logger = getLogger('command')
@@ -23,13 +24,12 @@ class CodevPerform(object):
             environment_name,
             configuration_name='',
     ):
-
+        logging_config(DebugSettings.settings.loglevel)
 
         environment_settings = settings.environments[environment_name]
         self.environment_name = environment_name
         self.project_name = settings.project
 
-        logging_config(perform=True)
 
         # configuration
         if configuration_name:
@@ -42,20 +42,20 @@ class CodevPerform(object):
 
         performer = LocalPerformer()
         self.infrastructure = Infrastructure(performer, configuration_settings.infrastructure)
-        self.provisioning = Provisioning(settings.provisions, self.infrastructure, performer=performer)
+        self.provisioning = Provisioning(configuration_settings.provisions, self.infrastructure, performer=performer)
 
-    def deploy(self, input_vars):
+    def run(self, input_vars):
         """
-        Create machines, install and run provisioner
+        Run provisioning
 
-        :return: True if deployment is successfully realized
+        :return: True if provisioning is successfully realized
         :rtype: bool
         """
 
         input_vars.update(DebugSettings.settings.load_vars)
 
         logger.info("Deploying project.")
-        self.provisioning.provision(self.status, input_vars)
+        self.provisioning.run(self.status, input_vars)
 
     def execute(self, script, arguments=None):
         """
@@ -67,7 +67,6 @@ class CodevPerform(object):
         :return: True if executed command returns 0
         :rtype: bool
         """
-        logging_config(control_perform=True)
         arguments.update(self.status)
         try:
             self.provisioning.execute_script(script, arguments, logger=command_logger)
@@ -80,9 +79,9 @@ class CodevPerform(object):
     @property
     def status(self):
         """
-        Info about installation
+        Info about provisioning
 
-        :return: installation status
+        :return: provisioning status
         :rtype: dict
         """
         status = dict(

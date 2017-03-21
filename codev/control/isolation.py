@@ -1,11 +1,12 @@
 from json import dumps
 from logging import getLogger
 
-from codev.core.log import logging_config
 from codev.core.performer import CommandError
 from codev.core.performer import ScriptExecutor
 from codev.core.settings import YAMLSettingsReader
 from codev.core.debug import DebugSettings
+
+from .log import logging_config
 
 logger = getLogger(__name__)
 command_logger = getLogger('command')
@@ -54,27 +55,27 @@ class Isolation(ScriptExecutor):
             self.send_file(distfile, remote_distfile)
             self.execute('pip3 install --upgrade {distfile}'.format(distfile=remote_distfile))
 
-    def execute_script(self, script, arguments=None, logger=None):
-        if DebugSettings.perform_settings:
-            perform_debug = ' '.join(
-                (
-                    '--debug {key} {value}'.format(key=key, value=value)
-                    for key, value in DebugSettings.perform_settings.data.items()
-                )
-            )
-        else:
-            perform_debug = ''
-        arguments.update(self.status)
-        codev_script = 'codev-perform execute {environment}:{configuration} {perform_debug} -- {script}'.format(
-            script=script,
-            environment=arguments['environment'],
-            configuration=arguments['configuration'],
-            source=arguments['source'],
-            source_options=arguments['source_options'],
-            perform_debug=perform_debug
-        )
-        with self.change_directory(self.current_source.directory):
-            super().execute_script(codev_script, arguments=arguments, logger=logger)
+    # def execute_script(self, script, arguments=None, logger=None):
+    #     if DebugSettings.perform_settings:
+    #         perform_debug = ' '.join(
+    #             (
+    #                 '--debug {key} {value}'.format(key=key, value=value)
+    #                 for key, value in DebugSettings.perform_settings.data.items()
+    #             )
+    #         )
+    #     else:
+    #         perform_debug = ''
+    #     arguments.update(self.status)
+    #     codev_script = 'codev-perform execute {environment}:{configuration} {perform_debug} -- {script}'.format(
+    #         script=script,
+    #         environment=arguments['environment'],
+    #         configuration=arguments['configuration'],
+    #         source=arguments['source'],
+    #         source_options=arguments['source_options'],
+    #         perform_debug=perform_debug
+    #     )
+    #     with self.change_directory(self.current_source.directory):
+    #         super().execute_script(codev_script, arguments=arguments, logger=logger)
 
     def _install_project(self):
         self.current_source.install(self.performer)
@@ -98,20 +99,22 @@ class Isolation(ScriptExecutor):
         if created:
             logger.info("Install project to isolation...")
             self._install_project()
-            self.execute_scripts(self.settings.scripts.oncreate, status, logger=command_logger)
+            # TODO
+            # self.execute_scripts(self.settings.scripts.oncreate, status, logger=command_logger)
         else:
             if self.next_source:
                 logger.info("Transition source in isolation...")
                 self.current_source = self.next_source
                 self._install_project()
         logger.info("Entering isolation...")
-        self.execute_scripts(self.settings.scripts.onenter, status, logger=command_logger)
+        # TODO
+        # self.execute_scripts(self.settings.scripts.onenter, status, logger=command_logger)
 
-    def deploy(self, infrastructure, status, input_vars):
+    def run(self, infrastructure, status, input_vars):
         # TODO python3.5
         # deploy_vars = {**self.settings.loaded_vars, **input_vars}
-        deploy_vars = self.settings.loaded_vars.copy()
-        deploy_vars.update(input_vars)
+        load_vars = self.settings.loaded_vars.copy()
+        load_vars.update(input_vars)
 
         version = self.execute('pip3 show codev | grep ^Version | cut -d " " -f 2')
         logger.info("Run 'codev {version}' in isolation.".format(version=version))
@@ -134,10 +137,10 @@ class Isolation(ScriptExecutor):
             )
             with self.change_directory(self.current_source.directory):
                 self.execute(
-                    'codev-perform deploy {installation_options} --force {perform_debug}'.format(
+                    'codev-perform run {installation_options} --force {perform_debug}'.format(
                         installation_options=installation_options,
                         perform_debug=perform_debug
-                    ), logger=command_logger, writein=dumps(deploy_vars))
+                    ), logger=command_logger, writein=dumps(load_vars))
         except CommandError as e:
             command_logger.error(e.error)
             logger.error("Installation failed.")

@@ -31,12 +31,12 @@ from codev.control.cli import command, main
     help='Deploy project.',
     confirmation="Deploy project '{project}' to environment '{environment}' in configuration '{configuration}' at source '{source_transition}'?"
 )
-def deploy(installation):
+def run(codev_control):
     """
     Deploy project
 
-    :param installation:
-    :type installation: codev.installation.Installation
+    :param codev_control:
+    :type codev_control: codev.CodevControl
     :return:
     :rtype: bool
     """
@@ -44,15 +44,15 @@ def deploy(installation):
         load_vars = loads(sys.stdin.read())
     else:
         load_vars = {}
-    return installation.deploy(load_vars)
+    return codev_control.run(load_vars)
 
 
 @command(help='Execute command in project context in isolation.')
 @click.argument('command', nargs=-1)
-def execute(installation, command):
+def execute(codev_control, command):
     """
-    :param installation:
-    :type installation: codev.installation.Installation
+    :param codev_control:
+    :type codev_control: codev.CodevControl
     :param command:
     :type command: str
     :return:
@@ -63,32 +63,32 @@ def execute(installation, command):
         arguments = loads(sys.stdin.read())
     else:
         arguments = {}
-    return installation.execute(' '.join(command), arguments)
+    return codev_control.execute(' '.join(command), arguments)
 
 
 @command(
     help='Destroy isolation.',
     confirmation="Destroy isolation of project '{project}' in environment '{environment}' in configuration '{configuration}' at source '{source_transition}'?"
 )
-def destroy(installation):
+def destroy(codev_control):
     """
-    :param installation:
-    :type installation: codev.installation.Installation
+    :param codev_control:
+    :type codev_control: codev.CodevControl
     :return:
     :rtype: bool
     """
-    return installation.destroy()
+    return codev_control.destroy()
 
 
 @command(help='Show info about the installation.')
-def status(installation):
+def status(codev_control):
     """
-    :param installation:
-    :type installation: codev.installation.Installation
+    :param codev_control:
+    :type codev_control: codev.CodevControl
     :return:
     :rtype: bool
     """
-    status = installation.status
+    status = codev_control.status
     from pprint import pformat
     click.echo(pformat(status))
     # formatter = click.HelpFormatter(indent_increment=4)

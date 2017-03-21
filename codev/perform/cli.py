@@ -5,7 +5,6 @@ from functools import wraps
 from os import chdir
 
 from codev import __version__
-from codev.core.log import logging_config
 from codev.core.settings import YAMLSettingsReader
 from codev.core.utils import parse_options
 from codev.core.debug import DebugSettings
@@ -90,7 +89,6 @@ def debug_option(func):
     def debug_wrapper(debug, **kwargs):
         if debug:
             DebugSettings.settings = DebugSettings(dict(debug))
-            logging_config(DebugSettings.settings.loglevel)
 
         return func(**kwargs)
 

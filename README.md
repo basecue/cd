@@ -3,14 +3,17 @@
 
 Highly configurable tool for automatic creating and configuration environments.
 
-codev is designed for ease of use.
+codev is lightweight, decentralized and designed for ease of use.
 
-It's also:
+Basic reasons for using codev:
 
- * lightweight
- * decentralized
- * extensible
- * backwards compatible
+* You want to test deployments on local environment.
+* You want to run some project on your system, which can be completely different than production.
+* You want to run project, which is using multiple operating systems on different types machines, on your develop machine.
+* You want to deploy any version of project on any environment. Even without cloning the project.
+* You want to implement continuous delivery process for all your projects.
+* You want to eliminate human errors during the deployments.
+
 
 There is no stable version (yet). Only beta is available now.
 
@@ -29,7 +32,6 @@ $ pacman -S python-pip
 $ pip install codev --pre
 ```
 
-
 ## Basic usage
 
 ### Overview
@@ -46,7 +48,7 @@ At first create `.codev` file in the main directory of your git repository and c
 ### Initiate installation project in isolation and start deployment:
 
 ```bash
-$ codev deploy <environment>:<configuration> -s <source>
+$ codev run <environment>:<configuration> -s <source>
 ```
 
 ### Create transition from one version of source to another.
@@ -55,7 +57,7 @@ The first use will install the `<source>` and next time it will use `<next sourc
 You can identify this mode in output messages via special 'transition' information `<source> -> <next source>` where current source is highlighted.
 
 ```bash
-$ codev deploy <environment>:<configuration> -s <source> -t <next source>
+$ codev run <environment>:<configuration> -s <source> -t <next source>
 ```
  
 ## Versioning

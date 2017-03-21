@@ -8,6 +8,8 @@ from codev.core.debug import DebugSettings
 
 from .isolation import Isolation
 
+from .log import logging_config
+
 
 logger = getLogger(__name__)
 command_logger = getLogger('command')
@@ -27,6 +29,8 @@ class CodevControl(object):
             next_source_name='',
             next_source_options=''
     ):
+        logging_config(DebugSettings.settings.loglevel)
+
 
         environment_settings = settings.environments[environment_name]
         self.environment_name = environment_name
@@ -102,7 +106,7 @@ class CodevControl(object):
         self.isolation = Isolation(configuration_settings.isolation, self.source, self.next_source, performer=self.performer)
         self.infrastructure = Infrastructure(self.isolation, configuration_settings.infrastructure)
 
-    def deploy(self, input_vars):
+    def run(self, input_vars):
         """
         Create machines, install and run provisioner
 
@@ -112,7 +116,7 @@ class CodevControl(object):
 
         input_vars.update(DebugSettings.settings.load_vars)
         self.isolation.install(self.status)
-        return self.isolation.deploy(self.infrastructure, self.status, input_vars)
+        return self.isolation.run(self.infrastructure, self.status, input_vars)
 
     def destroy(self):
         """
