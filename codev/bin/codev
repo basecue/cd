@@ -1,23 +1,5 @@
 #!/home/beer/projects/baseclue/codev/env/bin/python
 
-"""
-Use cases
-
-codev init --template=[template]
-    -- create new project
-
-codev install [environment] [configuration] [version]
-    -- install project
-
-codev start [environment] [configuration] [version]
-    -- start installed project
-
-codev stop [environment] [configuration] [version]
-    -- stop installed project
-
-codev run [script] [environment] [configuration] [version]
-"""
-
 import select
 import sys
 from json import loads
@@ -68,7 +50,7 @@ def run(codev_control):
 
 @command(
     help='Destroy isolation.',
-    confirmation="Destroy isolation of project '{project}' in environment '{environment}' in configuration '{configuration}' at source '{source_transition}'?"
+    confirmation="Destroy isolation of project '{project}' with configuration '{configuration}' from source '{source_transition}'?"
 )
 def destroy(codev_control):
     """

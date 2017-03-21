@@ -37,9 +37,8 @@ $ pip install codev --pre
 ### Overview
 At a high level there is "control" mode, which checks a current version of settings, creates isolated environment and delegates requested action to codev in "perform" mode in the isolated environment.
 
-There are three basic types of objects, which define the deployment:
+There are two basic types of objects, which define basic behavior of codev:
 
- - `environment` - general box, which should include the one or more `configuration` objects. 
  - `configuration` - defines infrastructure, provision, etc.
  - `source` - defines source of application (version, branch, commit, directory...)
 
@@ -48,7 +47,7 @@ At first create `.codev` file in the main directory of your git repository and c
 ### Initiate installation project in isolation and start deployment:
 
 ```bash
-$ codev run <environment>:<configuration> -s <source>
+$ codev run <configuration> -s <source>
 ```
 
 ### Create transition from one version of source to another.
@@ -57,7 +56,7 @@ The first use will install the `<source>` and next time it will use `<next sourc
 You can identify this mode in output messages via special 'transition' information `<source> -> <next source>` where current source is highlighted.
 
 ```bash
-$ codev run <environment>:<configuration> -s <source> -t <next source>
+$ codev run <configuration> -s <source> -t <next source>
 ```
  
 ## Versioning

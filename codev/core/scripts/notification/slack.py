@@ -9,11 +9,10 @@ from urllib.parse import parse_qs, urlencode
 
 
 def send_message(
-    message, color, url, channel, username, project, environment, configuration, source, source_options, icon
+    message, color, url, channel, username, project, configuration, configuration_option, source, source_options, icon
 ):
     format_vars = dict(
         project=project,
-        environment=environment,
         configuration=configuration,
         source=source
     )
@@ -32,13 +31,11 @@ def send_message(
                         "short": True
                     },
                     {
-                        "title": "Environment",
-                        "value": environment,
-                        "short": True
-                    },
-                    {
                         "title": "Configuration",
-                        "value": configuration,
+                        "value": '{configuration}:{configuration_option}'.format(
+                            configuration=configuration,
+                            configuration_option=configuration_option
+                        ),
                         "short": True
                     },
                     {
@@ -65,8 +62,9 @@ if __name__ == "__main__":
 
     arguments = json.loads(sys.stdin.read())
     project = arguments.get('project', '')
-    environment = arguments.get('environment', '')
+
     configuration = arguments.get('configuration', '')
+    configuration_option = arguments.get('configuration_option', '')
 
     source = arguments.get('source')
     source_options = arguments.get('source_options')
@@ -79,5 +77,5 @@ if __name__ == "__main__":
     color = arguments.get('color', 'good')
 
     send_message(
-        message, color, url, channel, username, project, environment, configuration, source, source_options, icon
+        message, color, url, channel, username, project, configuration, configuration_option, source, source_options, icon
     )

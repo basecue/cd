@@ -37,6 +37,8 @@ class CodevControl(object):
         # TODO support for options
 
         self.configuration_name = configuration_name
+        self.configuration_option = configuration_option
+
         self.project_name = settings.project
 
         # source
@@ -138,6 +140,7 @@ class CodevControl(object):
         status = dict(
             project=self.project_name,
             configuration=self.configuration_name,
+            configuration_option=self.configuration_option,
             source=self.source.name,
             source_options=self.source.options,
             source_ident=self.source.ident,

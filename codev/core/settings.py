@@ -211,7 +211,7 @@ class Settings(BaseSettings):
         return OrderedDict((
             ('version', __version__),
             ('project', path.basename(path.abspath(path.curdir))),
-            ('environments', {})
+            ('configurations', {})
         ))
 
     @property

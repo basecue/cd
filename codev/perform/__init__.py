@@ -28,6 +28,8 @@ class CodevPerform(object):
 
         configuration_settings = settings.configurations[configuration_name]
         self.configuration_name = configuration_name
+        self.configuration_option = configuration_option
+
         self.project_name = settings.project
 
         performer = LocalPerformer()
@@ -77,6 +79,7 @@ class CodevPerform(object):
         status = dict(
             project=self.project_name,
             configuration=self.configuration_name,
+            configuration_option=self.configuration_option,
             infrastructure=self.infrastructure.status
         )
         return status

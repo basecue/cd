@@ -18,7 +18,12 @@ debug_logger = getLogger('debug')
 class Isolation(object):
     def __init__(self, isolation_settings, infrastructure_settings, source, next_source, performer, ident):
 
-        self.isolator = Isolator(isolation_settings.provider, performer=performer, settings_data=isolation_settings.settings_data, ident=ident)
+        self.isolator = Isolator(
+            isolation_settings.provider,
+            performer=performer,
+            settings_data=isolation_settings.settings_data,
+            ident=ident
+        )
         self.settings = isolation_settings
         self.source = source
         self.next_source = next_source
@@ -135,14 +140,13 @@ class Isolation(object):
 
         logging_config(control_perform=True)
         try:
-            installation_options = '{environment}:{configuration}'.format(
-                current_source=self.current_source,
+            configuration = '{configuration}:{configuration_option}'.format(
                 **status
             )
             with self.isolator.change_directory(self.current_source.directory):
                 self.isolator.execute(
-                    'codev-perform run {installation_options} --force {perform_debug}'.format(
-                        installation_options=installation_options,
+                    'codev-perform run {configuration} --force {perform_debug}'.format(
+                        configuration=configuration,
                         perform_debug=perform_debug
                     ), logger=command_logger, writein=dumps(load_vars))
         except CommandError as e:

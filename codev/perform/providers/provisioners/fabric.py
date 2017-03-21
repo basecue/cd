@@ -44,11 +44,10 @@ class FabricProvisioner(Provisioner):
         self.isolator.execute('pip install --upgrade fabric%s fabtools' % version_add)
 
     def run(self, infrastructure, status, input_vars):
-        role = self.settings.role or status['environment']
 
         self.isolator.execute('fab {task} -R {role}'.format(
             task=self.settings.task,
-            role=role
+            role=self.settings.role
         ))
 
         return True

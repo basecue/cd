@@ -1,22 +1,5 @@
 #!/home/beer/projects/baseclue/codev/env/bin/python
 
-"""
-Use cases
-
-codev init --template=[template]
-    -- create new project
-
-codev install [environment] [configuration] [version]
-    -- install project
-
-codev start [environment] [configuration] [version]
-    -- start installed project
-
-codev stop [environment] [configuration] [version]
-    -- stop installed project
-
-codev run [script] [environment] [configuration] [version]
-"""
 from json import loads
 import sys
 import select
