@@ -92,16 +92,7 @@ def codev_control_options(func):
             configuration,
             source,
             next_source,
-            same_source,
             **kwargs):
-
-        if same_source:
-            if source or next_source:
-                raise click.BadOptionUsage('Parameter "-st" is not allowed to use together with "-s" / "--source" or "-t" / "--next-source" parameters.')
-            else:
-                source = next_source = same_source
-        # elif not source:
-        #     raise click.BadOptionUsage('Missing option "-s" / "--source" or "-st"')
 
         source_name, source_options = parse_options(source)
         next_source_name, next_source_options = parse_options(next_source)
@@ -125,20 +116,14 @@ def codev_control_options(func):
 
     f = click.option(
         '-s', '--source',
-        metavar='<source installation>',
+        metavar='<source>',
         help='Source')(f)
 
-    f = click.option(
+    return click.option(
         '-t', '--next-source',
         default='',
         metavar='<next source>',
         help='Next source')(f)
-
-    return click.option(
-        '-st', 'same_source',
-        default='',
-        metavar='<source>',
-        help='Shortcut for same source and next source')(f)
 
 
 def nice_exception(func):

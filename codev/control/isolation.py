@@ -87,6 +87,7 @@ class Isolation(object):
     #         super().execute_script(codev_script, arguments=arguments, logger=logger)
 
     def _install_project(self):
+        # TODO refactorize
         self.current_source.install(self.isolator)
 
         # load .codev file from source and install codev with specific version
@@ -104,17 +105,17 @@ class Isolation(object):
                 self.isolator.start()
             created = False
 
-        self.current_source = self.source
-        if created:
-            logger.info("Install project to isolation...")
+        if created or not self.next_source:
+            logger.info("Install project from source to isolation...")
+            self.current_source = self.source
             self._install_project()
-            # TODO
+
             # self.execute_scripts(self.settings.scripts.oncreate, status, logger=command_logger)
-        else:
-            if self.next_source:
-                logger.info("Transition source in isolation...")
-                self.current_source = self.next_source
-                self._install_project()
+        else:  # if not created and self.next_source
+            logger.info("Transition source in isolation...")
+            self.current_source = self.next_source
+            self._install_project()
+
         logger.info("Entering isolation...")
         # TODO
         # self.execute_scripts(self.settings.scripts.onenter, status, logger=command_logger)

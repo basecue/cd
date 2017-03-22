@@ -8,14 +8,14 @@ import os.path
 from codev.core import Isolator
 from codev.core.settings import BaseSettings, ProviderSettings
 
-from codev.perform.provisioner import Provisioner
+from codev.perform.task import Task
 from .source import AnsibleSource
 from .sources import *
 
 logger = getLogger(__name__)
 
 
-class AnsibleProvisionerSettings(BaseSettings):
+class AnsibleTaskSettings(BaseSettings):
     @property
     def playbook(self):
         return self.data.get('playbook', None)
@@ -53,9 +53,9 @@ class AnsibleProvisionerSettings(BaseSettings):
         return ProviderSettings(self.data.get('source', {}))
 
 
-class AnsibleProvisioner(Provisioner):
+class AnsibleTask(Task):
     provider_name = 'ansible'
-    settings_class = AnsibleProvisionerSettings
+    settings_class = AnsibleTaskSettings
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -65,7 +65,7 @@ class AnsibleProvisioner(Provisioner):
             settings_data=dict(python='2'),
             ident='codev_ansible')
 
-    def install(self):
+    def prepare(self):
         # TODO requirements - python-dev, python-virtualenv
         self.isolator.create()
         self.isolator.execute('pip install --upgrade setuptools==34.0.2')

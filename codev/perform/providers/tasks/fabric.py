@@ -1,10 +1,10 @@
 from codev.core import BaseSettings, SettingsError
 from codev.core import Isolator
 
-from codev.perform.provisioner import Provisioner
+from codev.perform.task import Task
 
 
-class FabricProvisionerSettings(BaseSettings):
+class FabricTaskSettings(BaseSettings):
     @property
     def role(self):
         return self.data.get('role', None)
@@ -18,12 +18,12 @@ class FabricProvisionerSettings(BaseSettings):
         try:
             return self.data['task']
         except KeyError:
-            raise SettingsError('Task must be specified for Fabric provisioner.')
+            raise SettingsError('Task must be specified for Fabric task.')
 
 
-class FabricProvisioner(Provisioner):
+class FabricTask(Task):
     provider_name = 'fabric'
-    settings_class = FabricProvisionerSettings
+    settings_class = FabricTaskSettings
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -33,7 +33,7 @@ class FabricProvisioner(Provisioner):
             settings_data=dict(python='2'),
             ident='codev_fabric')
 
-    def install(self):
+    def prepare(self):
         # TODO requirements - python-dev, python-virtualenv
         self.isolator.create()
         self.isolator.execute('pip install setuptools')

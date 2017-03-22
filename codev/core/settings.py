@@ -176,10 +176,10 @@ class ConfigurationSettings(BaseSettings):
         return DictSettings(InfrastructureSettings, self.data.get('infrastructure', {}))
 
     @property
-    def provisions(self):
+    def tasks(self):
         return DictSettings(
             ProvisionSettings,
-            self.data.get('provisions', {}),
+            self.data.get('tasks', {}),
             last=self.data.get('provision', {})
         )
 

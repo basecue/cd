@@ -53,7 +53,7 @@ class VirtualboxMachine(BaseMachine):
         if install_ssh_server:
             packages.append('openssh-server')
 
-        # TODO packages installation according to provisioning - ie. ansible require python2
+        # TODO packages installation according to runner - ie. ansible require python2
 
         self._prepare_ubuntu_iso(
             release_iso, vm_iso,

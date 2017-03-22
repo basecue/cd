@@ -6,7 +6,7 @@ from codev.core.providers.performers.local import LocalPerformer
 from codev.core.debug import DebugSettings
 
 from .providers import *
-from .provisioning import Provisioning
+from .runner import TasksRunner
 
 from .log import logging_config
 
@@ -34,20 +34,20 @@ class CodevPerform(object):
 
         performer = LocalPerformer()
         self.infrastructure = Infrastructure(performer, configuration_settings.infrastructure)
-        self.provisioning = Provisioning(configuration_settings.provisions, self.infrastructure, performer=performer)
+        self.tasks_runner = TasksRunner(configuration_settings.tasks, self.infrastructure, performer=performer)
 
     def run(self, input_vars):
         """
-        Run provisioning
+        Run runner
 
-        :return: True if provisioning is successfully realized
+        :return: True if runner is successfully realized
         :rtype: bool
         """
 
         input_vars.update(DebugSettings.settings.load_vars)
 
         logger.info("Deploying project.")
-        self.provisioning.run(self.status, input_vars)
+        self.tasks_runner.run(self.status, input_vars)
 
     def execute(self, script, arguments=None):
         """
@@ -61,7 +61,7 @@ class CodevPerform(object):
         """
         arguments.update(self.status)
         try:
-            self.provisioning.execute_script(script, arguments, logger=command_logger)
+            self.tasks_runner.execute_script(script, arguments, logger=command_logger)
         except CommandError as e:
             logger.error(e)
             return False
@@ -71,9 +71,9 @@ class CodevPerform(object):
     @property
     def status(self):
         """
-        Info about provisioning
+        Info about runner
 
-        :return: provisioning status
+        :return: runner status
         :rtype: dict
         """
         status = dict(

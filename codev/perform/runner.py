@@ -2,15 +2,15 @@ from logging import getLogger
 
 from codev.core.performer import ScriptExecutor, CommandError
 
-from .provisioner import Provisioner
+from .task import Task
 
 
 logger = getLogger(__name__)
 
 
-class Provisioning(ScriptExecutor):
-    def __init__(self, provisions, infrastructure, *args, **kwargs):
-        self.provisions = provisions
+class TasksRunner(ScriptExecutor):
+    def __init__(self, tasks, infrastructure, *args, **kwargs):
+        self.tasks = tasks
         self.infrastructure = infrastructure
         super().__init__(*args, **kwargs)
 
@@ -51,22 +51,22 @@ class Provisioning(ScriptExecutor):
 
         script_info.update(infrastructure=infrastructure.status)
 
-        for provisioner_name, provisioner_settings in self.provisions.items():
+        for task_name, task_settings in self.tasks.items():
             # TODO
-            # scripts = provisioner_settings.scripts
+            # scripts = task_settings.scripts
 
             try:
                 # TODO
                 # self.execute_scripts(scripts.onstart, script_info)
 
-                provisioner = Provisioner(provisioner_settings.provider, performer=self.performer, settings_data=provisioner_settings.settings_data)
+                task = Task(task_settings.provider, performer=self.performer, settings_data=task_settings.settings_data)
 
-                name = " '{}'".format(provisioner_name) if provisioner_name else ''
-                logger.info("Installing provisioner{name}...".format(name=name))
-                provisioner.install()
+                name = " '{}'".format(task_name) if task_name else ''
+                logger.info("Preparing task{name}...".format(name=name))
+                task.prepare()
 
-                logger.info("Running provisioner{name}...".format(name=name))
-                provisioner.run(infrastructure, script_info, input_vars)
+                logger.info("Running task{name}...".format(name=name))
+                task.run(infrastructure, script_info, input_vars)
 
             except CommandError as e:
                 # TODO

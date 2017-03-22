@@ -103,7 +103,7 @@ class CodevControl(object):
 
     def run(self, input_vars):
         """
-        Create machines, install and run provisioner
+        Create machines, install and run task
 
         :return: True if deployment is successfully realized
         :rtype: bool
