@@ -7,8 +7,7 @@ from .performer import ProxyPerformer
 
 class Isolator(Provider, ConfigurableProvider, ProxyPerformer):
     def __init__(self, *args, ident=None, **kwargs):
-        ident = str(ident or time())
-        self.ident = md5(ident.encode()).hexdigest()
+        self.ident = str(ident or time())
         super().__init__(*args, **kwargs)
 
     def exists(self):

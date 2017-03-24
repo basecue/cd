@@ -74,12 +74,12 @@ class CodevControl(CodevCore):
         )
 
         # configuration_option is not included, option can be run on the same isolation
-        ident = sorted(list(dict(
-            project=settings.project,
-            configuration=configuration_name,
-            source_ident=source.ident,
-            next_source_ident=next_source.ident if next_source else ''
-        ).items()))
+        ident = ":".join((
+            settings.project,
+            configuration_name,
+            source.ident,
+            next_source.ident if next_source else ''
+        ))
 
         self.source = source
         self.next_source = next_source
