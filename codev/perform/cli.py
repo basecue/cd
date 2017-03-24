@@ -5,6 +5,7 @@ from functools import wraps
 from os import chdir
 
 from codev import __version__
+from codev.core.cli import configuration_with_option
 from codev.core.settings import YAMLSettingsReader
 from codev.core.utils import parse_options
 from codev.core.debug import DebugSettings
@@ -17,10 +18,14 @@ def confirmation_message(message):
         @wraps(f)
         def confirmation_wrapper(codev_perform, force, **kwargs):
             if not force:
+                codev_perform_status = codev_perform.status
                 if not click.confirm(
-                        message.format(
-                            **codev_perform.status
-                        )
+                    message.format(
+                        configuration_with_option=configuration_with_option(
+                            codev_perform_status['configuration'], codev_perform_status['configuration_name']
+                        ),
+                        **codev_perform_status,
+                    )
                 ):
                     raise click.Abort()
             return f(codev_perform, **kwargs)

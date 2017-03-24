@@ -1,5 +1,6 @@
 from logging import getLogger
 
+from codev.core import CodevCore
 from codev.core.performer import Performer
 from codev.core.source import Source
 from codev.core.debug import DebugSettings
@@ -13,7 +14,7 @@ logger = getLogger(__name__)
 command_logger = getLogger('command')
 
 
-class CodevControl(object):
+class CodevControl(CodevCore):
     """
     Installation of project.
     """
@@ -29,37 +30,12 @@ class CodevControl(object):
     ):
         logging_config(DebugSettings.settings.loglevel)
 
-        try:
-            configuration_settings = settings.configurations[configuration_name]
-        except KeyError:
-            raise ValueError(
-                "Configuration '{configuration_name}' is not found.".format(
-                    configuration_name=configuration_name,
-                    project_name=self.project_name
-                )
-            )
-
-        if configuration_option:
-            try:
-                configuration_settings = configuration_settings.options[configuration_option]
-            except KeyError:
-                raise ValueError(
-                    "Option '{configuration_option}' is not found in configuration '{configuration_name}'.".format(
-                        configuration_name=configuration_name,
-                        configuration_option=configuration_option,
-                        project_name=self.project_name
-                    )
-                )
-
-        self.configuration_name = configuration_name
-        self.configuration_option = configuration_option
-
-        self.project_name = settings.project
+        super().__init__(settings, configuration_name, configuration_option)
 
         # source
         if source_name:
             try:
-                source_settings = configuration_settings.sources[source_name]
+                source_settings = self.configuration_settings.sources[source_name]
             except KeyError as e:
                 raise ValueError(
                     "Source '{source_name}' is not allowed source for configuration '{configuration_name}'.".format(
@@ -69,7 +45,7 @@ class CodevControl(object):
                     )
                 ) from e
         else:
-            source_name, source_settings = list(configuration_settings.sources.items())[0]
+            source_name, source_settings = list(self.configuration_settings.sources.items())[0]
 
         source = Source(
             source_name,
@@ -88,7 +64,7 @@ class CodevControl(object):
             next_source = None
 
         # performer
-        performer_settings = configuration_settings.performer
+        performer_settings = self.configuration_settings.performer
         performer_provider = performer_settings.provider
         performer_settings_data = performer_settings.settings_data
 
@@ -108,8 +84,8 @@ class CodevControl(object):
         self.source = source
         self.next_source = next_source
         self.isolation = Isolation(
-            isolation_settings=configuration_settings.isolation,
-            infrastructure_settings=configuration_settings.infrastructure,
+            isolation_settings=self.configuration_settings.isolation,
+            infrastructure_settings=self.configuration_settings.infrastructure,
             source=self.source,
             next_source=self.next_source,
             performer=performer,

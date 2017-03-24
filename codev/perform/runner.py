@@ -27,6 +27,7 @@ class TasksRunner(ScriptExecutor):
         except CommandError as e:
             # TODO
             # self.execute_scripts_onerror(scripts.onerror, status, e, logger=logger)
+            logger.error(e.error)
             return False
         else:
             try:
@@ -36,6 +37,7 @@ class TasksRunner(ScriptExecutor):
             except CommandError as e:
                 # TODO
                 # self.execute_scripts_onerror(scripts.onerror, status, e, logger=logger)
+                logger.error(e.error)
                 return False
 
     def _run(self, infrastructure, script_info, input_vars):

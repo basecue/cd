@@ -6,6 +6,7 @@ from functools import wraps
 from os import chdir
 
 from codev import __version__
+from codev.core.cli import configuration_with_option
 from codev.core.settings import YAMLSettingsReader
 from codev.core.utils import parse_options
 from codev.core.debug import DebugSettings
@@ -13,14 +14,14 @@ from codev.core.debug import DebugSettings
 from . import CodevControl
 
 
-def source_transition(installation_status):
+def source_transition(codev_control_status):
     """
     :param installation_status:
     :return:
     """
-    # TODO deploy vs destroy (different highlited source in transition)
-    next_source_available = bool(installation_status['next_source_ident'])
-    isolation_exists = 'ident' in installation_status.get('isolation', {})
+    # TODO deploy vs destroy (different highlighted source in transition)
+    next_source_available = bool(codev_control_status['next_source_ident'])
+    isolation_exists = 'ident' in codev_control_status.get('isolation', {})
 
     color_options = dict(
         color_source=color.GREEN,
@@ -40,40 +41,35 @@ def source_transition(installation_status):
             color_next_source=color_next_source,
         ))
 
-        final = {}
-        final.update(installation_status)
-        final.update(color_options)
-        # TODO in python 3.5 use **installation_status, **color_options
         transition = ' -> {color_next_source}{next_source}:{next_source_options}{color_reset}'.format(
-            **final
+            **codev_control_status, **color_options
         )
     else:
         transition = ''
 
-    final2 = {}
-    final2.update(installation_status)
-    final2.update(color_options)
-    # TODO in python 3.5 use **installation_status, **color_options
     return '{color_source}{source}:{source_options}{color_reset}{transition}'.format(
         transition=transition,
-        **final2
+        **codev_control_status, **color_options
     )
 
 
 def confirmation_message(message):
     def decorator(f):
         @wraps(f)
-        def confirmation_wrapper(installation, force, **kwargs):
+        def confirmation_wrapper(codev_control, force, **kwargs):
             if not force:
-                installation_status = installation.status
+                codev_control_status = codev_control.status
                 if not click.confirm(
                         message.format(
-                            source_transition=source_transition(installation_status),
-                            **installation_status
+                            source_transition=source_transition(codev_control_status),
+                            configuration_with_option=configuration_with_option(
+                                codev_control_status['configuration'], codev_control_status['configuration_option']
+                            ),
+                            **codev_control_status
                         )
                 ):
                     raise click.Abort()
-            return f(installation, **kwargs)
+            return f(codev_control, **kwargs)
 
         return click.option(
             '-f',
@@ -111,7 +107,7 @@ def codev_control_options(func):
 
     f = click.argument(
         'configuration',
-        metavar='configuration:option>',
+        metavar='<configuration:option>',
         required=True)(codev_control_wrapper)
 
     f = click.option(

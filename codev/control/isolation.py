@@ -121,10 +121,9 @@ class Isolation(object):
         # self.execute_scripts(self.settings.scripts.onenter, status, logger=command_logger)
 
     def run(self, status, input_vars):
-        # TODO python3.5
-        # deploy_vars = {**self.settings.loaded_vars, **input_vars}
-        load_vars = self.settings.loaded_vars.copy()
-        load_vars.update(input_vars)
+
+        # copy and update loaded_vars
+        load_vars = {**self.settings.loaded_vars, **input_vars}
 
         version = self.isolator.execute('pip3 show codev | grep ^Version | cut -d " " -f 2')
         logger.info("Run 'codev {version}' in isolation.".format(version=version))

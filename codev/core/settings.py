@@ -57,14 +57,11 @@ class InfrastructureSettings(ProviderSettings):
 
 
 class DictSettings(OrderedDict):
-    def __init__(self, cls, data, *args, last=None, **kwargs):
+    def __init__(self, cls, data, *args, **kwargs):
         super().__init__()
 
         for name, itemdata in data.items():
             self[name] = cls(itemdata, *args, **kwargs)
-
-        if last:
-            self[''] = cls(last, *args, **kwargs)
 
 
 class ListDictSettings(OrderedDict):
@@ -102,7 +99,7 @@ class ListDictSettings(OrderedDict):
             raise ValueError('Object {data} must be list or dictionary.'.format(data=data))
 
 
-class ProvisionScriptsSettings(BaseSettings):
+class TaskScriptsSettings(BaseSettings):
     @property
     def onstart(self):
         return ListDictSettings(self.data.get('onstart', []))
@@ -116,10 +113,10 @@ class ProvisionScriptsSettings(BaseSettings):
         return ListDictSettings(self.data.get('onerror', []))
 
 
-class ProvisionSettings(ProviderSettings):
+class TaskSettings(ProviderSettings):
     @property
     def scripts(self):
-        return ProvisionScriptsSettings(self.data.get('scripts', {}))
+        return TaskScriptsSettings(self.data.get('scripts', {}))
 
 
 class IsolationScriptsSettings(BaseSettings):
@@ -166,9 +163,8 @@ class BaseConfigurationSettings(BaseSettings):
     @property
     def tasks(self):
         return DictSettings(
-            ProvisionSettings,
-            self.data.get('tasks', {}),
-            last=self.data.get('provision', {})
+            TaskSettings,
+            self.data.get('tasks', {})
         )
 
     @property
@@ -185,9 +181,8 @@ class OptionSettings(BaseConfigurationSettings):
     def tasks(self):
         if 'tasks' in self.data:
             return DictSettings(
-                ProvisionSettings,
-                self.data.get('tasks', {}),
-                last=self.data.get('provision', {})
+                TaskSettings,
+                self.data.get('tasks', {})
             )
         else:
             return self._configuration.tasks
@@ -230,7 +225,8 @@ class ConfigurationSettings(BaseConfigurationSettings):
     def options(self):
         return DictSettings(
             OptionSettings,
-            self.data['options']
+            self.data['options'],
+            self
         )
 
 

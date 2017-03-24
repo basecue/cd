@@ -11,7 +11,7 @@ from codev.control.cli import command, main
 
 @command(
     help='Run configuration.',
-    confirmation="Run configuration '{configuration}' of '{project}' from source '{source_transition}'?"
+    confirmation="Run configuration '{configuration_with_option}' of project '{project}' from source '{source_transition}'?"
 )
 def run(codev_control):
     """

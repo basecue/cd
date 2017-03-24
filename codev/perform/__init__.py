@@ -1,5 +1,6 @@
 from logging import getLogger
 
+from codev.core import CodevCore
 from codev.core.infrastructure import Infrastructure
 from codev.core.performer import CommandError
 from codev.core.providers.performers.local import LocalPerformer
@@ -14,7 +15,7 @@ logger = getLogger(__name__)
 command_logger = getLogger('command')
 
 
-class CodevPerform(object):
+class CodevPerform(CodevCore):
     """
     Installation of project.
     """
@@ -26,15 +27,11 @@ class CodevPerform(object):
     ):
         logging_config(DebugSettings.settings.loglevel)
 
-        configuration_settings = settings.configurations[configuration_name]
-        self.configuration_name = configuration_name
-        self.configuration_option = configuration_option
-
-        self.project_name = settings.project
+        super().__init__(settings, configuration_name, configuration_option)
 
         performer = LocalPerformer()
-        self.infrastructure = Infrastructure(performer, configuration_settings.infrastructure)
-        self.tasks_runner = TasksRunner(configuration_settings.tasks, self.infrastructure, performer=performer)
+        self.infrastructure = Infrastructure(performer, self.configuration_settings.infrastructure)
+        self.tasks_runner = TasksRunner(self.configuration_settings.tasks, self.infrastructure, performer=performer)
 
     def run(self, input_vars):
         """
