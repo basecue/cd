@@ -162,10 +162,57 @@ class ConfigurationScriptsSettings(BaseSettings):
         return ListDictSettings(self.data.get('onerror', []))
 
 
-class ConfigurationSettings(BaseSettings):
+class BaseConfigurationSettings(BaseSettings):
+    @property
+    def tasks(self):
+        return DictSettings(
+            ProvisionSettings,
+            self.data.get('tasks', {}),
+            last=self.data.get('provision', {})
+        )
+
+    @property
+    def scripts(self):
+        return ConfigurationScriptsSettings(self.data.get('scripts', {}))
+
+
+class OptionSettings(BaseConfigurationSettings):
+    def __init__(self, data, configuration):
+        super().__init__(data)
+        self._configuration = configuration
+
+    @property
+    def tasks(self):
+        if 'tasks' in self.data:
+            return DictSettings(
+                ProvisionSettings,
+                self.data.get('tasks', {}),
+                last=self.data.get('provision', {})
+            )
+        else:
+            return self._configuration.tasks
+
+    @property
+    def scripts(self):
+        if 'scripts' in self.data:
+            return ConfigurationScriptsSettings(self.data.get('scripts', {}))
+        else:
+            return self._configuration.scripts
+
+    def __getattr__(self, item):
+        return getattr(self._configuration, item)
+
+
+class ConfigurationSettings(BaseConfigurationSettings):
     def __init__(self, data, default_sources):
         super().__init__(data)
         self.default_sources = default_sources
+
+    @property
+    def sources(self):
+        return ListDictSettings(
+            self.data.get('sources', [])
+        )
 
     @property
     def performer(self):
@@ -176,27 +223,15 @@ class ConfigurationSettings(BaseSettings):
         return DictSettings(InfrastructureSettings, self.data.get('infrastructure', {}))
 
     @property
-    def tasks(self):
-        return DictSettings(
-            ProvisionSettings,
-            self.data.get('tasks', {}),
-            last=self.data.get('provision', {})
-        )
-
-    @property
     def isolation(self):
         return IsolationSettings(self.data.get('isolation', {}))
 
     @property
-    def sources(self):
-        return ListDictSettings(
-            self.data.get('sources', []),
-            intersect_default=self.default_sources
+    def options(self):
+        return DictSettings(
+            OptionSettings,
+            self.data['options']
         )
-
-    @property
-    def scripts(self):
-        return ConfigurationScriptsSettings(self.data.get('scripts', {}))
 
 
 class Settings(BaseSettings):

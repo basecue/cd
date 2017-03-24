@@ -116,6 +116,7 @@ def codev_control_options(func):
 
     f = click.option(
         '-s', '--source',
+        default='',
         metavar='<source>',
         help='Source')(f)
 

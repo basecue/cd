@@ -76,6 +76,7 @@ class TasksRunner(ScriptExecutor):
                 try:
                     # TODO
                     # self.execute_scripts(scripts.onsuccess, script_info)
+                    # logger.info("Task{name} has been succesfully executed.".format(name=name))
                     pass
                 except CommandError as e:
                     # TODO

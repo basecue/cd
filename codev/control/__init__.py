@@ -1,9 +1,7 @@
 from logging import getLogger
 
-from codev.core.isolator import Isolator
 from codev.core.performer import Performer
 from codev.core.source import Source
-from codev.core.infrastructure import Infrastructure
 from codev.core.debug import DebugSettings
 
 from .isolation import Isolation
@@ -31,10 +29,27 @@ class CodevControl(object):
     ):
         logging_config(DebugSettings.settings.loglevel)
 
-        # TODO if not in configurations
-        configuration_settings = settings.configurations[configuration_name]
+        try:
+            configuration_settings = settings.configurations[configuration_name]
+        except KeyError:
+            raise ValueError(
+                "Configuration '{configuration_name}' is not found.".format(
+                    configuration_name=configuration_name,
+                    project_name=self.project_name
+                )
+            )
 
-        # TODO support for options
+        if configuration_option:
+            try:
+                configuration_settings = configuration_settings.options[configuration_option]
+            except KeyError:
+                raise ValueError(
+                    "Option '{configuration_option}' is not found in configuration '{configuration_name}'.".format(
+                        configuration_name=configuration_name,
+                        configuration_option=configuration_option,
+                        project_name=self.project_name
+                    )
+                )
 
         self.configuration_name = configuration_name
         self.configuration_option = configuration_option
@@ -82,7 +97,7 @@ class CodevControl(object):
             settings_data=performer_settings_data
         )
 
-        # TODO add codev version?
+        # configuration_option is not included, option can be run on the same isolation
         ident = sorted(list(dict(
             project=settings.project,
             configuration=configuration_name,
