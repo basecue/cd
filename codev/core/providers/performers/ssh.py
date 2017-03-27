@@ -95,7 +95,7 @@ class SSHperformer(Performer):
         if exit_code:
             err = stderr.read().decode('utf-8').strip()
             self.logger.debug('command error: %s' % err)
-            raise CommandError(command, exit_code, err)
+            raise CommandError(command, exit_code, err, output)
 
         return output
 

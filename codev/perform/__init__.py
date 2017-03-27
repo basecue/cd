@@ -43,8 +43,8 @@ class CodevPerform(CodevCore):
 
         input_vars.update(DebugSettings.settings.load_vars)
 
-        logger.info("Deploying project.")
-        self.tasks_runner.run(self.status, input_vars)
+        # logger.info("Run configuration {configuration}.")
+        return self.tasks_runner.run(self.status, input_vars)
 
     def execute(self, script, arguments=None):
         """

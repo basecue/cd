@@ -6,6 +6,7 @@ from logging import getLogger
 import os.path
 
 from codev.core import Isolator
+from codev.core.performer import CommandError
 from codev.core.settings import BaseSettings, ProviderSettings
 
 from codev.perform.task import Task
@@ -123,7 +124,10 @@ class AnsibleTask(Task):
             extra_vars = ''
 
         # custom ssh config with proper hostnames
-        env_vars_dict = dict(ANSIBLE_SSH_ARGS='-F {ssh_config}')
+        env_vars_dict = dict(
+            ANSIBLE_SSH_ARGS='-F {ssh_config}'
+        )
+
         env_vars_dict.update(self.settings.env_vars)
 
         env_vars = '{joined_env_vars} '.format(
@@ -164,14 +168,17 @@ class AnsibleTask(Task):
 
             machine_idents = [machine.ident for machine in infrastructure.machines]
 
-            self.isolator.execute('{env_vars}ansible-playbook -vvv -i {inventory} {playbook} --limit={limit} {extra_vars}{vault_password_file}'.format(
-                inventory=inventory_directory,
-                playbook=self.settings.playbook,
-                limit=','.join(machine_idents),
-                extra_vars=extra_vars,
-                env_vars=env_vars,
-                vault_password_file=vault_password_file
+            try:
+                self.isolator.execute('{env_vars}ansible-playbook -v -i {inventory} {playbook} --limit={limit} {extra_vars}{vault_password_file}'.format(
+                    inventory=inventory_directory,
+                    playbook=self.settings.playbook,
+                    limit=','.join(machine_idents),
+                    extra_vars=extra_vars,
+                    env_vars=env_vars,
+                    vault_password_file=vault_password_file
 
-            ), writein=writein)
+                ), writein=writein)
+            except CommandError as e:
+                raise CommandError(e.command, e.exit_code, e.output)
 
         return True

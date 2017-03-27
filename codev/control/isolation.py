@@ -154,10 +154,11 @@ class Isolation(object):
             logger.error("Installation failed.")
             return False
         else:
-            logger.info("Setting up connectivity.")
-            self.connect()
             logger.info("Installation has been successfully completed.")
             return True
+        finally:
+            logger.info("Setting up connectivity.")
+            self.connect()
 
     def destroy(self):
         if self.isolator.is_started():

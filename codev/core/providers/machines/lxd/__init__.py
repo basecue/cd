@@ -1,5 +1,3 @@
-from uuid import uuid1
-
 import re
 from time import sleep
 from contextlib import contextmanager
@@ -13,7 +11,7 @@ from codev.core.performer import BackgroundExecutor, PerformerError
 logger = getLogger(__name__)
 
 
-class LXCMachine(BaseMachine):
+class LXDMachine(BaseMachine):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -23,52 +21,43 @@ class LXCMachine(BaseMachine):
         self.base_dir = '/root'
 
     def exists(self):
-        output = self.performer.execute('lxc-ls')
-        return self.ident in output.split()
+        output = self.performer.execute('lxc list -cn --format=json ^{container_name}$'.format(container_name=self.ident))
+        return bool(output)
 
     def is_started(self):
-        output = self.performer.execute('lxc-info -n {container_name} -s'.format(
+        output = self.performer.execute('lxc info {container_name}'.format(
             container_name=self.ident,
         ))
-
-        r = re.match('^State:\s+(.*)$', output.strip())
-        if r:
-            state = r.group(1)
+        for line in output.splitlines():
+            r = re.match('^Status:\s+(.*)$', line)
+            if r:
+                state = r.group(1)
+                break
         else:
-            raise ValueError('o:%s:o' % output)
+            raise ValueError(output)
 
-        if state == 'RUNNING':
+        if state == 'Running':
             if self.ip and self.check_execute('runlevel'):
                 return True
             else:
                 return False
-        elif state == 'STOPPED':
+        elif state == 'Stopped':
             return False
         else:
-            raise ValueError('s:%s:s' % state)
+            raise ValueError('Bad state: {}'.format(state))
 
     def create(self, settings, install_ssh_server=False, ssh_key=None): #, ip=None, gateway=None):
         distribution = settings.distribution
         release = settings.release
-        architecture = self._get_architecture()
-        if not self.performer.check_execute(
-            'lxc-create -t {distribution} -n {container_name} -- --release {release}'.format(
-                container_name=self.ident,
-                distribution=distribution,
-                release=release,
-                architecture=architecture
-            )
-        ):
-            self.performer.execute('lxc-create -t download -n {container_name} -- --dist {distribution} --release {release} --arch {architecture}'.format(
-                container_name=self.ident,
-                distribution=distribution,
-                release=release,
-                architecture=architecture
-            ))
-        self._configure()  # ip=ip, gateway=gateway)
 
-        self.start()
-        # install ssh server
+        self.performer.execute(
+            'lxc launch images:{distribution}/{release} {container_name}'.format(
+                container_name=self.ident,
+                distribution=distribution,
+                release=release
+            )
+        )
+
         if install_ssh_server:
             self.install_packages('openssh-server')
 
@@ -78,16 +67,12 @@ class LXCMachine(BaseMachine):
                 self.execute('tee .ssh/authorized_keys', writein=ssh_key)
 
     def destroy(self):
+        # TODO
         self.performer.execute('rm -rf {share_directory}'.format(share_directory=self.share_directory))
-        self.performer.execute('lxc-destroy -n {container_name}'.format(
+
+        self.performer.execute('lxc delete {container_name}'.format(
             container_name=self.ident,
         ))
-
-    def _get_architecture(self):
-        architecture = self.performer.execute('uname -m')
-        if architecture == 'x86_64':
-            architecture = 'amd64'
-        return architecture
 
     def _configure(self, ip=None, gateway=None):
         self.performer.execute('mkdir -p {share_directory} && chmod 7777 {share_directory}'.format(
@@ -172,7 +157,7 @@ class LXCMachine(BaseMachine):
         return '{container_directory}/config'.format(container_directory=self._container_directory)
 
     def start(self):
-        self.performer.execute('lxc-start -n {container_name}'.format(
+        self.performer.execute('lxc start {container_name}'.format(
             container_name=self.ident,
         ))
         #TODO timeout
@@ -182,7 +167,7 @@ class LXCMachine(BaseMachine):
         return True
 
     def stop(self):
-        self.performer.execute('lxc-stop -n {container_name}'.format(
+        self.performer.execute('lxc stop {container_name}'.format(
             container_name=self.ident,
         ))
 
@@ -205,7 +190,7 @@ class LXCMachine(BaseMachine):
             # attempts to get gateway ip
             for i in range(3):
                 self.__gateway = self.performer.execute(
-                    'lxc-attach -n {container_name} -- ip route | grep default | cut -d " " -f 3'.format(
+                    'lxc exec {container_name} -- ip route | grep default | cut -d " " -f 3'.format(
                         container_name=self.ident
                     )
                 )
@@ -233,7 +218,7 @@ class LXCMachine(BaseMachine):
             self.performer.execute('lxc-usernsexec -- rm {tempfile}'.format(tempfile=tempfile))
 
     def send_file(self, source, target):
-        tempfile = '/tmp/{filename}.tmp'.format(filename=uuid1())
+        tempfile = '/tmp/codev.{ident}.tempfile'.format(ident=self.ident)
         self.performer.send_file(source, tempfile)
         target = self._sanitize_path(target)
 
@@ -255,9 +240,9 @@ class LXCMachine(BaseMachine):
 
         with self.performer.change_directory(self.working_dir):
             return self.performer.execute_wrapper(
-                'lxc-attach {env} -n {container_name} -- {{command}}'.format(
+                'lxc exec {env} {container_name} -- {{command}}'.format(
                     container_name=self.ident,
-                    env=' '.join('-v {var}={value}'.format(var=var, value=value) for var, value in env.items())
+                    env=' '.join('--env {var}={value}'.format(var=var, value=value) for var, value in env.items())
                 ),
                 command,
                 logger=logger,
@@ -354,7 +339,7 @@ class LXCMachine(BaseMachine):
             )
 
 
-class LXCMachinesSettings(BaseSettings):
+class LXDMachinesSettings(BaseSettings):
     @property
     def distribution(self):
         return self.data.get('distribution')
@@ -369,6 +354,6 @@ class LXCMachinesSettings(BaseSettings):
 
 
 class LXCMachinesProvider(MachinesProvider):
-    provider_name = 'lxc'
-    settings_class = LXCMachinesSettings
-    machine_class = LXCMachine
+    provider_name = 'lxd'
+    settings_class = LXDMachinesSettings
+    machine_class = LXDMachine

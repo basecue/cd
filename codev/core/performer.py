@@ -43,6 +43,7 @@ class BaseExecutor(object):
 
 DISTRIBUTION_ISSUES = {
     'debian': 'Debian',
+    'ubuntu-core': 'Ubuntu Core',
     'ubuntu': 'Ubuntu',
     'arch': 'Arch Linux',
 }
@@ -64,6 +65,12 @@ class BasePerformer(object):
             if self._distribution() in ('debian', 'ubuntu'):
                 self.execute(
                     'DEBIAN_FRONTEND=noninteractive apt-get install {packages} -y --force-yes'.format(
+                        packages=' '.join(not_installed_packages)
+                    )
+                )
+            elif self._distribution() == 'ubuntu-core':
+                self.execute(
+                    'snap install {packages}'.format(
                         packages=' '.join(not_installed_packages)
                     )
                 )
@@ -230,12 +237,14 @@ class PerformerError(Exception):
 
 
 class CommandError(PerformerError):
-    def __init__(self, command, exit_code, error):
+    def __init__(self, command, exit_code, error, output=None):
         self.command = command
         self.exit_code = exit_code
         self.error = error
+        self.output = output
+
         super().__init__(
-            "Command '{command}' failed with exit code '{exit_code}' with error '{error}'".format(
+            "Command '{command}' failed with exit code '{exit_code}' with error:\n{error}".format(
                 command=command, exit_code=exit_code, error=error
             )
         )
@@ -441,7 +450,7 @@ class BackgroundExecutor(ProxyPerformer):
         if exit_code:
             err = self._cat_file(isolation.error_file)
             self._clean()
-            raise CommandError(command, exit_code, err)
+            raise CommandError(command, exit_code, err, output)
 
         self._clean()
         return output
