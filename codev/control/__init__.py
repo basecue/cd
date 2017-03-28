@@ -73,6 +73,7 @@ class CodevControl(CodevCore):
             settings_data=performer_settings_data
         )
 
+        # TODO sanitize
         # configuration_option is not included, option can be run on the same isolation
         ident = ":".join((
             settings.project,

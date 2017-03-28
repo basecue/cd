@@ -35,6 +35,7 @@ class LXCMachine(BaseMachine):
         if r:
             state = r.group(1)
         else:
+            # TODO
             raise ValueError('o:%s:o' % output)
 
         if state == 'RUNNING':
@@ -45,6 +46,7 @@ class LXCMachine(BaseMachine):
         elif state == 'STOPPED':
             return False
         else:
+            # TODO
             raise ValueError('s:%s:s' % state)
 
     def create(self, settings, install_ssh_server=False, ssh_key=None): #, ip=None, gateway=None):
@@ -357,11 +359,11 @@ class LXCMachine(BaseMachine):
 class LXCMachinesSettings(BaseSettings):
     @property
     def distribution(self):
-        return self.data.get('distribution')
+        return self.data['distribution']
 
     @property
     def release(self):
-        return self.data.get('release')
+        return self.data['release']
 
     @property
     def number(self):

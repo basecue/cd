@@ -15,12 +15,12 @@ class LXCIsolator(Isolator):
         self.logger = getLogger(__name__)
 
     def _get_id_mapping(self):
-        parent_uid_map, parent_uid_start, parent_uid_range = list(map(int, self.execute('cat /proc/self/uid_map').split()))
+        parent_uid_map, parent_uid_start, parent_uid_range = list(map(int, self.machine.execute('cat /proc/self/uid_map').split()))
         parent_uid_range = min(parent_uid_range, 200000)
         uid_start = int(parent_uid_range / 2)
         uid_range = parent_uid_range - uid_start
 
-        parent_gid_map, parent_gid_start, parent_gid_range = list(map(int, self.execute('cat /proc/self/gid_map').split()))
+        parent_gid_map, parent_gid_start, parent_gid_range = list(map(int, self.machine.execute('cat /proc/self/gid_map').split()))
         parent_gid_range = min(parent_gid_range, 200000)
         gid_start = int(parent_gid_range / 2)
         gid_range = parent_gid_range - gid_start
@@ -73,26 +73,24 @@ class LXCIsolator(Isolator):
         self.machine.stop()
         self.machine.start()
 
-        # TODO test uid/gid mapping
-        # if created:
-        #     uid_start, uid_range, gid_start, gid_range = self._get_id_mapping()
-        #
-        #     self.execute("sed -i '/^root:/d' /etc/subuid /etc/subgid")
-        #     self.execute('usermod -v {uid_start}-{uid_end} -w {gid_start}-{gid_end} root'.format(
-        #         uid_start=uid_start,
-        #         uid_end=uid_start + uid_range - 1,
-        #         gid_start=gid_start,
-        #         gid_end=gid_start + gid_range - 1
-        #     ))
-        #
-        #     self.execute('echo "lxc.id_map = u 0 {uid_start} {uid_range}" >> /etc/lxc/default.conf'.format(
-        #         uid_start=uid_start,
-        #         uid_range=uid_range
-        #     ))
-        #     self.execute('echo "lxc.id_map = g 0 {gid_start} {gid_range}" >> /etc/lxc/default.conf'.format(
-        #         gid_start=gid_start,
-        #         gid_range=gid_range
-        #     ))
+        uid_start, uid_range, gid_start, gid_range = self._get_id_mapping()
+
+        self.machine.execute("sed -i '/^root:/d' /etc/subuid /etc/subgid")
+        self.machine.execute('usermod -v {uid_start}-{uid_end} -w {gid_start}-{gid_end} root'.format(
+            uid_start=uid_start,
+            uid_end=uid_start + uid_range - 1,
+            gid_start=gid_start,
+            gid_end=gid_start + gid_range - 1
+        ))
+
+        self.machine.execute('echo "lxc.id_map = u 0 {uid_start} {uid_range}" >> /etc/lxc/default.conf'.format(
+            uid_start=uid_start,
+            uid_range=uid_range
+        ))
+        self.machine.execute('echo "lxc.id_map = g 0 {gid_start} {gid_range}" >> /etc/lxc/default.conf'.format(
+            gid_start=gid_start,
+            gid_range=gid_range
+        ))
 
     @contextmanager
     def _environment(self):

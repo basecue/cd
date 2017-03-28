@@ -166,11 +166,11 @@ class Isolation(object):
         return self.isolator.destroy()
 
     def exists(self):
-        return self.isolator.exists() and self.isolator.is_started()
+        return self.isolator.exists()
 
     @property
     def status(self):
-        if self.exists():
+        if self.exists() and self.isolator.is_started():
             infrastructure_status = self.infrastructure.status
         else:
             infrastructure_status = {}

@@ -385,11 +385,11 @@ class VirtualboxMachine(BaseMachine):
 class VirtualboxMachinesSettings(BaseSettings):
     @property
     def distribution(self):
-        return self.data.get('distribution')
+        return self.data['distribution']
 
     @property
     def release(self):
-        return self.data.get('release')
+        return self.data['release']
 
     @property
     def number(self):

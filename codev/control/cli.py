@@ -1,13 +1,8 @@
-import sys
-
 import click
 from colorama import Fore as color, Style as style
 from functools import wraps
-from os import chdir
 
-from codev import __version__
-from codev.core.cli import configuration_with_option
-from codev.core.settings import YAMLSettingsReader
+from codev.core.cli import configuration_with_option, nice_exception, path_option, bool_exit_enable, main
 from codev.core.utils import parse_options
 from codev.core.debug import DebugSettings
 
@@ -123,33 +118,6 @@ def codev_control_options(func):
         help='Next source')(f)
 
 
-def nice_exception(func):
-    @wraps(func)
-    def nice_exception_wrapper(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except Exception as e:
-            if DebugSettings.settings.show_client_exception:
-                raise
-            if issubclass(type(e), click.ClickException) or issubclass(type(e), RuntimeError):
-                raise
-            raise click.ClickException(e)
-    return nice_exception_wrapper
-
-
-def path_option(func):
-    @wraps(func)
-    def settings_wrapper(path, *args, **kwargs):
-        chdir(path)
-        settings = YAMLSettingsReader().from_file('.codev')
-        return func(settings, *args, **kwargs)
-
-    return click.option('-p', '--path',
-                        default='./',
-                        metavar='<path to repository>',
-                        help='path to repository')(settings_wrapper)
-
-
 def debug_option(func):
     @wraps(func)
     def debug_wrapper(debug, debug_perform, **kwargs):
@@ -178,28 +146,6 @@ def debug_option(func):
             help='Debug options.'
         )(debug_wrapper)
     )
-
-
-def bool_exit_enable(func):
-    @wraps(func)
-    def bool_exit(*args, **kwargs):
-        value = func(*args, **kwargs)
-        if value:
-            sys.exit(0)
-        else:
-            sys.exit(1)
-
-    return bool_exit
-
-
-@click.group(invoke_without_command=True)
-@click.option('--version', is_flag=True,  help="Show version number and exit.")
-@click.pass_context
-def main(ctx, version):
-    if version:
-        click.echo(__version__)
-    elif not ctx.invoked_subcommand:
-        click.echo(ctx.get_help())
 
 
 def command(confirmation=None, bool_exit=True, **kwargs):

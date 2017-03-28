@@ -80,30 +80,25 @@ class LXDIsolator(Isolator):
         )
 
         self.machine.execute('lxd init --auto')
-        #
-        # self.machine.stop()
-        # self.machine.start()
 
-        # TODO test uid/gid mapping
-        # if created:
-        #     uid_start, uid_range, gid_start, gid_range = self._get_id_mapping()
-        #
-        #     self.execute("sed -i '/^root:/d' /etc/subuid /etc/subgid")
-        #     self.execute('usermod -v {uid_start}-{uid_end} -w {gid_start}-{gid_end} root'.format(
-        #         uid_start=uid_start,
-        #         uid_end=uid_start + uid_range - 1,
-        #         gid_start=gid_start,
-        #         gid_end=gid_start + gid_range - 1
-        #     ))
-        #
-        #     self.execute('echo "lxc.id_map = u 0 {uid_start} {uid_range}" >> /etc/lxc/default.conf'.format(
-        #         uid_start=uid_start,
-        #         uid_range=uid_range
-        #     ))
-        #     self.execute('echo "lxc.id_map = g 0 {gid_start} {gid_range}" >> /etc/lxc/default.conf'.format(
-        #         gid_start=gid_start,
-        #         gid_range=gid_range
-        #     ))
+        uid_start, uid_range, gid_start, gid_range = self._get_id_mapping()
+
+        self.machine.execute("sed -i '/^root:/d' /etc/subuid /etc/subgid")
+        self.machine.execute('usermod -v {uid_start}-{uid_end} -w {gid_start}-{gid_end} root'.format(
+            uid_start=uid_start,
+            uid_end=uid_start + uid_range - 1,
+            gid_start=gid_start,
+            gid_end=gid_start + gid_range - 1
+        ))
+
+        self.machine.execute('echo "lxc.id_map = u 0 {uid_start} {uid_range}" >> /etc/lxc/default.conf'.format(
+            uid_start=uid_start,
+            uid_range=uid_range
+        ))
+        self.machine.execute('echo "lxc.id_map = g 0 {gid_start} {gid_range}" >> /etc/lxc/default.conf'.format(
+            gid_start=gid_start,
+            gid_range=gid_range
+        ))
 
     @contextmanager
     def _environment(self):

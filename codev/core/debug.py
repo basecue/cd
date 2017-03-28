@@ -21,8 +21,8 @@ class DebugSettings(BaseSettings):
         return literal_eval(self.data.get('ssh_copy', 'True'))
 
     @property
-    def show_client_exception(self):
-        return literal_eval(self.data.get('show_client_exception', 'True'))
+    def show_exception(self):
+        return literal_eval(self.data.get('show_exception', 'False'))
 
     @property
     def load_vars(self):

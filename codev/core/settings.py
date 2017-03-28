@@ -25,6 +25,8 @@ yaml.add_constructor(_mapping_tag, dict_constructor)
 """
 """
 
+# TODO check all data.get vs data[] and consider defaults
+
 
 class SettingsError(Exception):
     pass

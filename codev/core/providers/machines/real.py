@@ -35,7 +35,7 @@ class RealMachine(BaseMachine):
 class RealMachinesSettings(BaseSettings):
     @property
     def hosts(self):
-        return self.data.get('hosts', [])
+        return self.data['hosts']
 
 
 class RealMachinesProvider(MachinesProvider):
