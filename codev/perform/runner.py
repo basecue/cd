@@ -27,7 +27,7 @@ class TasksRunner(ScriptExecutor):
         except CommandError as e:
             # TODO
             # self.execute_scripts_onerror(scripts.onerror, status, e, logger=logger)
-            logger.error(e.error)
+            logger.error('{}\n{}'.format(e.output, e.error))
             return False
         else:
             try:

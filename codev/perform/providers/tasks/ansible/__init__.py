@@ -168,17 +168,14 @@ class AnsibleTask(Task):
 
             machine_idents = [machine.ident for machine in infrastructure.machines]
 
-            try:
-                self.isolator.execute('{env_vars}ansible-playbook -v -i {inventory} {playbook} --limit={limit} {extra_vars}{vault_password_file}'.format(
-                    inventory=inventory_directory,
-                    playbook=self.settings.playbook,
-                    limit=','.join(machine_idents),
-                    extra_vars=extra_vars,
-                    env_vars=env_vars,
-                    vault_password_file=vault_password_file
+            self.isolator.execute('{env_vars}ansible-playbook -v -i {inventory} {playbook} --limit={limit} {extra_vars}{vault_password_file}'.format(
+                inventory=inventory_directory,
+                playbook=self.settings.playbook,
+                limit=','.join(machine_idents),
+                extra_vars=extra_vars,
+                env_vars=env_vars,
+                vault_password_file=vault_password_file
 
-                ), writein=writein)
-            except CommandError as e:
-                raise CommandError(e.command, e.exit_code, e.output)
+            ), writein=writein)
 
         return True
