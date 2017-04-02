@@ -20,6 +20,6 @@ class DirectoryIsolator(Isolator):
     def destroy(self):
         return self.performer.execute('rm -rf {dir}'.format(dir=self.base_dir))
 
-    def execute(self, command, logger=None, writein=None, max_lines=None):
+    def execute(self, command, logger=None, writein=None):
         with self.change_base_dir(self.base_dir):
-            return self.performer.execute(self._prepare_command(command), logger=logger, writein=writein, max_lines=max_lines)
+            return self.performer.execute(self._prepare_command(command), logger=logger, writein=writein)

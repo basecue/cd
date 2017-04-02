@@ -1,7 +1,11 @@
 from contextlib import contextmanager
 from subprocess import Popen, PIPE, call
+
+from os import fdopen
 from os.path import expanduser
 from logging import getLogger
+
+from tempfile import mkstemp
 
 from codev.core.performer import CommandError, Performer, OutputReader
 
@@ -13,28 +17,41 @@ class LocalPerformer(Performer):
         self.logger = getLogger(__name__)
         super().__init__(*args, **kwargs)
 
-    def call(self, command, logger=None, writein=None, max_lines=None):
+    def call(self, command, logger=None, writein=None):
         self.logger.debug("Execute command: '%s'" % command)
-        process = Popen(command, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=True)
 
-        if writein:
-            # write writein to stdin
-            process.stdin.write(writein.encode())
-            process.stdin.flush()
-        process.stdin.close()
+        outtempfd, outtemppath = mkstemp()
+        errtempfd, errtemppath = mkstemp()
 
-        # read stdout asynchronously - in 'realtime'
-        output_reader = OutputReader(process.stdout, logger=logger or self.output_logger, max_lines=max_lines)
+        with fdopen(outtempfd, 'w+b') as outfile,\
+             open(outtemppath, 'r+b') as outfileread,\
+             fdopen(errtempfd, 'w+b') as errfile,\
+             open(errtemppath, 'r+b') as errfileread:
+            process = Popen(command, stdout=outfile, stderr=errfile, stdin=PIPE, shell=True)
 
-        # wait for end of output
-        output = output_reader.output()
+            if writein:
+                # write writein to stdin
+                process.stdin.write(writein.encode())
+                process.stdin.flush()
+            process.stdin.close()
 
-        # wait for exit code
-        exit_code = process.wait()
+            output_reader = OutputReader(
+                outfileread,
+                errfileread,
+                logger=logger or self.output_logger
+            )
+
+            # wait for exit code
+            exit_code = process.wait()
+
+            # flush data
+            outfile.flush()
+            errfile.flush()
+
+            output, error = output_reader.output()
 
         if exit_code:
-            err = process.stderr.read().decode('utf-8').strip()
-            raise CommandError(command, exit_code, err, output)
+            raise CommandError(command, exit_code, error, output)
         return output
 
     def send_file(self, source, target):

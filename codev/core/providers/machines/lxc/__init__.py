@@ -246,7 +246,7 @@ class LXCMachine(BaseMachine):
         ))
         self.performer.execute('rm {tempfile}'.format(tempfile=tempfile))
 
-    def execute(self, command, env=None, logger=None, writein=None, max_lines=None):
+    def execute(self, command, env=None, logger=None, writein=None):
         if env is None:
             env = {}
         env.update({
@@ -263,8 +263,7 @@ class LXCMachine(BaseMachine):
                 ),
                 command,
                 logger=logger,
-                writein=writein,
-                max_lines=max_lines
+                writein=writein
             )
 
     def share(self, source, target, bidirectional=False):

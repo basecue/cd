@@ -70,7 +70,7 @@ class SSHperformer(Performer):
         stderr = chan.makefile_stderr('rb', bufsize)
         return stdin, stdout, stderr
 
-    def execute(self, command, logger=None, writein=None, max_lines=None):
+    def execute(self, command, logger=None, writein=None):
         self.logger.debug("Execute command: '%s'" % command)
         if not self.client:
             self._connect()
@@ -78,7 +78,7 @@ class SSHperformer(Performer):
         stdin, stdout, stderr = self._paramiko_exec_command(command)
 
         # read stdout asynchronously - in 'realtime'
-        output_reader = OutputReader(stdout, logger=logger or self.output_logger, max_lines=max_lines)
+        output_reader = OutputReader(stdout, logger=logger or self.output_logger)
 
         if writein:
             # write writein to stdin

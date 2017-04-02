@@ -48,6 +48,7 @@ class Git(object):
         # performer.install_packages('git')
 
         # obtain fingerprint from server and set .ssh/known_hosts properly
+
         hostname = urlparse(self.repository_url).hostname
 
         performer.execute('mkdir -p ~/.ssh')

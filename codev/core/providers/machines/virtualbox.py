@@ -90,14 +90,14 @@ class VirtualboxMachine(BaseMachine):
 
         self.start()
 
-    def execute(self, command, logger=None, writein=None, max_lines=None):
+    def execute(self, command, logger=None, writein=None):
 
         return Performer('ssh', settings_data={'hostname': self.ip, 'username': 'root'}).execute(
-            self._prepare_command(command), logger=logger, writein=writein, max_lines=max_lines
+            self._prepare_command(command), logger=logger, writein=writein
         )
         # return super().execute(
         #     'ssh root@{ip} -- {command}'.format(
-        #         ip=self.ip, command=command, logger=logger, writein=writein, max_lines=max_lines
+        #         ip=self.ip, command=command, logger=logger, writein=writein
         #     )
         # )
 

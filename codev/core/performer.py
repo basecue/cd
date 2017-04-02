@@ -30,15 +30,15 @@ class BaseExecutor(object):
             command=self._include_command(command)
         )
 
-    def execute(self, command, logger=None, writein=None, max_lines=None):
+    def execute(self, command, logger=None, writein=None):
         final_command = self._prepare_command(command)
-        return self.call(final_command, logger=logger, writein=writein, max_lines=max_lines)
+        return self.call(final_command, logger=logger, writein=writein)
 
-    def execute_wrapper(self, wrapper_command, command, logger=None, writein=None, max_lines=None):
+    def execute_wrapper(self, wrapper_command, command, logger=None, writein=None):
         final_command = wrapper_command.format(
             command=self._prepare_command(command)
         )
-        return self.call(final_command, logger=logger, writein=writein, max_lines=max_lines)
+        return self.call(final_command, logger=logger, writein=writein)
 
 
 DISTRIBUTION_ISSUES = {
@@ -164,7 +164,7 @@ class Performer(Provider, ConfigurableProvider, BasePerformer, BaseExecutor):
         # if not self.check_execute('ssh-add -L'):
         #     raise PerformerError("No SSH identities found, use the 'ssh-add'.")
 
-    def call(self, command, logger=None, writein=None, max_lines=None):
+    def call(self, command, logger=None, writein=None):
         raise NotImplementedError()
 
     def send_file(self, source, target):
@@ -253,33 +253,58 @@ class CommandError(PerformerError):
 """
 Output reader
 """
-from threading import Thread
+from multiprocessing.pool import ThreadPool
 
 
 class OutputReader(object):
-    def __init__(self, output, logger=None, max_lines=None):
-        self._output_lines = []
-        self._output_reader = Thread(
-            target=self._reader,
-            args=(output,),
-            kwargs=dict(logger=logger, max_lines=max_lines)
-        )
-        self._output_reader.start()
+    thread_pool = ThreadPool(processes=2)
 
-    def _reader(self, output, logger=None, max_lines=None):
-        while max_lines is None or (len(self._output_lines) < max_lines):
-            line = output.readline()
-            if not line:
+    def __init__(self, stdout, stderr, logger=None):
+        self._stdout_output = []
+        self._stderr_output = []
+
+        self.terminated = False
+
+        self._stdout_reader = self.thread_pool.apply_async(
+            self._reader,
+            args=(stdout,),
+            kwds=dict(logger=logger)
+        )
+
+        self._stderr_reader = self.thread_pool.apply_async(
+            self._reader,
+            args=(stderr,)
+        )
+
+    def _reader(self, output, logger=None):
+        output_lines = []
+        while True:
+            try:
+                if self.terminated:
+                    output.flush()
+
+                lines = output.readlines()
+            except ValueError:  # closed file
                 break
-            output_line = line.decode('utf-8').rstrip('\n')
-            self._output_lines.append(output_line)
-            if logger:
-                logger.debug(output_line)
-        output.close()
+
+            if not lines:
+                if self.terminated:
+                    break
+
+                sleep(0.1)
+                continue
+
+            for line in lines:
+                output_line = line.decode('utf-8').rstrip('\n')
+                output_lines.append(output_line)
+                if logger:
+                    logger.debug(output_line)
+
+        return '\n'.join(output_lines)
 
     def output(self):
-        self._output_reader.join()
-        return '\n'.join(self._output_lines)
+        self.terminated = True
+        return self._stdout_reader.get(), self._stderr_reader.get()
 
 
 """
@@ -433,7 +458,7 @@ class BackgroundExecutor(ProxyPerformer):
         )
 
         # max lines against readline hang
-        pid = self.performer.execute(bg_command, writein=writein, max_lines=1)
+        pid = self.performer.execute(bg_command, writein=writein)
 
         if not pid.isdigit():
             raise ValueError('not a pid %s' % pid)

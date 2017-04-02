@@ -13,18 +13,18 @@ class LXDIsolator(Isolator):
         super().__init__(*args, **kwargs)
         self.machine = LXDMachine(performer=self.performer, ident=self.ident)
         self.logger = getLogger(__name__)
-
-    def _get_id_mapping(self):
-        parent_uid_map, parent_uid_start, parent_uid_range = list(map(int, self.execute('cat /proc/self/uid_map').split()))
-        parent_uid_range = min(parent_uid_range, 200000)
-        uid_start = int(parent_uid_range / 2)
-        uid_range = parent_uid_range - uid_start
-
-        parent_gid_map, parent_gid_start, parent_gid_range = list(map(int, self.execute('cat /proc/self/gid_map').split()))
-        parent_gid_range = min(parent_gid_range, 200000)
-        gid_start = int(parent_gid_range / 2)
-        gid_range = parent_gid_range - gid_start
-        return uid_start, uid_range, gid_start, gid_range
+    #
+    # def _get_id_mapping(self):
+    #     parent_uid_map, parent_uid_start, parent_uid_range = list(map(int, self.execute('cat /proc/self/uid_map').split()))
+    #     parent_uid_range = min(parent_uid_range, 200000)
+    #     uid_start = int(parent_uid_range / 2)
+    #     uid_range = parent_uid_range - uid_start
+    #
+    #     parent_gid_map, parent_gid_start, parent_gid_range = list(map(int, self.execute('cat /proc/self/gid_map').split()))
+    #     parent_gid_range = min(parent_gid_range, 200000)
+    #     gid_start = int(parent_gid_range / 2)
+    #     gid_range = parent_gid_range - gid_start
+    #     return uid_start, uid_range, gid_start, gid_range
 
     def exists(self):
         return self.machine.exists()
@@ -140,9 +140,9 @@ class LXDIsolator(Isolator):
                 machine_background_runner.kill()
                 performer_background_runner.kill()
 
-    def execute(self, command, logger=None, writein=None, max_lines=None):
+    def execute(self, command, logger=None, writein=None):
         with self._environment() as env:
-            return self.machine.execute(command, env=env, logger=logger, writein=writein, max_lines=max_lines)
+            return self.machine.execute(command, env=env, logger=logger, writein=writein)
 
     @contextmanager
     def change_directory(self, directory):

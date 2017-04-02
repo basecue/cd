@@ -39,14 +39,14 @@ class VirtualenvIsolator(Isolator):
     def destroy(self):
         self.performer.execute('rm -rf {env_dir}'.format(env_dir=self._env_dir))
 
-    def execute(self, command, logger=None, writein=None, max_lines=None):
+    def execute(self, command, logger=None, writein=None):
         command = 'source {env_dir}/bin/activate && {command}'.format(
             env_dir=self._env_dir,
             command=command
         )
         with self.performer.change_directory(self.working_dir):
             return self.performer.execute_wrapper(
-                '{command}', command, logger=logger, writein=writein, max_lines=max_lines
+                '{command}', command, logger=logger, writein=writein
             )
 
 
@@ -72,6 +72,6 @@ class VirtualenvDirectoryIsolator(DirectoryIsolator):
         super().destroy()
         self.isolator.destroy()
 
-    def execute(self, command, logger=None, writein=None, max_lines=None):
+    def execute(self, command, logger=None, writein=None):
         with self.isolator.change_directory(self.working_dir):
-            return self.isolator.execute(command, logger=logger, writein=writein, max_lines=max_lines)
+            return self.isolator.execute(command, logger=logger, writein=writein)
