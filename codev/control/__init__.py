@@ -73,14 +73,15 @@ class CodevControl(CodevCore):
             settings_data=performer_settings_data
         )
 
-        # TODO sanitize
         # configuration_option is not included, option can be run on the same isolation
-        ident = ":".join((
+        isolation_ident = (
             settings.project,
             configuration_name,
-            source.ident,
-            next_source.ident if next_source else ''
-        ))
+            source_name,
+            source.options,
+            next_source_name if self.next_source else '',
+            next_source.options if self.next_source else ''
+        )
 
         self.source = source
         self.next_source = next_source
@@ -90,7 +91,7 @@ class CodevControl(CodevCore):
             source=self.source,
             next_source=self.next_source,
             performer=performer,
-            ident=ident
+            ident=isolation_ident
         )
 
     def run(self, input_vars):
@@ -135,10 +136,8 @@ class CodevControl(CodevCore):
             configuration_option=self.configuration_option,
             source=self.source.name,
             source_options=self.source.options,
-            source_ident=self.source.ident,
             next_source=self.next_source.name if self.next_source else '',
             next_source_options=self.next_source.options if self.next_source else '',
-            next_source_ident=self.next_source.ident if self.next_source else '',
             isolation=self.isolation.status
         )
 

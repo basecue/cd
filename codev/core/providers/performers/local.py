@@ -1,7 +1,7 @@
 from contextlib import contextmanager
 from subprocess import Popen, PIPE, call
 
-from os import fdopen
+from os import fdopen, remove
 from os.path import expanduser
 from logging import getLogger
 
@@ -49,6 +49,9 @@ class LocalPerformer(Performer):
             errfile.flush()
 
             output, error = output_reader.output()
+
+        remove(outtemppath)
+        remove(errtemppath)
 
         if exit_code:
             raise CommandError(command, exit_code, error, output)

@@ -94,15 +94,13 @@ class Git(object):
 class GitSource(Source):
     provider_name = 'git'
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.git = Git(version=self.options, directory=self.directory)
-
-    def process_options(self, options):
+    def __init__(self, options, *args, **kwargs):
         if not options:
             raise ValueError('Repository options must be specified.')
 
-        return options
+        self.git = Git(version=options, directory=self.directory)
+
+        super().__init__(options, *args, **kwargs)
 
     def install(self, performer):
         self.git.install(performer)

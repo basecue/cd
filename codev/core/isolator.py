@@ -1,5 +1,7 @@
-from hashlib import md5
+from hashlib import sha256
 from time import time
+
+from slugify import slugify
 
 from .provider import Provider, ConfigurableProvider
 from .performer import ProxyPerformer
@@ -7,7 +9,12 @@ from .performer import ProxyPerformer
 
 class Isolator(Provider, ConfigurableProvider, ProxyPerformer):
     def __init__(self, *args, ident=None, **kwargs):
-        self.ident = str(ident or time())
+        ident = ':'.join(ident) if ident else str(time())
+        ident_hash = sha256(ident.encode()).hexdigest()
+        self.ident = '{}:{}'.format(
+            ident_hash[:10],
+            slugify(ident, regex_pattern=r'[^-a-z0-9_:]+')
+        )
         super().__init__(*args, **kwargs)
 
     def exists(self):

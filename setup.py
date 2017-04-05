@@ -9,7 +9,10 @@ with open('codev/__init__.py', 'rb') as f:
     version = str(ast.literal_eval(_version_re.search(
         f.read().decode('utf-8')).group(1)))
 
-REQUIRES = ['click==6.6', 'PyYAML==3.11', 'paramiko==2.0.0', 'colorama==0.3.7', 'GitPython==2.0.2']
+REQUIRES = [
+    'click==6.6', 'PyYAML==3.11', 'paramiko==2.0.0', 'colorama==0.3.7', 'GitPython==2.0.2',
+    'Unidecode==0.4.20', 'python-slugify==1.2.2'  # needed only for control mode
+]
 
 cmdclass = {}
 ext_modules = []
