@@ -31,7 +31,7 @@ class FabricTask(Task):
             'virtualenv',
             performer=self.performer,
             settings_data=dict(python='2'),
-            ident='codev_fabric')
+            ident='codevfabric')
 
     def prepare(self):
         # TODO requirements - python-dev, python-virtualenv

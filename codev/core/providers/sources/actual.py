@@ -19,12 +19,14 @@ class ActualSource(Source):
 
         remote_archive = '/tmp/{filename}.tar.gz'.format(filename=filename)
 
-        performer.execute('mkdir -p {directory}'.format(directory=self.directory))
         performer.send_file(archive, remote_archive)
 
         # install gunzip
         # TODO requirements
         # performer.install_packages('gzip')
+
+        performer.execute('rm -rf {directory}'.format(directory=self.directory))
+        performer.execute('mkdir -p {directory}'.format(directory=self.directory))
 
         performer.execute(
             'tar -xzf {archive} --directory {directory}'.format(

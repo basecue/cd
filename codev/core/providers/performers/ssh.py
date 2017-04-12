@@ -78,7 +78,7 @@ class SSHperformer(Performer):
         stdin, stdout, stderr = self._paramiko_exec_command(command)
 
         # read stdout asynchronously - in 'realtime'
-        output_reader = OutputReader(stdout, logger=logger or self.output_logger)
+        output_reader = OutputReader(stdout, stderr, logger=logger or self.output_logger)
 
         if writein:
             # write writein to stdin
@@ -87,15 +87,13 @@ class SSHperformer(Performer):
             stdin.channel.shutdown_write()
 
         # wait for end of output
-        output = output_reader.output()
+        output, error = output_reader.output()
 
         # wait for exit code
         exit_code = stdout.channel.recv_exit_status()
 
         if exit_code:
-            err = stderr.read().decode('utf-8').strip()
-            self.logger.debug('command error: %s' % err)
-            raise CommandError(command, exit_code, err, output)
+            raise CommandError(command, exit_code, error, output)
 
         return output
 

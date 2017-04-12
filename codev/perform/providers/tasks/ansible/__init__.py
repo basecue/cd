@@ -64,7 +64,7 @@ class AnsibleTask(Task):
             'virtualenv',
             performer=self.performer,
             settings_data=dict(python='2'),
-            ident='codev_ansible')
+            ident='codevansible')
 
     def prepare(self):
         # TODO requirements - python-dev, python-virtualenv

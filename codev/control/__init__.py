@@ -79,8 +79,8 @@ class CodevControl(CodevCore):
             configuration_name,
             source_name,
             source.options,
-            next_source_name if self.next_source else '',
-            next_source.options if self.next_source else ''
+            next_source_name if next_source else '',
+            next_source.options if next_source else ''
         )
 
         self.source = source

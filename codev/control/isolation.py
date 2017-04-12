@@ -1,5 +1,9 @@
 from json import dumps
+from hashlib import sha256
 from logging import getLogger
+from time import time
+
+from slugify import slugify
 
 from codev.core.performer import CommandError
 from codev.core.settings import YAMLSettingsReader
@@ -17,6 +21,14 @@ debug_logger = getLogger('debug')
 
 class Isolation(object):
     def __init__(self, isolation_settings, infrastructure_settings, source, next_source, performer, ident):
+
+        ident = ':'.join(ident) if ident else str(time())
+        ident_hash = sha256(ident.encode()).hexdigest()
+        ident = '{}:{}'.format(
+            ident_hash[:10],
+            'test'
+            # slugify(ident, regex_pattern=r'[^-a-z0-9_:]+')
+        )
 
         self.isolator = Isolator(
             isolation_settings.provider,
@@ -178,7 +190,6 @@ class Isolation(object):
         status = dict(
             current_source=self.current_source.name,
             current_source_options=self.current_source.options,
-            current_source_ident=self.current_source.ident,
             infrastructure=infrastructure_status
         )
         if self.isolator.exists():

@@ -56,7 +56,7 @@ class VirtualenvDirectoryIsolator(DirectoryIsolator):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.isolator = VirtualenvIsolator(performer=self.performer)
+        self.isolator = VirtualenvIsolator(performer=self.performer, ident='codevvirtualenvdirectory')
 
     def exists(self):
         return super().exists() and self.isolator.exists()
