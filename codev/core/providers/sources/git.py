@@ -96,7 +96,8 @@ class GitSource(Source):
 
     def __init__(self, options, *args, **kwargs):
         if not options:
-            raise ValueError('Repository options must be specified.')
+            # TODO if default, this message doesnt make any sense for user
+            raise ValueError('Options must be specified.')
 
         self.git = Git(version=options, directory=self.directory)
 

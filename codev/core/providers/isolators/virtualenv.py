@@ -73,5 +73,5 @@ class VirtualenvDirectoryIsolator(DirectoryIsolator):
         self.isolator.destroy()
 
     def execute(self, command, logger=None, writein=None):
-        with self.isolator.change_directory(self.working_dir):
+        with self.change_base_dir(self.base_dir):
             return self.isolator.execute(command, logger=logger, writein=writein)

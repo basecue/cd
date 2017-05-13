@@ -3,8 +3,6 @@ from hashlib import sha256
 from logging import getLogger
 from time import time
 
-from slugify import slugify
-
 from codev.core.performer import CommandError
 from codev.core.settings import YAMLSettingsReader
 from codev.core.debug import DebugSettings
@@ -24,17 +22,12 @@ class Isolation(object):
 
         ident = ':'.join(ident) if ident else str(time())
         ident_hash = sha256(ident.encode()).hexdigest()
-        ident = '{}:{}'.format(
-            ident_hash[:10],
-            'test'
-            # slugify(ident, regex_pattern=r'[^-a-z0-9_:]+')
-        )
 
         self.isolator = Isolator(
             isolation_settings.provider,
             performer=performer,
             settings_data=isolation_settings.settings_data,
-            ident=ident
+            ident=ident_hash
         )
         self.settings = isolation_settings
         self.source = source
