@@ -63,7 +63,6 @@ class LXCIsolator(Isolator):
         # TODO - providers requirements
         self.machine.install_packages(
             'lxc',
-            'socat',  # for ssh tunneling
             'python3-pip', 'libffi-dev', 'libssl-dev',  # for codev
             'python-virtualenv', 'python-dev', 'python3-venv', 'sshpass',  # for ansible task
             'git',  # for git source
@@ -132,6 +131,56 @@ class LXCIsolator(Isolator):
             if ssh_auth_sock_remote:
                 machine_background_runner.kill()
                 performer_background_runner.kill()
+
+    # @contextmanager
+    # def _environment(self):
+    #     env = {}
+    #     ssh_auth_sock_local = self.performer.execute('echo $SSH_AUTH_SOCK')
+    #     performer_background_runner = None
+    #     # machine_background_runner = None
+    #     ssh_auth_sock_remote = None
+    #     if ssh_auth_sock_local and self.performer.check_execute(
+    #         '[ -S {ssh_auth_sock_local} ]'.format(
+    #             ssh_auth_sock_local=ssh_auth_sock_local
+    #         )
+    #     ):
+    #         performer_background_runner = BackgroundExecutor(performer=self.performer)
+    #         # machine_background_runner = BackgroundExecutor(performer=self.machine)
+    #
+    #         ssh_auth_sock_remote = '/tmp/ssh-agent-sock'
+    #
+    #         # # TODO avoid tcp because security reason
+    #         # performer_background_runner.execute(
+    #         #     'socat TCP-LISTEN:44444,bind={gateway},fork UNIX-CONNECT:{ssh_auth_sock_local}'.format(
+    #         #         gateway=self.machine._gateway,
+    #         #         ssh_auth_sock_local=ssh_auth_sock_local
+    #         #     ),
+    #         #     wait=False
+    #         # )
+    #         # machine_background_runner.execute(
+    #         #     'socat UNIX-LISTEN:{ssh_auth_sock_remote},fork TCP:{gateway}:44444'.format(
+    #         #         gateway=self.machine._gateway,
+    #         #         ssh_auth_sock_remote=ssh_auth_sock_remote,
+    #         #     ),
+    #         #     wait=False
+    #         # )
+    #         performer_background_runner.execute(
+    #             'ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@{machine_host} -R {ssh_auth_sock_local}:{ssh_auth_sock_remote} -fNTn'.format(
+    #                 machine_host=self.machine.ip,
+    #                 ssh_auth_sock_local=ssh_auth_sock_local,
+    #                 ssh_auth_sock_remote=ssh_auth_sock_remote
+    #             ),
+    #             wait=False
+    #         )
+    #
+    #         env['SSH_AUTH_SOCK'] = ssh_auth_sock_remote
+    #     try:
+    #         yield env
+    #     finally:
+    #         if ssh_auth_sock_remote:
+    #             # machine_background_runner.kill()
+    #             performer_background_runner.kill()
+    #             # pass
 
     def execute(self, command, logger=None, writein=None):
         with self._environment() as env:

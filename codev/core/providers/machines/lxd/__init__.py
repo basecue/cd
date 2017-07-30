@@ -46,7 +46,7 @@ class LXDMachine(BaseMachine):
         else:
             raise ValueError('Bad state: {}'.format(state))
 
-    def create(self, settings, install_ssh_server=False, ssh_key=None): #, ip=None, gateway=None):
+    def create(self, settings, ssh_key): #, ip=None, gateway=None):
         distribution = settings.distribution
         release = settings.release
 
@@ -58,13 +58,12 @@ class LXDMachine(BaseMachine):
             )
         )
 
-        if install_ssh_server:
-            self.install_packages('openssh-server')
+        self.install_packages('openssh-server')
 
-            # authorize user for ssh
-            if ssh_key:
-                self.execute('mkdir -p .ssh')
-                self.execute('tee .ssh/authorized_keys', writein=ssh_key)
+        # authorize user for ssh
+        if ssh_key:
+            self.execute('mkdir -p .ssh')
+            self.execute('tee .ssh/authorized_keys', writein=ssh_key)
 
     def destroy(self):
         # TODO

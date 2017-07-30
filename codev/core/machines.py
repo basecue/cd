@@ -19,7 +19,7 @@ class BaseMachine(ProxyPerformer):
     def start(self):
         raise NotImplementedError()
 
-    def create(self, settings, install_ssh_server=False, ssh_key=None):
+    def create(self, settings, ssh_key):
         raise NotImplementedError()
 
     def destroy(self):
@@ -57,7 +57,7 @@ class MachinesProvider(Provider, ConfigurableProvider):
         for ident in self.idents():
             machine = self.machine_class(performer=self.performer, ident=ident, group=self.group, groups=self.groups)
             if not machine.exists():
-                machine.create(self.settings, install_ssh_server=True, ssh_key=ssh_key)
+                machine.create(self.settings, ssh_key)
             elif not machine.is_started():
                 machine.start()
 

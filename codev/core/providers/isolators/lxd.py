@@ -72,7 +72,6 @@ class LXDIsolator(Isolator):
         # TODO - providers requirements
         self.machine.install_packages(
             'lxd',
-            'socat',  # for ssh tunneling
             'python3-pip', 'libffi-dev', 'libssl-dev',  # for codev
             'python-virtualenv', 'python-dev', 'python3-venv', 'sshpass',  # for ansible task
             'git',  # for git source

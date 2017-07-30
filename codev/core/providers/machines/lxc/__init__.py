@@ -8,7 +8,7 @@ from os import path
 
 from codev.core.settings import BaseSettings
 from codev.core.machines import MachinesProvider, BaseMachine
-from codev.core.performer import BackgroundExecutor, PerformerError
+from codev.core.performer import BackgroundExecutor, PerformerError, CommandError
 
 logger = getLogger(__name__)
 
@@ -23,7 +23,11 @@ class LXCMachine(BaseMachine):
         self.base_dir = '/root'
 
     def exists(self):
-        output = self.performer.execute('lxc-ls')
+        try:
+            output = self.performer.execute('lxc-ls')
+        except CommandError:
+            # lxc is not installed so there is no machine
+            return False
         return self.ident in output.split()
 
     def is_started(self):
@@ -49,7 +53,7 @@ class LXCMachine(BaseMachine):
             # TODO
             raise ValueError('s:%s:s' % state)
 
-    def create(self, settings, install_ssh_server=False, ssh_key=None): #, ip=None, gateway=None):
+    def create(self, settings, ssh_key=None): #, ip=None, gateway=None):
         distribution = settings.distribution
         release = settings.release
         architecture = self._get_architecture()
@@ -70,14 +74,14 @@ class LXCMachine(BaseMachine):
         self._configure()  # ip=ip, gateway=gateway)
 
         self.start()
-        # install ssh server
-        if install_ssh_server:
-            self.install_packages('openssh-server')
 
-            # authorize user for ssh
-            if ssh_key:
-                self.execute('mkdir -p .ssh')
-                self.execute('tee .ssh/authorized_keys', writein=ssh_key)
+        # install ssh server
+        self.install_packages('openssh-server')
+
+        # authorize user for ssh
+        if ssh_key:
+            self.execute('mkdir -p .ssh')
+            self.execute('tee .ssh/authorized_keys', writein=ssh_key)
 
     def destroy(self):
         self.performer.execute('rm -rf {share_directory}'.format(share_directory=self.share_directory))

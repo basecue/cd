@@ -28,7 +28,7 @@ class VirtualboxMachine(BaseMachine):
     def start(self):
         self.performer.execute('VBoxManage startvm "{ident}" --type headless'.format(ident=self.ident))
 
-    def create(self, settings, install_ssh_server=False, ssh_key=None):
+    def create(self, settings, ssh_key):
         distribution = settings.distribution
         release = settings.release
         if distribution != 'ubuntu':
@@ -49,9 +49,7 @@ class VirtualboxMachine(BaseMachine):
             ident=self.ident
         )
 
-        packages = ['virtualbox-guest-utils']
-        if install_ssh_server:
-            packages.append('openssh-server')
+        packages = ['virtualbox-guest-utils', 'openssh-server']
 
         # TODO packages installation according to runner - ie. ansible require python2
 
