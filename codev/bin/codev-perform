@@ -29,23 +29,23 @@ def run(codev_perform):
     return codev_perform.run(load_vars)
 
 
-@command(help='Execute command in project context in isolation.')
-@click.argument('command', nargs=-1)
-def execute(codev_perform, command):
-    """
-    :param codev_perform:
-    :type codev_perform: codev.CodevPerform
-    :param command:
-    :type command: str
-    :return:
-    :rtype: bool
-    """
-
-    if select.select([sys.stdin], [], [], 0.0)[0]:
-        arguments = loads(sys.stdin.read())
-    else:
-        arguments = {}
-    return codev_perform.execute(' '.join(command), arguments)
+# @command(help='Execute command in project context in isolation.')
+# @click.argument('command', nargs=-1)
+# def execute(codev_perform, command):
+#     """
+#     :param codev_perform:
+#     :type codev_perform: codev.CodevPerform
+#     :param command:
+#     :type command: str
+#     :return:
+#     :rtype: bool
+#     """
+#
+#     if select.select([sys.stdin], [], [], 0.0)[0]:
+#         arguments = loads(sys.stdin.read())
+#     else:
+#         arguments = {}
+#     return codev_perform.execute(' '.join(command), arguments)
 
 if __name__ == "__main__":
     main()

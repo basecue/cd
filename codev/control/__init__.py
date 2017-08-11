@@ -1,11 +1,13 @@
 from logging import getLogger
 
+from codev.core.settings import YAMLSettingsReader
+from .isolator import Isolator
 from codev.core import CodevCore
 from codev.core.performer import Performer
 from codev.core.source import Source
 from codev.core.debug import DebugSettings
 
-from .isolation import Isolation
+from .isolator import Isolator
 
 from .log import logging_config
 
@@ -73,53 +75,69 @@ class CodevControl(CodevCore):
             settings_data=performer_settings_data
         )
 
-        # configuration_option is not included, option can be run on the same isolation
-        isolation_ident = (
-            settings.project,
-            configuration_name,
-            source_name,
-            source.options,
-            next_source_name if next_source else '',
-            next_source.options if next_source else ''
-        )
-
         self.source = source
         self.next_source = next_source
-        self.isolation = Isolation(
-            isolation_settings=self.configuration_settings.isolation,
-            infrastructure_settings=self.configuration_settings.infrastructure,
-            source=self.source,
-            next_source=self.next_source,
+
+        self.isolator = Isolator(
+            self.configuration_settings.isolation.provider,
+            settings_data=self.configuration_settings.isolation,
             performer=performer,
-            ident=isolation_ident
         )
 
-    def run(self, input_vars):
+    @property
+    def isolation_ident(self):
+        return (
+            self.project_name,
+            self.configuration_name,
+            self.source.name,
+            self.source.options,
+            self.next_source.name if self.next_source else '',
+            self.next_source.options if self.next_source else ''
+        )
+
+    def perform(self, input_vars):
         """
-        Create machines, install and run task
+        Create isolation and perform
 
         :return: True if deployment is successfully realized
         :rtype: bool
         """
 
-        input_vars.update(DebugSettings.settings.load_vars)
-        self.isolation.install(self.status)
-        return self.isolation.run(self.status, input_vars)
+        isolation, created = self.isolator.get_or_create(self.isolation_ident)
 
-    def destroy(self):
-        """
-        Destroy the isolation.
-
-        :return: True if isolation is destroyed
-        :rtype: bool
-        """
-        if self.isolation.exists():
-            self.isolation.destroy()
-            logger.info('Isolation has been destroyed.')
-            return True
+        if created or not self.next_source:
+            current_source = self.source
         else:
-            logger.info('There is no such isolation.')
-            return False
+            current_source = self.next_source
+
+        current_source.install(isolation)
+
+        with current_source.open_codev_file(isolation) as codev_file:
+            current_settings = YAMLSettingsReader().from_yaml(codev_file)
+
+        codev_version = current_settings.version
+        isolation.install(codev_version)
+
+        load_vars = {**current_settings.loaded_vars, **input_vars}
+        load_vars.update(DebugSettings.settings.load_vars)
+
+        return isolation.perform(self.configuration_name, self.configuration_option, load_vars)
+
+    # FIXME
+    # def destroy(self):
+    #     """
+    #     Destroy the isolation.
+    #
+    #     :return: True if isolation is destroyed
+    #     :rtype: bool
+    #     """
+    #     if self.isolation.exists():
+    #         self.isolation.destroy()
+    #         logger.info('Isolation has been destroyed.')
+    #         return True
+    #     else:
+    #         logger.info('There is no such isolation.')
+    #         return False
 
     @property
     def status(self):
@@ -129,8 +147,9 @@ class CodevControl(CodevCore):
         :return: installation status
         :rtype: dict
         """
+        isolation = self.isolator.get_or_none(self.isolation_ident)
 
-        status = dict(
+        return dict(
             project=self.project_name,
             configuration=self.configuration_name,
             configuration_option=self.configuration_option,
@@ -138,7 +157,5 @@ class CodevControl(CodevCore):
             source_options=self.source.options,
             next_source=self.next_source.name if self.next_source else '',
             next_source_options=self.next_source.options if self.next_source else '',
-            isolation=self.isolation.status
+            isolation=isolation.status if isolation else None
         )
-
-        return status

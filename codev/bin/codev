@@ -10,10 +10,10 @@ from codev.control.cli import command, main
 
 
 @command(
-    help='Run configuration.',
-    confirmation="Run configuration '{configuration_with_option}' of project '{project}' from source '{source_transition}'?"
+    help='Perform task.',
+    confirmation="Perform task '{configuration_with_option}' of project '{project}' from source '{source_transition}'?"
 )
-def run(codev_control):
+def perform(codev_control):
     """
     Deploy project
 
@@ -26,7 +26,7 @@ def run(codev_control):
         load_vars = loads(sys.stdin.read())
     else:
         load_vars = {}
-    return codev_control.run(load_vars)
+    return codev_control.perform(load_vars)
 
 
 # @command(help='Execute command in project context in isolation.')
