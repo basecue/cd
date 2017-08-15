@@ -26,8 +26,8 @@ class Isolator(Provider, ConfigurableProvider, ProxyPerformer):
             return self.create(ident), True
 
     def get_or_none(self, ident):
-        if self.isolator.exists(ident):
-            return self.isolator.get(ident)
+        if self.exists(ident):
+            return self.get(ident)
         else:
             return None
 

@@ -1,4 +1,4 @@
-from codev.core.isolator import Isolator
+from codev.control.isolator import Isolator
 
 
 class DirectoryIsolator(Isolator):

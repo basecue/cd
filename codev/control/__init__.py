@@ -11,6 +11,7 @@ from .isolator import Isolator
 
 from .log import logging_config
 
+from .providers import *
 
 logger = getLogger(__name__)
 command_logger = getLogger('command')

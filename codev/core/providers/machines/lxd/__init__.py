@@ -20,14 +20,24 @@ class LXDMachine(BaseMachine):
         self.__gateway = None
         self.base_dir = '/root'
 
+    @property
+    def container_name(self):
+        return '_'.join(self.ident)
+
     def exists(self):
-        output = self.performer.execute('lxc list -cn --format=json ^{container_name}$'.format(container_name=self.ident))
+        output = self.performer.execute(
+            'lxc list -cn --format=json ^{container_name}$'.format(
+                container_name=self.container_name
+            )
+        )
         return bool(output)
 
     def is_started(self):
-        output = self.performer.execute('lxc info {container_name}'.format(
-            container_name=self.ident,
-        ))
+        output = self.performer.execute(
+            'lxc info {container_name}'.format(
+                container_name=self.container_name
+            )
+        )
         for line in output.splitlines():
             r = re.match('^Status:\s+(.*)$', line)
             if r:
@@ -52,7 +62,7 @@ class LXDMachine(BaseMachine):
 
         self.performer.execute(
             'lxc launch images:{distribution}/{release} {container_name}'.format(
-                container_name=self.ident,
+                container_name=self.container_name,
                 distribution=distribution,
                 release=release
             )
@@ -70,7 +80,7 @@ class LXDMachine(BaseMachine):
         self.performer.execute('rm -rf {share_directory}'.format(share_directory=self.share_directory))
 
         self.performer.execute('lxc delete {container_name}'.format(
-            container_name=self.ident,
+            container_name=self.container_name,
         ))
 
     def _configure(self, ip=None, gateway=None):
@@ -133,7 +143,7 @@ class LXDMachine(BaseMachine):
             abs_base_dir = '$HOME/.local/codev'
             return '{abs_base_dir}/{container_name}/share'.format(
                 abs_base_dir=abs_base_dir,
-                container_name=self.ident
+                container_name=self.container_name
             )
         return self.__share_directory
 
@@ -143,7 +153,7 @@ class LXDMachine(BaseMachine):
             lxc_path = self.performer.execute('lxc-config lxc.lxcpath')
             self.__container_directory = '{lxc_path}/{container_name}'.format(
                 lxc_path=lxc_path,
-                container_name=self.ident
+                container_name=self.container_name
             )
         return self.__container_directory
 
@@ -157,7 +167,7 @@ class LXDMachine(BaseMachine):
 
     def start(self):
         self.performer.execute('lxc start {container_name}'.format(
-            container_name=self.ident,
+            container_name=self.container_name,
         ))
         #TODO timeout
         while not self.is_started():
@@ -167,13 +177,13 @@ class LXDMachine(BaseMachine):
 
     def stop(self):
         self.performer.execute('lxc stop {container_name}'.format(
-            container_name=self.ident,
+            container_name=self.container_name,
         ))
 
     @property
     def ip(self):
         output = self.performer.execute('lxc-info -n {container_name} -i'.format(
-            container_name=self.ident,
+            container_name=self.container_name,
         ))
 
         for line in output.splitlines():
@@ -190,7 +200,7 @@ class LXDMachine(BaseMachine):
             for i in range(3):
                 self.__gateway = self.performer.execute(
                     'lxc exec {container_name} -- ip route | grep default | cut -d " " -f 3'.format(
-                        container_name=self.ident
+                        container_name=self.container_name
                     )
                 )
                 if self.__gateway:
@@ -201,7 +211,7 @@ class LXDMachine(BaseMachine):
 
     @contextmanager
     def get_fo(self, remote_path):
-        tempfile = '/tmp/codev.{ident}.tempfile'.format(ident=self.ident)
+        tempfile = '/tmp/codev.{container_name}.tempfile'.format(container_name=self.container_name)
 
         remote_path = self._sanitize_path(remote_path)
 
@@ -217,7 +227,7 @@ class LXDMachine(BaseMachine):
             self.performer.execute('lxc-usernsexec -- rm {tempfile}'.format(tempfile=tempfile))
 
     def send_file(self, source, target):
-        tempfile = '/tmp/codev.{ident}.tempfile'.format(ident=self.ident)
+        tempfile = '/tmp/codev.{container_name}.tempfile'.format(container_name=self.container_name)
         self.performer.send_file(source, tempfile)
         target = self._sanitize_path(target)
 
@@ -240,7 +250,7 @@ class LXDMachine(BaseMachine):
         with self.performer.change_directory(self.working_dir):
             return self.performer.execute_wrapper(
                 'lxc exec {env} {container_name} -- {{command}}'.format(
-                    container_name=self.ident,
+                    container_name=self.container_name,
                     env=' '.join('--env {var}={value}'.format(var=var, value=value) for var, value in env.items())
                 ),
                 command,
@@ -271,8 +281,8 @@ class LXDMachine(BaseMachine):
             )
 
         source_target_background_runner = BackgroundExecutor(
-            performer=self.performer, ident='share_{ident}'.format(
-                ident=self.ident
+            performer=self.performer, ident='share_{container_name}'.format(
+                container_name=self.container_name
             )
         )
         dir_path = path.dirname(__file__)
@@ -305,8 +315,8 @@ class LXDMachine(BaseMachine):
 
         if bidirectional:
             target_source_background_runner = BackgroundExecutor(
-                performer=self.performer, ident='share_back_{ident}'.format(
-                    ident=self.ident
+                performer=self.performer, ident='share_back_{container_name}'.format(
+                    container_name=self.container_name
                 )
             )
             try:

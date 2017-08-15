@@ -1,5 +1,5 @@
 from codev.core.settings import BaseSettings, SettingsError
-from codev.core.isolator import Isolator
+from codev.control.isolator import Isolator
 
 from .directory import DirectoryIsolator
 
