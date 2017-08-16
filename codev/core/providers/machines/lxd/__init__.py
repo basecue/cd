@@ -1,3 +1,4 @@
+import json
 import re
 from time import sleep
 from contextlib import contextmanager
@@ -15,14 +16,14 @@ class LXDMachine(BaseMachine):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.__container_directory = None
+        # self.__container_directory = None
         self.__share_directory = None
         self.__gateway = None
         self.base_dir = '/root'
 
     @property
     def container_name(self):
-        return '_'.join(self.ident)
+        return '-'.join(self.ident).replace('/', '-').replace('_', '-')
 
     def exists(self):
         output = self.performer.execute(
@@ -30,7 +31,11 @@ class LXDMachine(BaseMachine):
                 container_name=self.container_name
             )
         )
-        return bool(output)
+        return bool(json.loads(output))
+
+    def wait_for_start(self):
+        while not self.is_started():
+            sleep(0.5)
 
     def is_started(self):
         output = self.performer.execute(
@@ -68,6 +73,8 @@ class LXDMachine(BaseMachine):
             )
         )
 
+        self.wait_for_start()
+
         self.install_packages('openssh-server')
 
         # authorize user for ssh
@@ -76,62 +83,62 @@ class LXDMachine(BaseMachine):
             self.execute('tee .ssh/authorized_keys', writein=ssh_key)
 
     def destroy(self):
-        # TODO
-        self.performer.execute('rm -rf {share_directory}'.format(share_directory=self.share_directory))
-
-        self.performer.execute('lxc delete {container_name}'.format(
+        self.performer.execute('lxc delete {container_name} --force'.format(
             container_name=self.container_name,
         ))
 
-    def _configure(self, ip=None, gateway=None):
-        self.performer.execute('mkdir -p {share_directory} && chmod 7777 {share_directory}'.format(
-            share_directory=self.share_directory
-        ))
-        if self.performer.check_execute('[ -f /usr/share/lxc/config/nesting.conf ]'):
-            nesting = 'lxc.mount.auto = cgroup\nlxc.include = /usr/share/lxc/config/nesting.conf'
-        else:
-            nesting = 'lxc.mount.auto = cgroup\nlxc.aa_profile = lxc-container-default-with-nesting'
+        # TODO share
+        self.performer.execute('rm -rf {share_directory}'.format(share_directory=self.share_directory))
 
-        if ip:
-            template_dir = 'static'
-            self.performer.send_file(
-                '{directory}/templates/{template_dir}/network_interfaces'.format(
-                    directory=path.dirname(__file__),
-                    template_dir=template_dir
-                ),
-                '{container_root}/etc/network/interfaces'.format(
-                    container_root=self.container_root
-                )
-            )
-            self.performer.execute(
-                'rm -f {container_root}/etc/resolv.conf'.format(
-                    container_root=self.container_root
-                )
-            )
-            self.performer.execute(
-                'echo "nameserver {gateway}" >> {container_root}/etc/resolv.conf'.format(
-                    gateway=gateway,
-                    container_root=self.container_root
-                )
-            )
-
-        else:
-            template_dir = 'default'
-
-        for line in open('{directory}/templates/{template_dir}/config'.format(
-                directory=path.dirname(__file__),
-                template_dir=template_dir
-            )
-        ):
-            self.performer.execute('echo "{line}" >> {container_config}'.format(
-                    line=line.format(
-                        ip=ip,
-                        share_directory=self.share_directory,
-                        nesting=nesting
-                    ),
-                    container_config=self.container_config
-                )
-            )
+    # def _configure(self, ip=None, gateway=None):
+    #     self.performer.execute('mkdir -p {share_directory} && chmod 7777 {share_directory}'.format(
+    #         share_directory=self.share_directory
+    #     ))
+    #     if self.performer.check_execute('[ -f /usr/share/lxc/config/nesting.conf ]'):
+    #         nesting = 'lxc.mount.auto = cgroup\nlxc.include = /usr/share/lxc/config/nesting.conf'
+    #     else:
+    #         nesting = 'lxc.mount.auto = cgroup\nlxc.aa_profile = lxc-container-default-with-nesting'
+    #
+    #     if ip:
+    #         template_dir = 'static'
+    #         self.performer.send_file(
+    #             '{directory}/templates/{template_dir}/network_interfaces'.format(
+    #                 directory=path.dirname(__file__),
+    #                 template_dir=template_dir
+    #             ),
+    #             '{container_root}/etc/network/interfaces'.format(
+    #                 container_root=self.container_root
+    #             )
+    #         )
+    #         self.performer.execute(
+    #             'rm -f {container_root}/etc/resolv.conf'.format(
+    #                 container_root=self.container_root
+    #             )
+    #         )
+    #         self.performer.execute(
+    #             'echo "nameserver {gateway}" >> {container_root}/etc/resolv.conf'.format(
+    #                 gateway=gateway,
+    #                 container_root=self.container_root
+    #             )
+    #         )
+    #
+    #     else:
+    #         template_dir = 'default'
+    #
+    #     for line in open('{directory}/templates/{template_dir}/config'.format(
+    #             directory=path.dirname(__file__),
+    #             template_dir=template_dir
+    #         )
+    #     ):
+    #         self.performer.execute('echo "{line}" >> {container_config}'.format(
+    #                 line=line.format(
+    #                     ip=ip,
+    #                     share_directory=self.share_directory,
+    #                     nesting=nesting
+    #                 ),
+    #                 container_config=self.container_config
+    #             )
+    #         )
 
         # ubuntu trusty workaround
         # self.performer.execute("sed -e '/lxc.include\s=\s\/usr\/share\/lxc\/config\/ubuntu.userns\.conf/ s/^#*/#/' -i {container_config}".format(container_config=self.container_config))
@@ -147,31 +154,30 @@ class LXDMachine(BaseMachine):
             )
         return self.__share_directory
 
-    @property
-    def _container_directory(self):
-        if not self.__container_directory:
-            lxc_path = self.performer.execute('lxc-config lxc.lxcpath')
-            self.__container_directory = '{lxc_path}/{container_name}'.format(
-                lxc_path=lxc_path,
-                container_name=self.container_name
-            )
-        return self.__container_directory
+    # @property
+    # def _container_directory(self):
+    #     if not self.__container_directory:
+    #         lxc_path = self.performer.execute('lxc-config lxc.lxcpath')
+    #         self.__container_directory = '{lxc_path}/{container_name}'.format(
+    #             lxc_path=lxc_path,
+    #             container_name=self.container_name
+    #         )
+    #     return self.__container_directory
 
-    @property
-    def container_root(self):
-        return '{container_directory}/rootfs'.format(container_directory=self._container_directory)
-
-    @property
-    def container_config(self):
-        return '{container_directory}/config'.format(container_directory=self._container_directory)
+    # @property
+    # def container_root(self):
+    #     return '{container_directory}/rootfs'.format(container_directory=self._container_directory)
+    #
+    # @property
+    # def container_config(self):
+    #     return '{container_directory}/config'.format(container_directory=self._container_directory)
 
     def start(self):
         self.performer.execute('lxc start {container_name}'.format(
             container_name=self.container_name,
         ))
-        #TODO timeout
-        while not self.is_started():
-            sleep(0.5)
+
+        self.wait_for_start()
 
         return True
 
@@ -182,12 +188,11 @@ class LXDMachine(BaseMachine):
 
     @property
     def ip(self):
-        output = self.performer.execute('lxc-info -n {container_name} -i'.format(
+        output = self.performer.execute('lxc info {container_name}'.format(
             container_name=self.container_name,
         ))
-
         for line in output.splitlines():
-            r = re.match('^IP:\s+([0-9\.]+)$', line)
+            r = re.match('^\s+eth0:\s+inet\s+([0-9\.]+)\s+\w+$', line)
             if r:
                 return r.group(1)
 
@@ -212,31 +217,30 @@ class LXDMachine(BaseMachine):
     @contextmanager
     def get_fo(self, remote_path):
         tempfile = '/tmp/codev.{container_name}.tempfile'.format(container_name=self.container_name)
-
         remote_path = self._sanitize_path(remote_path)
-
-        self.performer.execute('lxc-usernsexec -- cp {container_root}{remote_path} {tempfile}'.format(
-            tempfile=tempfile,
-            remote_path=remote_path,
-            container_root=self.container_root
-        ))
+        self.performer.execute(
+            'lxc file pull {container_name}/{remote_path} {tempfile}'.format(
+                container_name=self.container_name,
+                remote_path=remote_path,
+                tempfile=tempfile
+            )
+        )
         try:
             with self.performer.get_fo(tempfile) as fo:
                 yield fo
         finally:
-            self.performer.execute('lxc-usernsexec -- rm {tempfile}'.format(tempfile=tempfile))
+            self.performer.execute('rm {tempfile}'.format(tempfile=tempfile))
 
     def send_file(self, source, target):
-        tempfile = '/tmp/codev.{container_name}.tempfile'.format(container_name=self.container_name)
-        self.performer.send_file(source, tempfile)
         target = self._sanitize_path(target)
 
-        self.performer.execute('lxc-usernsexec -- cp {tempfile} {container_root}{target}'.format(
-            tempfile=tempfile,
-            target=target,
-            container_root=self.container_root
-        ))
-        self.performer.execute('rm {tempfile}'.format(tempfile=tempfile))
+        self.performer.execute(
+            'lxc file push --uid=0 --gid=0 {source} {container_name}/{target}'.format(
+                source=source,
+                container_name=self.container_name,
+                target=target
+            )
+        )
 
     def execute(self, command, env=None, logger=None, writein=None):
         if env is None:

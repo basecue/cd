@@ -19,21 +19,6 @@ debug_logger = getLogger('debug')
 
 
 class Isolator(Provider, ConfigurableProvider, ProxyPerformer):
-    def get_or_create(self, ident):
-        if self.exists(ident):
-            return self.get(ident), False
-        else:
-            return self.create(ident), True
-
-    def get_or_none(self, ident):
-        if self.exists(ident):
-            return self.get(ident)
-        else:
-            return None
-
-    def exists(self, ident):
-        raise NotImplementedError()
-
     def get(self, ident):
         raise NotImplementedError()
 
@@ -81,6 +66,9 @@ class Isolation(ProxyPerformer):
             logger.info("Setting up connectivity.")
             # self.connect()
             # FIXME
+
+    def status(self):
+        return self.ip
 
 
 class PrivilegedIsolation(Isolation):

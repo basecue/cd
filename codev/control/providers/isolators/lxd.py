@@ -7,25 +7,40 @@ from codev.control.isolator import Isolator, PrivilegedIsolation
 class LXDIsolator(Isolator):
     provider_name = 'lxd'
 
-    def get(self, ident):
+    def _get(self, ident):
         return PrivilegedIsolation(performer=LXDMachine(performer=self.performer, ident=ident))
 
-    def exists(self, ident):
-        return self.get(ident).exists()
+    def get(self, ident):
+        isolation = self._get(ident)
+        if isolation.exists() and isolation.is_started():
+            return isolation
+        else:
+            return None
 
     def create(self, ident):
-        isolation = self.get(ident)
+        isolation = self._get(ident)
 
-        settings = LXDMachinesSettings(data=dict(distribution='ubuntu-core', release='16'))
-        isolation.create(settings)
+        if isolation.exists():
+
+            if not isolation.is_started():
+                isolation.start()
+
+            return isolation, False
+
+        settings = LXDMachinesSettings(data=dict(distribution='ubuntu', release='xenial'))
+
+        # TODO - rethink ssh key management
+        ssh_key = self.performer.execute('ssh-add -L')
+
+        isolation.create(settings, ssh_key)
 
         self.performer.execute(
             'lxc config set {container_name} security.nesting true'.format(
-                container_name=self.ident
+                container_name=isolation.container_name
             )
         )
 
-        isolation.execute('snap refresh')
+        # isolation.execute('snap refresh')
 
         isolation.stop()
         isolation.start()
@@ -40,7 +55,7 @@ class LXDIsolator(Isolator):
         )
 
         isolation.execute('lxd init --auto')
-        return isolation
+        return isolation, True
 
         # uid_start, uid_range, gid_start, gid_range = self._get_id_mapping()
         #

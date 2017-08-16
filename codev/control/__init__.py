@@ -87,14 +87,14 @@ class CodevControl(CodevCore):
 
     @property
     def isolation_ident(self):
-        return (
+        return tuple(filter(None, [
             self.project_name,
             self.configuration_name,
             self.source.name,
             self.source.options,
             self.next_source.name if self.next_source else '',
             self.next_source.options if self.next_source else ''
-        )
+        ]))
 
     def perform(self, input_vars):
         """
@@ -104,7 +104,7 @@ class CodevControl(CodevCore):
         :rtype: bool
         """
 
-        isolation, created = self.isolator.get_or_create(self.isolation_ident)
+        isolation, created = self.isolator.create(self.isolation_ident)
 
         if created or not self.next_source:
             current_source = self.source
@@ -148,7 +148,7 @@ class CodevControl(CodevCore):
         :return: installation status
         :rtype: dict
         """
-        isolation = self.isolator.get_or_none(self.isolation_ident)
+        isolation = self.isolator.get(self.isolation_ident)
 
         return dict(
             project=self.project_name,
@@ -158,5 +158,5 @@ class CodevControl(CodevCore):
             source_options=self.source.options,
             next_source=self.next_source.name if self.next_source else '',
             next_source_options=self.next_source.options if self.next_source else '',
-            isolation=isolation.status if isolation else None
+            isolation=isolation.status if isolation else ''
         )
