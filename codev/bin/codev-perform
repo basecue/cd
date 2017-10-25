@@ -1,4 +1,4 @@
-#!/home/beer/projects/baseclue/codev/env/bin/python
+#!/usr/bin/env python
 
 from json import loads
 import sys
