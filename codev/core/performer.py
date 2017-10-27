@@ -51,8 +51,9 @@ DISTRIBUTION_ISSUES = {
 
 class BasePerformer(object):
     def __init__(self, *args, **kwargs):
+        base_dir = kwargs.pop('base_dir', '')
         super().__init__()
-        self.base_dir = ''
+        self.base_dir = base_dir
         self.working_dirs = []
         self.__cache_packages = False
         self.__distribution = None

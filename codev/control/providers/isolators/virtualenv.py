@@ -1,7 +1,5 @@
 from codev.core.settings import BaseSettings, SettingsError
-from codev.control.isolator import Isolator
-
-from .directory import DirectoryIsolator
+from codev.control.isolator import Isolator, PrivilegedIsolation
 
 
 class VirtualenvIsolatorSettings(BaseSettings):
@@ -22,56 +20,28 @@ class VirtualenvIsolator(Isolator):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._env_dir = '~/.share/codev/virtualenv/{ident}'.format(ident=self.ident)
+        self.base_dir = '~/.share/codev/virtualenv/{ident}/'
 
-    def exists(self):
-        return self.performer.check_execute('[ -d {env_dir} ]'.format(env_dir=self._env_dir))
+    def get(self, ident):
+        return VirtualenvIsolation(base_dir=self.base_dir)
 
-    def create(self):
+    def create(self, ident):
         python_version = self.settings.python_version
-        self.performer.execute('virtualenv -p python{python_version} {env_dir}'.format(
-            python_version=python_version, env_dir=self._env_dir)
+        self.performer.execute(
+            'virtualenv -p python{python_version} env'.format(
+                python_version=python_version
+            )
         )
+        return self.get(ident)
 
-    def is_started(self):
-        return self.exists()
 
-    def destroy(self):
-        self.performer.execute('rm -rf {env_dir}'.format(env_dir=self._env_dir))
-
+class VirtualenvIsolation(PrivilegedIsolation):
     def execute(self, command, logger=None, writein=None):
-        command = 'source {env_dir}/bin/activate && {command}'.format(
+        command = 'source env/bin/activate && {command}'.format(
             env_dir=self._env_dir,
             command=command
         )
-        with self.performer.change_directory(self.working_dir):
-            return self.performer.execute_wrapper(
-                '{command}', command, logger=logger, writein=writein
-            )
+        return self.performer.execute_wrapper(
+            '{command}', command, logger=logger, writein=writein
+        )
 
-
-class VirtualenvDirectoryIsolator(DirectoryIsolator):
-    provider_name = 'virtualenvdirectory'
-    settings_class = VirtualenvIsolatorSettings
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.isolator = VirtualenvIsolator(performer=self.performer, ident='codevvirtualenvdirectory')
-
-    def exists(self):
-        return super().exists() and self.isolator.exists()
-
-    def create(self):
-        super().create()
-        self.isolator.create()
-
-    def is_started(self):
-        return self.exists()
-
-    def destroy(self):
-        super().destroy()
-        self.isolator.destroy()
-
-    def execute(self, command, logger=None, writein=None):
-        with self.change_base_dir(self.base_dir):
-            return self.isolator.execute(command, logger=logger, writein=writein)
