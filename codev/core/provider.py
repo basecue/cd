@@ -22,14 +22,14 @@ class ProviderMetaClass(type):
             else:
                 raise ImportError("It is unable to determine provider class for class '{name}'.".format(name=name))
 
+            cls = type.__new__(mcs, name, bases, attrs)
+
             if 'provider_name' in attrs:
                 if not isinstance(attrs['provider_name'], str):
                     raise TypeError("Attribute 'provider_name' has to be 'str' type in provider class '{name}'.".format(name=name))
-                cls = type.__new__(mcs, name, bases, attrs)
                 cls.provider_class.register_provider(cls.provider_name, cls)
-                return cls
-            else:
-                raise ImportError("Attribute 'provider_name' has to be defined in provider class '{name}'.".format(name=name))
+
+            return cls
 
     def __call__(cls, *args, **kwargs):
         if cls == cls.provider_class:

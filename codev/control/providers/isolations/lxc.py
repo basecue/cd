@@ -3,7 +3,7 @@ from codev.core.providers.machines.lxc import LXCMachine, LXCMachinesSettings
 from codev.control.isolator import Isolator, PrivilegedIsolation
 
 
-class LXCIsolator(Isolator):
+class LXCIsolation(PrivilegedIsolation):
     provider_name = 'lxc'
 
     def get(self, ident):

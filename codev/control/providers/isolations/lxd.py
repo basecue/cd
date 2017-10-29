@@ -4,20 +4,20 @@ from codev.core.providers.machines.lxd import LXDMachine, LXDMachinesSettings
 from codev.control.isolator import Isolator, PrivilegedIsolation
 
 
-class LXDIsolator(Isolator):
+class LXDIsolation(Isolator):
     provider_name = 'lxd'
 
     def _get(self, ident):
         return PrivilegedIsolation(performer=LXDMachine(performer=self.performer, ident=ident))
 
-    def get(self, ident):
+    def __init__(self, *args, ident, **kwargs):
         isolation = self._get(ident)
         if isolation.exists() and isolation.is_started():
             return isolation
         else:
             return None
 
-    def create(self, ident):
+    def get_or_create(self):
         isolation = self._get(ident)
 
         if isolation.exists():

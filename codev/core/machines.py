@@ -1,9 +1,9 @@
 from .provider import Provider, ConfigurableProvider
-from .performer import ProxyPerformer
+from .executor import Executor
 from .debug import DebugSettings
 
 
-class BaseMachine(ProxyPerformer):
+class BaseMachine(Executor):
     def __init__(self, *args, ident=None, group=None, groups=None, **kwargs):
         self.group = group
         self.groups = groups

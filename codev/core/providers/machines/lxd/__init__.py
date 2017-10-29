@@ -7,7 +7,7 @@ from os import path
 
 from codev.core.settings import BaseSettings
 from codev.core.machines import MachinesProvider, BaseMachine
-from codev.core.performer import BackgroundExecutor, PerformerError
+from codev.core.performer import BackgroundExecutor, CommandError
 
 logger = getLogger(__name__)
 
@@ -314,7 +314,7 @@ class LXDMachine(BaseMachine):
                 ),
                 wait=False
             )
-        except PerformerError:
+        except CommandError:
             pass
 
         if bidirectional:
@@ -340,7 +340,7 @@ class LXDMachine(BaseMachine):
                     ),
                     wait=False
                 )
-            except PerformerError:
+            except CommandError:
                 pass
 
         if not self.check_execute('[ -L {target} ]'.format(target=target)):

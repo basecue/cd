@@ -5,7 +5,7 @@ from logging import getLogger
 from paramiko.client import SSHClient, AutoAddPolicy, NoValidConnectionsError
 from paramiko.agent import AgentRequestHandler
 
-from codev.core.performer import Performer, PerformerError, CommandError, OutputReader
+from codev.core.performer import Performer, CommandError, CommandError, OutputReader
 from codev.core.settings import BaseSettings
 
 
@@ -51,7 +51,7 @@ class SSHperformer(Performer):
         try:
             self.client.connect(self.settings.hostname, **connection_details)
         except NoValidConnectionsError as e:
-            raise PerformerError('Cant connect to %s' % self.settings.hostname)
+            raise CommandError('Cant connect to %s' % self.settings.hostname)
         else:
             #ssh agent forwarding
             s = self.client.get_transport().open_session()

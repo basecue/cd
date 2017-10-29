@@ -7,7 +7,7 @@ class TestProvider:
     """
     @classmethod
     def setup_class(cls):
-        from codev.provider import Provider
+        from codev.core.provider import Provider
 
         class TestProvider(Provider):
             def test(self):
@@ -69,7 +69,7 @@ class TestAnotherProvider:
     """
     @classmethod
     def setup_class(cls):
-        from codev.provider import Provider
+        from codev.core.provider import Provider
 
         class TestProvider(Provider):
             pass
@@ -105,29 +105,29 @@ class TestNotAllowedProvider:
         """
         Testing provider with not allowed set up provider_name
         """
-        from codev.provider import Provider
+        from codev.core.provider import Provider
         with pytest.raises(ImportError):
             class NamedProvider(Provider):
                 provider_name = 'named'
 
-    def test_not_named_provider(self):
-        """
-        Testing provider with not named provider
-        """
-        from codev.provider import Provider
-
-        class TestProvider(Provider):
-            pass
-
-        with pytest.raises(ImportError):
-            class NotNamedProvider(TestProvider):
-                pass
+    # def test_not_named_provider(self):
+    #     """
+    #     Testing provider with not named provider
+    #     """
+    #     from codev.core.provider import Provider
+    #
+    #     class TestProvider(Provider):
+    #         pass
+    #
+    #     with pytest.raises(ImportError):
+    #         class NotNamedProvider(TestProvider):
+    #             pass
 
     def test_same_named_providers(self):
         """
         Testing providers with same provider_names
         """
-        from codev.provider import Provider
+        from codev.core.provider import Provider
 
         class TestProvider(Provider):
             pass
@@ -143,7 +143,7 @@ class TestNotAllowedProvider:
         """
         Testing provider with not named provider
         """
-        from codev.provider import Provider
+        from codev.core.provider import Provider
 
         class TestProvider(Provider):
             pass

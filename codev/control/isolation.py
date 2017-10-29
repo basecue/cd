@@ -3,7 +3,8 @@ from hashlib import sha256
 from logging import getLogger
 from time import time
 
-from codev.core.performer import CommandError, ProxyPerformer
+from codev.core.executor import Executor, CommandError
+from codev.core.performer import HasPerformer
 from codev.core.provider import Provider, ConfigurableProvider
 from codev.core.settings import YAMLSettingsReader
 from codev.core.debug import DebugSettings
@@ -18,15 +19,17 @@ command_logger = getLogger('command')
 debug_logger = getLogger('debug')
 
 
-class Isolator(Provider, ConfigurableProvider, ProxyPerformer):
-    def get(self, ident):
+class Isolation(Provider, ConfigurableProvider, Executor):
+
+    def __init__(self, *args, ident=None, **kwargs):
+        self.ident = ident
+        super().__init__(*args, **kwargs)
+
+    def create(self):
         raise NotImplementedError()
 
-    def create(self, ident):
+    def exists(self):
         raise NotImplementedError()
-
-
-class Isolation(ProxyPerformer):
 
     def install(self, version):
         raise NotImplementedError()
@@ -67,8 +70,10 @@ class Isolation(ProxyPerformer):
             # self.connect()
             # FIXME
 
+    @property
     def status(self):
-        return self.ip
+
+        return ''  # FIXME
 
 
 class PrivilegedIsolation(Isolation):
