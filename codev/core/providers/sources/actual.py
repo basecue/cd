@@ -3,6 +3,7 @@ import shutil
 from time import time
 from uuid import uuid1
 
+from codev.core.executor import Command
 from codev.core.source import Source
 
 
@@ -13,26 +14,26 @@ class ActualSource(Source):
         options = options or str(time())
         super().__init__(options, *args, **kwargs)
 
-    def install(self, performer):
+    def install(self, executor):
         filename = uuid1()
         archive = shutil.make_archive('/tmp/{filename}'.format(filename=filename), 'gztar')
 
         remote_archive = '/tmp/{filename}.tar.gz'.format(filename=filename)
 
-        performer.send_file(archive, remote_archive)
+        executor.send_file(archive, remote_archive)
 
         # install gunzip
         # TODO requirements
         # performer.install_packages('gzip')
 
-        performer.execute('rm -rf {directory}'.format(directory=self.directory))
-        performer.execute('mkdir -p {directory}'.format(directory=self.directory))
+        Command('rm -rf {directory}'.format(directory=self.directory)).execute(executor)
+        Command('mkdir -p {directory}'.format(directory=self.directory)).execute(executor)
 
-        performer.execute(
+        Command(
             'tar -xzf {archive} --directory {directory}'.format(
                 archive=remote_archive, directory=self.directory
             )
-        )
+        ).execute(executor)
 
     @contextmanager
     def open_codev_file(self, performer):

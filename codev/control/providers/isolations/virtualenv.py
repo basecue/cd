@@ -1,3 +1,4 @@
+from codev.core.executor import Command
 from codev.core.settings import BaseSettings, SettingsError
 from codev.control.isolation import PrivilegedIsolation
 
@@ -14,27 +15,43 @@ class VirtualenvIsolationSettings(BaseSettings):
             raise SettingsError('Unsupported python version for virtualenv isolator.')
 
 
-class VirtualenvIsolation(PrivilegedIsolation):
+class DirectoryIsolation(PrivilegedIsolation):
+
+    def _get_base_dir(self):
+        return '~/.share/codev/virtualenv/{ident}/'.format(ident=self.ident.as_directory())
+
+    def exists(self):
+        return Command.exists_directory(self._get_base_dir()).check_execute(super())
+
+    def create(self):
+        return Command(
+            'mkdir -p {}'.format(self._get_base_dir())
+        ).execute(super())
+
+    def execute(self, command):
+        return command.change_directory(
+            self._get_base_dir()
+        ).execute(super())
+
+
+class VirtualenvIsolation(DirectoryIsolation):
     provider_name = 'virtualenv'
     settings_class = VirtualenvIsolationSettings
 
-    def _get_base_dir(self):
-        return '~/.share/codev/virtualenv/{ident}/'.format(ident=self.ident)
-
     def exists(self):
-        with super().change_directory(self._get_base_dir()):
-            return super().exists_directory('env')
+        return super().exists() and Command.exists_directory('env').check_execute(self)
 
     def create(self):
-        python_version = self.settings.python_version
-        with super().change_directory(self._get_base_dir()):
-            super().execute(
-                'virtualenv -p python{python_version} env'.format(
-                    python_version=python_version
-                )
-            )
+        super().create()
 
-    def execute(self, command, logger=None, writein=None):
-        command = command.wrap('source env/bin/activate && {command}')
-        command.change_directory(self._get_base_dir())
-        return super().execute(command, logger=logger, writein=writein)
+        python_version = self.settings.python_version
+        Command(
+            'virtualenv -p python{python_version} env'.format(
+                python_version=python_version
+            )
+        ).execute(super())
+
+    def execute(self, command):
+        return command.wrap(
+            'source env/bin/activate && {command}'
+        ).execute(super())

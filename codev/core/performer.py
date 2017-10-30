@@ -1,7 +1,9 @@
 from contextlib import contextmanager
 from os import path
 from json import dumps
+from time import sleep
 
+from codev.core.executor import BaseExecutor
 from .provider import Provider, ConfigurableProvider
 from .scripts import COMMON_SCRIPTS
 
@@ -10,24 +12,6 @@ COMMON_SCRIPTS_PREFIX = 'codev/'
 COMMON_SCRIPTS_PATH = '{directory}/scripts'.format(directory=path.dirname(__file__))
 
 
-class CommandError(Exception):
-    def __init__(self, command, exit_code, error, output=None):
-        self.command = command
-        self.exit_code = exit_code
-        self.error = error
-        self.output = output
-
-        super().__init__(
-            "Command '{command}' failed with exit code '{exit_code}' with error:\n{error}".format(
-                command=command, exit_code=exit_code, error=error
-            )
-        )
-
-
-class HasPerformer(object):
-    def __init__(self, *args, performer, **kwargs):
-        self.performer = performer
-        super().__init__(*args, **kwargs)
 
 
 #
@@ -110,22 +94,7 @@ class HasPerformer(object):
 #         return self.performer.perform(final_command, logger=logger, writein=writein)
 
 
-class Performer(Provider, ConfigurableProvider):
-    # def __init__(self, *args, **kwargs):
-    #     super().__init__(*args, **kwargs)
-        # TODO move to future authentication module
-        # if not self.check_execute('ssh-add -L'):
-        #     raise CommandError("No SSH identities found, use the 'ssh-add'.")
 
-    def perform(self, command, logger=None, writein=None):
-        raise NotImplementedError()
-
-    def send_file(self, source, target):
-        raise NotImplementedError()
-
-    @contextmanager
-    def get_fo(self, remote_path):
-        yield NotImplementedError()
 
 
 # class ScriptExecutor(ProxyPerformer):
@@ -177,64 +146,6 @@ class Performer(Provider, ConfigurableProvider):
 
 
 
-
-
-
-"""
-Output reader
-"""
-from multiprocessing.pool import ThreadPool
-
-
-class OutputReader(object):
-    thread_pool = ThreadPool(processes=2)
-
-    def __init__(self, stdout, stderr, logger=None):
-        self._stdout_output = []
-        self._stderr_output = []
-
-        self.terminated = False
-
-        self._stdout_reader = self.thread_pool.apply_async(
-            self._reader,
-            args=(stdout,),
-            kwds=dict(logger=logger)
-        )
-
-        self._stderr_reader = self.thread_pool.apply_async(
-            self._reader,
-            args=(stderr,)
-        )
-
-    def _reader(self, output, logger=None):
-        output_lines = []
-        while True:
-            try:
-                if self.terminated:
-                    output.flush()
-
-                lines = output.readlines()
-            except ValueError:  # closed file
-                break
-
-            if not lines:
-                if self.terminated:
-                    break
-
-                sleep(0.1)
-                continue
-
-            for line in lines:
-                output_line = line.decode('utf-8').rstrip('\n')
-                output_lines.append(output_line)
-                if logger:
-                    logger.debug(output_line)
-
-        return '\n'.join(output_lines)
-
-    def output(self):
-        self.terminated = True
-        return self._stdout_reader.get(), self._stderr_reader.get()
 
 
 

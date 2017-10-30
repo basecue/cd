@@ -3,8 +3,8 @@ from hashlib import sha256
 from logging import getLogger
 from time import time
 
-from codev.core.executor import Executor, CommandError
-from codev.core.performer import HasPerformer
+from codev.core.executor import ProxyExecutor, CommandError, Command
+
 from codev.core.provider import Provider, ConfigurableProvider
 from codev.core.settings import YAMLSettingsReader
 from codev.core.debug import DebugSettings
@@ -19,7 +19,7 @@ command_logger = getLogger('command')
 debug_logger = getLogger('debug')
 
 
-class Isolation(Provider, ConfigurableProvider, Executor):
+class Isolation(Provider, ConfigurableProvider, ProxyExecutor):
 
     def __init__(self, *args, ident=None, **kwargs):
         self.ident = ident
@@ -52,12 +52,13 @@ class Isolation(Provider, ConfigurableProvider, Executor):
 
         logging_config(control_perform=True)
         try:
-            self.execute(
+            Command(
                 'codev-perform run {configuration_name}:{configuration_option} --force {perform_debug}'.format(
                     configuration_name=configuration_name,
                     configuration_option=configuration_option,
                     perform_debug=perform_debug
-                ), logger=command_logger, writein=dumps(input_vars))
+                ), logger=command_logger, writein=dumps(input_vars)
+            ).execute(self)
         except CommandError as e:
             command_logger.error(e.error)
             logger.error("Installation failed.")
@@ -78,16 +79,16 @@ class Isolation(Provider, ConfigurableProvider, Executor):
 
 class PrivilegedIsolation(Isolation):
     def install(self, version):
-        self.execute('pip3 install setuptools')
+        Command('pip3 install setuptools').execute(self)
 
         # uninstall previous version of codev (ignore if not installed)
-        self.check_execute('pip3 uninstall codev -y')
+        Command('pip3 uninstall codev -y').check_execute(self)
 
         # install proper version of codev
         # TODO requirements - 'python3-pip', 'libffi-dev', 'libssl-dev'
         if not DebugSettings.settings.distfile:
             logger.debug("Install codev version '{version}' to isolation.".format(version=version))
-            self.execute('pip3 install --upgrade codev=={version}'.format(version=version))
+            Command('pip3 install --upgrade codev=={version}'.format(version=version)).execute(self)
         else:
             distfile = DebugSettings.settings.distfile.format(version=version)
             debug_logger.info('Install codev {distfile}'.format(distfile=distfile))
@@ -96,7 +97,7 @@ class PrivilegedIsolation(Isolation):
             remote_distfile = '/tmp/{distfile}'.format(distfile=basename(distfile))
 
             self.send_file(distfile, remote_distfile)
-            self.execute('pip3 install --upgrade {distfile}'.format(distfile=remote_distfile))
+            Command('pip3 install --upgrade {distfile}'.format(distfile=remote_distfile)).execute(self)
 
 
 # class IsolationX(object):

@@ -110,18 +110,23 @@ class TestNotAllowedProvider:
             class NamedProvider(Provider):
                 provider_name = 'named'
 
-    # def test_not_named_provider(self):
-    #     """
-    #     Testing provider with not named provider
-    #     """
-    #     from codev.core.provider import Provider
-    #
-    #     class TestProvider(Provider):
-    #         pass
-    #
-    #     with pytest.raises(ImportError):
-    #         class NotNamedProvider(TestProvider):
-    #             pass
+    def test_not_named_provider(self):
+        """
+        Testing provider with not named provider
+        """
+        from codev.core.provider import Provider
+
+        class TestProvider(Provider):
+            pass
+
+        class NotNamedProvider(TestProvider):
+            pass
+
+        with pytest.raises(ValueError):
+            TestProvider(None)
+
+        with pytest.raises(ValueError):
+            TestProvider('')
 
     def test_same_named_providers(self):
         """

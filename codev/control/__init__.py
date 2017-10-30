@@ -2,9 +2,10 @@ from logging import getLogger
 
 from codev.core.settings import YAMLSettingsReader
 from codev.core import CodevCore
-from codev.core.performer import Performer
+from codev.core.executor import Executor
 from codev.core.source import Source
 from codev.core.debug import DebugSettings
+from codev.core.utils import Ident
 
 from .isolation import Isolation
 
@@ -13,7 +14,7 @@ from .log import logging_config
 from .providers import *
 
 logger = getLogger(__name__)
-command_logger = getLogger('command')
+# command_logger = getLogger('command')
 
 
 class CodevControl(CodevCore):
@@ -70,7 +71,7 @@ class CodevControl(CodevCore):
         performer_provider = performer_settings.provider
         performer_settings_data = performer_settings.settings_data
 
-        performer = Performer(
+        performer = Executor(
             performer_provider,
             settings_data=performer_settings_data
         )
@@ -78,23 +79,21 @@ class CodevControl(CodevCore):
         self.source = source
         self.next_source = next_source
 
-        self.isolation = Isolation(
-            self.configuration_settings.isolation.provider,
-            settings_data=self.configuration_settings.isolation.settings_data,
-            ident=self.isolation_ident,
-            performer=performer,
-        )
-
-    @property
-    def isolation_ident(self):
-        return tuple(filter(None, [
+        isolation_ident = Ident(
             self.project_name,
             self.configuration_name,
             self.source.name,
             self.source.options,
             self.next_source.name if self.next_source else '',
             self.next_source.options if self.next_source else ''
-        ]))
+        )
+
+        self.isolation = Isolation(
+            self.configuration_settings.isolation.provider,
+            settings_data=self.configuration_settings.isolation.settings_data,
+            ident=isolation_ident,
+            executor=performer,
+        )
 
     def perform(self, input_vars):
         """
@@ -115,9 +114,9 @@ class CodevControl(CodevCore):
         else:
             current_source = self.next_source
 
-        current_source.install(isolation)
+        current_source.install(self.isolation)
 
-        with current_source.open_codev_file(isolation) as codev_file:
+        with current_source.open_codev_file(self.isolation) as codev_file:
             current_settings = YAMLSettingsReader().from_yaml(codev_file)
 
         codev_version = current_settings.version

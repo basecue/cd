@@ -1,6 +1,6 @@
 from codev.core.providers.machines.lxc import LXCMachine, LXCMachinesSettings
 
-from codev.control.isolator import Isolator, PrivilegedIsolation
+from codev.control.isolation import PrivilegedIsolation
 
 
 class LXCIsolation(PrivilegedIsolation):
@@ -9,16 +9,14 @@ class LXCIsolation(PrivilegedIsolation):
     def get(self, ident):
         return PrivilegedIsolation(performer=LXCMachine(performer=self.performer, ident=ident))
 
-    def exists(self, ident):
+    def exists(self):
         return self.get(ident).exists()
 
-    def create(self, ident):
+    def create(self):
         isolation = self.get(ident)
 
         settings = LXCMachinesSettings(data=dict(distribution='ubuntu', release='xenial'))
-
         isolation.create(settings)
-
         isolation.start()
 
         # TODO - providers requirements

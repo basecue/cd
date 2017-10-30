@@ -7,38 +7,38 @@ from logging import getLogger
 
 from tempfile import mkstemp
 
-from codev.core.performer import CommandError, Performer, OutputReader
+from codev.core.executor import Executor, CommandError, OutputReader
 
 
-class LocalPerformer(Performer):
+class LocalExecutor(Executor):
     provider_name = 'local'
 
     def __init__(self, *args, **kwargs):
         self.logger = getLogger(__name__)
         super().__init__(*args, **kwargs)
 
-    def call(self, command, logger=None, writein=None):
+    def execute(self, command):
         self.logger.debug("Execute command: '%s'" % command)
 
         outtempfd, outtemppath = mkstemp()
         errtempfd, errtemppath = mkstemp()
 
         with fdopen(outtempfd, 'w+b') as outfile,\
-             open(outtemppath, 'r+b') as outfileread,\
-             fdopen(errtempfd, 'w+b') as errfile,\
-             open(errtemppath, 'r+b') as errfileread:
-            process = Popen(command, stdout=outfile, stderr=errfile, stdin=PIPE, shell=True)
+            open(outtemppath, 'r+b') as outfileread,\
+            fdopen(errtempfd, 'w+b') as errfile,\
+            open(errtemppath, 'r+b') as errfileread:
+            process = Popen(str(command), stdout=outfile, stderr=errfile, stdin=PIPE, shell=True)
 
-            if writein:
+            if command.writein:
                 # write writein to stdin
-                process.stdin.write(writein.encode())
+                process.stdin.write(command.writein.encode())
                 process.stdin.flush()
             process.stdin.close()
 
             output_reader = OutputReader(
                 outfileread,
                 errfileread,
-                logger=logger or self.output_logger
+                logger=command.logger
             )
 
             # wait for exit code

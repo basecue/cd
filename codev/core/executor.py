@@ -1,75 +1,104 @@
 from contextlib import contextmanager
 from functools import wraps
 
-from codev.core.performer import HasPerformer, CommandError
+from codev.core.provider import Provider, ConfigurableProvider
+
+
+class CommandError(Exception):
+    def __init__(self, command, exit_code, error, output=None):
+        self.command = command
+        self.exit_code = exit_code
+        self.error = error
+        self.output = output
+
+        super().__init__(
+            "Command '{command}' failed with exit code '{exit_code}' with error:\n{error}".format(
+                command=command, exit_code=exit_code, error=error
+            )
+        )
 
 
 class Command(object):
-    def __init__(self, command):
-        self.command = command
+    def __init__(self, command_str, logger=None, writein=None):
+        self.command_str = command_str
+        self.logger = logger
+        self.writein = writein
+
+    @classmethod
+    def exists_directory(cls, directory, logger=None, writein=None):
+        return cls('[ -d {directory} ]'.format(directory=directory), logger=logger, writein=writein)
 
     def __str__(self):
-        return self.command
+        return self.command_str
 
-    def _include_command(self, command):
-        return command.replace('\\', '\\\\').replace('$', '\$').replace('"', '\\"')
+    def _include_command_str(self, command_str):
+        return command_str.replace('\\', '\\\\').replace('$', '\$').replace('"', '\\"')
+
+    def _copy(self, command):
+        return self.__class__(command, logger=self.logger, writein=self.writein)
 
     def change_directory(self, directory):
-        return self.__class__('cd {directory} && {command}'.format(
+        return self._copy('cd {directory} && {command_str}'.format(
             directory=directory,
-            command=self.command
+            command_str=self.command_str
         ))
 
     def wrap(self, command_str):
-        command = 'bash -c "{command}"'.format(
-            command=self._include_command(
-                self.command
+        command_str = 'bash -c "{command_str}"'.format(
+            command_str=self._include_command_str(
+                self.command_str
             )
         )
-        return self.__class__(command_str.format(command=command))
+        return self._copy(command_str)
 
+    def execute(self, executor):
+        return executor.execute(self)
 
-class Executor(HasPerformer):
-
-    def _command_wrapper(self, execute_method):
-        @wraps(execute_method)
-        def wrapper(command, *args, **kwargs):
-            if isinstance(command, str):
-                command = Command(command)
-
-            for directory in reversed(self.__directories):
-                command = command.change_directory(directory)
-
-            return execute_method(command, *args, **kwargs)
-        return wrapper
-
-    def __init__(self, *args, **kwargs):
-        self.__directories = []
-        self.execute = self._command_wrapper(self.execute)
-        super().__init__(*args, **kwargs)
-
-    def execute(self, command, logger=None, writein=None):
-        return self.performer.perform(command.command, logger=logger, writein=writein)
-
-    @contextmanager
-    def change_directory(self, directory):
-        self.__directories.append(directory)
+    def check_execute(self, executor):
         try:
-            yield
-        except:
-            raise
-        finally:
-            self.__directories.pop()
-
-    def check_execute(self, command, logger=None, writein=None):
-        try:
-            self.execute(command, logger=logger, writein=writein)
+            self.execute(executor)
             return True
         except CommandError:
             return False
 
-    def exists_directory(self, directory):
-        return self.check_execute('[ -d {directory} ]'.format(directory=directory))
+
+class BaseExecutor(object):
+    def execute(self, command):
+        raise NotImplementedError()
+
+    def send_file(self, source, target):
+        raise NotImplementedError()
+
+    @contextmanager
+    def get_fo(self, remote_path):
+        yield NotImplementedError()
+
+
+class ProxyExecutor(BaseExecutor):
+    def __init__(self, *args, executor, **kwargs):
+        self._executor = executor
+        super().__init__(*args, **kwargs)
+
+    def execute(self, command):
+        return command.execute(self._executor)
+
+    def send_file(self, source, target):
+        return self._executor.send_file(source, target)
+
+    @contextmanager
+    def get_fo(self, remote_path):
+        yield from self._executor.get_fo(remote_path)
+
+
+class Executor(Provider, ConfigurableProvider, BaseExecutor):
+    # def __init__(self, *args, **kwargs):
+    #     super().__init__(*args, **kwargs)
+        # TODO move to future authentication module
+        # if not self.check_execute('ssh-add -L'):
+        #     raise CommandError("No SSH identities found, use the 'ssh-add'.")
+
+    pass
+
 """
 background runner
 """
@@ -273,3 +302,63 @@ class BackgroundExecutor(Executor):
 
     def kill(self):
         return self._control(self._bg_kill)
+
+
+"""
+Output reader
+"""
+from multiprocessing.pool import ThreadPool
+
+
+class OutputReader(object):
+    thread_pool = ThreadPool(processes=2)
+
+    def __init__(self, stdout, stderr, logger=None):
+        self._stdout_output = []
+        self._stderr_output = []
+
+        self.terminated = False
+
+        self._stdout_reader = self.thread_pool.apply_async(
+            self._reader,
+            args=(stdout,),
+            kwds=dict(logger=logger)
+        )
+
+        self._stderr_reader = self.thread_pool.apply_async(
+            self._reader,
+            args=(stderr,)
+        )
+
+    def _reader(self, output, logger=None):
+        output_lines = []
+        while True:
+            try:
+                if self.terminated:
+                    output.flush()
+
+                lines = output.readlines()
+            except ValueError:  # closed file
+                break
+
+            if not lines:
+                if self.terminated:
+                    break
+
+                sleep(0.1)
+                continue
+
+            for line in lines:
+                output_line = line.decode('utf-8').rstrip('\n')
+                output_lines.append(output_line)
+                if logger:
+                    logger.debug(output_line)
+
+        return '\n'.join(output_lines)
+
+    def output(self):
+        self.terminated = True
+        return self._stdout_reader.get(), self._stderr_reader.get()
+
+
+
