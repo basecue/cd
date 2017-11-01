@@ -83,7 +83,7 @@ class ProxyExecutor(HasExecutor):
 
     def check_execute(self, command_str, logger=None, writein=None):
         try:
-            self.execute(command_str)
+            self.execute(command_str, logger=logger, writein=writein)
             return True
         except CommandError:
             return False    
