@@ -8,7 +8,7 @@ from os import path
 
 from codev.core.settings import BaseSettings
 from codev.core.machines import MachinesProvider, BaseMachine
-from codev.core.performer import BackgroundExecutor, CommandError, CommandError
+from codev.core.executor import BackgroundExecutor, CommandError, CommandError
 
 logger = getLogger(__name__)
 
@@ -24,14 +24,14 @@ class LXCMachine(BaseMachine):
 
     def exists(self):
         try:
-            output = self.performer.execute('lxc-ls')
+            output = self.executor.execute('lxc-ls')
         except CommandError:
             # lxc is not installed so there is no machine
             return False
         return self.ident in output.split()
 
     def is_started(self):
-        output = self.performer.execute('lxc-info -n {container_name} -s'.format(
+        output = self.executor.execute('lxc-info -n {container_name} -s'.format(
             container_name=self.ident,
         ))
 
@@ -57,7 +57,7 @@ class LXCMachine(BaseMachine):
         distribution = settings.distribution
         release = settings.release
         architecture = self._get_architecture()
-        if not self.performer.check_execute(
+        if not self.executor.check_execute(
             'lxc-create -t {distribution} -n {container_name} -- --release {release}'.format(
                 container_name=self.ident,
                 distribution=distribution,
@@ -65,7 +65,7 @@ class LXCMachine(BaseMachine):
                 architecture=architecture
             )
         ):
-            self.performer.execute('lxc-create -t download -n {container_name} -- --dist {distribution} --release {release} --arch {architecture}'.format(
+            self.executor.execute('lxc-create -t download -n {container_name} -- --dist {distribution} --release {release} --arch {architecture}'.format(
                 container_name=self.ident,
                 distribution=distribution,
                 release=release,
@@ -84,29 +84,29 @@ class LXCMachine(BaseMachine):
             self.execute('tee .ssh/authorized_keys', writein=ssh_key)
 
     def destroy(self):
-        self.performer.execute('rm -rf {share_directory}'.format(share_directory=self.share_directory))
-        self.performer.execute('lxc-destroy -n {container_name}'.format(
+        self.executor.execute('rm -rf {share_directory}'.format(share_directory=self.share_directory))
+        self.executor.execute('lxc-destroy -n {container_name}'.format(
             container_name=self.ident,
         ))
 
     def _get_architecture(self):
-        architecture = self.performer.execute('uname -m')
+        architecture = self.executor.execute('uname -m')
         if architecture == 'x86_64':
             architecture = 'amd64'
         return architecture
 
     def _configure(self, ip=None, gateway=None):
-        self.performer.execute('mkdir -p {share_directory} && chmod 7777 {share_directory}'.format(
+        self.executor.execute('mkdir -p {share_directory} && chmod 7777 {share_directory}'.format(
             share_directory=self.share_directory
         ))
-        if self.performer.check_execute('[ -f /usr/share/lxc/config/nesting.conf ]'):
+        if self.executor.check_execute('[ -f /usr/share/lxc/config/nesting.conf ]'):
             nesting = 'lxc.mount.auto = cgroup\nlxc.include = /usr/share/lxc/config/nesting.conf'
         else:
             nesting = 'lxc.mount.auto = cgroup\nlxc.aa_profile = lxc-container-default-with-nesting'
 
         if ip:
             template_dir = 'static'
-            self.performer.send_file(
+            self.executor.send_file(
                 '{directory}/templates/{template_dir}/network_interfaces'.format(
                     directory=path.dirname(__file__),
                     template_dir=template_dir
@@ -115,12 +115,12 @@ class LXCMachine(BaseMachine):
                     container_root=self.container_root
                 )
             )
-            self.performer.execute(
+            self.executor.execute(
                 'rm -f {container_root}/etc/resolv.conf'.format(
                     container_root=self.container_root
                 )
             )
-            self.performer.execute(
+            self.executor.execute(
                 'echo "nameserver {gateway}" >> {container_root}/etc/resolv.conf'.format(
                     gateway=gateway,
                     container_root=self.container_root
@@ -135,7 +135,7 @@ class LXCMachine(BaseMachine):
                 template_dir=template_dir
             )
         ):
-            self.performer.execute('echo "{line}" >> {container_config}'.format(
+            self.executor.execute('echo "{line}" >> {container_config}'.format(
                     line=line.format(
                         ip=ip,
                         share_directory=self.share_directory,
@@ -146,12 +146,12 @@ class LXCMachine(BaseMachine):
             )
 
         # ubuntu trusty workaround
-        # self.performer.execute("sed -e '/lxc.include\s=\s\/usr\/share\/lxc\/config\/ubuntu.userns\.conf/ s/^#*/#/' -i {container_config}".format(container_config=self.container_config))
+        # self.executor.execute("sed -e '/lxc.include\s=\s\/usr\/share\/lxc\/config\/ubuntu.userns\.conf/ s/^#*/#/' -i {container_config}".format(container_config=self.container_config))
 
     @property
     def share_directory(self):
         if not self.__share_directory:
-            # abs_base_dir = self.performer.execute('pwd')
+            # abs_base_dir = self.executor.execute('pwd')
             abs_base_dir = '$HOME/.local/codev'
             return '{abs_base_dir}/{container_name}/share'.format(
                 abs_base_dir=abs_base_dir,
@@ -162,7 +162,7 @@ class LXCMachine(BaseMachine):
     @property
     def _container_directory(self):
         if not self.__container_directory:
-            lxc_path = self.performer.execute('lxc-config lxc.lxcpath')
+            lxc_path = self.executor.execute('lxc-config lxc.lxcpath')
             self.__container_directory = '{lxc_path}/{container_name}'.format(
                 lxc_path=lxc_path,
                 container_name=self.ident
@@ -178,7 +178,7 @@ class LXCMachine(BaseMachine):
         return '{container_directory}/config'.format(container_directory=self._container_directory)
 
     def start(self):
-        self.performer.execute('lxc-start -n {container_name}'.format(
+        self.executor.execute('lxc-start -n {container_name}'.format(
             container_name=self.ident,
         ))
         #TODO timeout
@@ -188,13 +188,13 @@ class LXCMachine(BaseMachine):
         return True
 
     def stop(self):
-        self.performer.execute('lxc-stop -n {container_name}'.format(
+        self.executor.execute('lxc-stop -n {container_name}'.format(
             container_name=self.ident,
         ))
 
     @property
     def ip(self):
-        output = self.performer.execute('lxc-info -n {container_name} -i'.format(
+        output = self.executor.execute('lxc-info -n {container_name} -i'.format(
             container_name=self.ident,
         ))
 
@@ -210,7 +210,7 @@ class LXCMachine(BaseMachine):
         if not self.__gateway:
             # attempts to get gateway ip
             for i in range(3):
-                self.__gateway = self.performer.execute(
+                self.__gateway = self.executor.execute(
                     'lxc-attach -n {container_name} -- ip route | grep default | cut -d " " -f 3'.format(
                         container_name=self.ident
                     )
@@ -227,28 +227,28 @@ class LXCMachine(BaseMachine):
 
         remote_path = self._sanitize_path(remote_path)
 
-        self.performer.execute('lxc-usernsexec -- cp {container_root}{remote_path} {tempfile}'.format(
+        self.executor.execute('lxc-usernsexec -- cp {container_root}{remote_path} {tempfile}'.format(
             tempfile=tempfile,
             remote_path=remote_path,
             container_root=self.container_root
         ))
         try:
-            with self.performer.get_fo(tempfile) as fo:
+            with self.executor.get_fo(tempfile) as fo:
                 yield fo
         finally:
-            self.performer.execute('lxc-usernsexec -- rm {tempfile}'.format(tempfile=tempfile))
+            self.executor.execute('lxc-usernsexec -- rm {tempfile}'.format(tempfile=tempfile))
 
     def send_file(self, source, target):
         tempfile = '/tmp/{filename}.tmp'.format(filename=uuid1())
-        self.performer.send_file(source, tempfile)
+        self.executor.send_file(source, tempfile)
         target = self._sanitize_path(target)
 
-        self.performer.execute('lxc-usernsexec -- cp {tempfile} {container_root}{target}'.format(
+        self.executor.execute('lxc-usernsexec -- cp {tempfile} {container_root}{target}'.format(
             tempfile=tempfile,
             target=target,
             container_root=self.container_root
         ))
-        self.performer.execute('rm {tempfile}'.format(tempfile=tempfile))
+        self.executor.execute('rm {tempfile}'.format(tempfile=tempfile))
 
     def execute(self, command, env=None, logger=None, writein=None):
         if env is None:
@@ -259,8 +259,8 @@ class LXCMachine(BaseMachine):
             'LC_ALL':  'C.UTF-8'
         })
 
-        with self.performer.change_directory(self.working_dir):
-            return self.performer.execute_wrapper(
+        with self.executor.change_directory(self.working_dir):
+            return self.executor.execute_wrapper(
                 'lxc-attach {env} -n {container_name} -- {{command}}'.format(
                     container_name=self.ident,
                     env=' '.join('-v {var}={value}'.format(var=var, value=value) for var, value in env.items())
@@ -278,7 +278,7 @@ class LXCMachine(BaseMachine):
 
         # copy all files to share directory
         # sequence /. just after source paramater makes cp command idempotent
-        self.performer.execute(
+        self.executor.execute(
             'cp -Ru {source}/. {share_target}'.format(
                 source=source,
                 share_target=share_target
@@ -286,14 +286,14 @@ class LXCMachine(BaseMachine):
         )
 
         if bidirectional:
-            self.performer.execute(
+            self.executor.execute(
                 'chmod -R go+w {share_target}'.format(
                     share_target=share_target
                 )
             )
 
         source_target_background_runner = BackgroundExecutor(
-            performer=self.performer, ident='share_{ident}'.format(
+            executor=self.executor, ident='share_{ident}'.format(
                 ident=self.ident
             )
         )
@@ -327,7 +327,7 @@ class LXCMachine(BaseMachine):
 
         if bidirectional:
             target_source_background_runner = BackgroundExecutor(
-                performer=self.performer, ident='share_back_{ident}'.format(
+                executor=self.executor, ident='share_back_{ident}'.format(
                     ident=self.ident
                 )
             )

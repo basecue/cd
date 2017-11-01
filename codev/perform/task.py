@@ -2,9 +2,9 @@ from codev.core.provider import Provider, ConfigurableProvider
 
 
 class Task(Provider, ConfigurableProvider):
-    def __init__(self, performer, *args, **kwargs):
+    def __init__(self, executor, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.performer = performer
+        self.executor = executor
 
     def prepare(self):
         raise NotImplementedError()

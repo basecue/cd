@@ -15,8 +15,8 @@ class LiveSource(ActualSource):
             raise ValueError("Live source provider does not support options '{options}'".format(options=options))
         super().__init__(options, *args, **kwargs)
 
-    def install(self, performer):
-        performer.share(getcwd(), self.directory, bidirectional=self.bidirectional)
+    def install(self, executor):
+        executor.share(getcwd(), self.directory, bidirectional=self.bidirectional)
 
     def machine_install(self, machine):
         machine.share('.', self.directory, bidirectional=self.bidirectional)

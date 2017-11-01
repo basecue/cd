@@ -6,7 +6,8 @@ from logging import getLogger
 import os.path
 
 from codev.core import Isolator
-from codev.core.performer import CommandError
+from codev.core.executor import CommandError
+from codev.core.installer import Installer
 from codev.core.settings import BaseSettings, ProviderSettings
 
 from codev.perform.task import Task
@@ -62,7 +63,7 @@ class AnsibleTask(Task):
         super().__init__(*args, **kwargs)
         self.isolator = Isolator(
             'virtualenv',
-            performer=self.performer,
+            executor=self.executor,
             settings_data=dict(python='2'),
             ident='codevansible')
 
@@ -89,7 +90,7 @@ class AnsibleTask(Task):
                 inventory.add_section(group)
                 inventory.set(group, machine.ident, '')
             # ansible node additional requirements
-            machine.install_packages('python')
+            Installer(executor=machine).install_packages('python')
 
         inventory_directory = '/tmp/codev.ansible.inventory'
         if not os.path.exists(inventory_directory):
@@ -104,7 +105,7 @@ class AnsibleTask(Task):
                 ssh_config_file.write('Host {machine.ident}\n  HostName {machine.ip}\n\n'.format(machine=machine))
 
         template_vars = {
-            'source_directory': self.performer.execute('pwd'),
+            'source_directory': self.executor.execute('pwd'),
             'ssh_config': ssh_config,
         }
         template_vars.update(status)
@@ -151,7 +152,7 @@ class AnsibleTask(Task):
 
         # support for different source of ansible configuration
         if self.settings.source.provider:
-            source = AnsibleSource(self.settings.source.provider, self.performer, settings_data=self.settings.source.settings_data)
+            source = AnsibleSource(self.settings.source.provider, self.executor, settings_data=self.settings.source.settings_data)
             source.install()
             source_directory = source.directory
         else:

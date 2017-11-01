@@ -29,7 +29,7 @@ class FabricTask(Task):
         super().__init__(*args, **kwargs)
         self.isolator = Isolator(
             'virtualenv',
-            performer=self.performer,
+            executor=self.executor,
             settings_data=dict(python='2'),
             ident='codevfabric')
 

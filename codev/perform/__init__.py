@@ -2,8 +2,8 @@ from logging import getLogger
 
 from codev.core import CodevCore
 from codev.core.infrastructure import Infrastructure
-from codev.core.performer import CommandError
-from codev.core.providers.performers.local import LocalPerformer
+from codev.core.executor import CommandError
+from codev.core.providers.executors.local import LocalExecutor
 from codev.core.debug import DebugSettings
 
 from .providers import *
@@ -29,9 +29,9 @@ class CodevPerform(CodevCore):
 
         super().__init__(settings, configuration_name, configuration_option)
 
-        performer = LocalPerformer()
-        self.infrastructure = Infrastructure(performer, self.configuration_settings.infrastructure)
-        self.tasks_runner = TasksRunner(self.configuration_settings.tasks, self.infrastructure, performer=performer)
+        executor = LocalExecutor()
+        self.infrastructure = Infrastructure(executor, self.configuration_settings.infrastructure)
+        self.tasks_runner = TasksRunner(self.configuration_settings.tasks, self.infrastructure, executor=executor)
 
     def run(self, input_vars):
         """

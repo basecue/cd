@@ -6,7 +6,7 @@ from time import sleep
 
 from codev.core.settings import BaseSettings
 from codev.core.machines import MachinesProvider, BaseMachine
-from codev.core.performer import Performer
+from codev.core.executor import Executor
 
 
 """
@@ -19,14 +19,14 @@ ubuntu: TODO
 class VirtualboxMachine(BaseMachine):
 
     def exists(self):
-        return '"{ident}"'.format(ident=self.ident) in self.performer.execute('VBoxManage list vms').split()
+        return '"{ident}"'.format(ident=self.ident) in self.executor.execute('VBoxManage list vms').split()
 
     def is_started(self):
-        output = self.performer.execute("VBoxManage list runningvms")
+        output = self.executor.execute("VBoxManage list runningvms")
         return bool(re.search('^\"{ident}\"\s+.*'.format(ident=self.ident), output, re.MULTILINE))
 
     def start(self):
-        self.performer.execute('VBoxManage startvm "{ident}" --type headless'.format(ident=self.ident))
+        self.executor.execute('VBoxManage startvm "{ident}" --type headless'.format(ident=self.ident))
 
     def create(self, settings, ssh_key):
         distribution = settings.distribution
@@ -84,13 +84,13 @@ class VirtualboxMachine(BaseMachine):
         except:
             pass
         else:
-            self.performer.execute('rm {vm_iso}'.format(vm_iso=vm_iso))
+            self.executor.execute('rm {vm_iso}'.format(vm_iso=vm_iso))
 
         self.start()
 
     def execute(self, command, logger=None, writein=None):
 
-        return Performer('ssh', settings_data={'hostname': self.ip, 'username': 'root'}).execute(
+        return Executor('ssh', settings_data={'hostname': self.ip, 'username': 'root'}).execute(
             self._prepare_command(command), logger=logger, writein=writein
         )
         # return super().execute(
@@ -115,9 +115,9 @@ class VirtualboxMachine(BaseMachine):
         release_number = release_to_number[release]
 
         release_iso = '~/.cache/codev/ubuntu.{release}.iso'.format(release=release)
-        if not self.performer.check_execute('[ -f {release_iso} ]'.format(release_iso=release_iso)):
-            self.performer.execute('mkdir -p ~/.cache/codev/')
-            self.performer.execute(
+        if not self.executor.check_execute('[ -f {release_iso} ]'.format(release_iso=release_iso)):
+            self.executor.execute('mkdir -p ~/.cache/codev/')
+            self.executor.execute(
                 'wget http://releases.ubuntu.com/{release_dir}/ubuntu-{release_number}-{subtype}-{arch}.iso -O {release_iso} -o /dev/null'.format(
                     release_dir='.'.join(release_number.split('.')[:2]),
                     release_number=release_number,
@@ -131,11 +131,11 @@ class VirtualboxMachine(BaseMachine):
 
     def _extract_iso(self, source_iso, target_dir):
         actual_directory = '/'
-        for line in self.performer.execute('isoinfo -R -l -i {source_iso}'.format(source_iso=source_iso)).splitlines():
+        for line in self.executor.execute('isoinfo -R -l -i {source_iso}'.format(source_iso=source_iso)).splitlines():
             r = re.match('^Directory\slisting\sof\s(.*)$', line)
             if r:
                 actual_directory = r.group(1)
-                self.performer.execute(
+                self.executor.execute(
                     'mkdir -p {target_dir}{actual_directory}'.format(
                         target_dir=target_dir,
                         actual_directory=actual_directory
@@ -145,7 +145,7 @@ class VirtualboxMachine(BaseMachine):
                 r = re.match('^-.*\]\s+(.*)', line)
                 if r:
                     filename = r.group(1)
-                    self.performer.execute(
+                    self.executor.execute(
                         'isoinfo -R -i {source_iso} -x {actual_directory}{filename} > {target_dir}{actual_directory}{filename}'.format(
                             target_dir=target_dir,
                             actual_directory=actual_directory,
@@ -160,7 +160,7 @@ class VirtualboxMachine(BaseMachine):
                     symlink = r.group(1)
                     target = r.group(2)
 
-                    self.performer.execute(
+                    self.executor.execute(
                         'cd {target_dir}{actual_directory} && ln -s {target} {symlink}'.format(
                             target_dir=target_dir,
                             actual_directory=actual_directory,
@@ -182,14 +182,14 @@ class VirtualboxMachine(BaseMachine):
         dir_path = path.dirname(__file__)
         template_path = '{dir_path}/ubuntu_template'.format(dir_path=dir_path)
         # cleanup
-        self.performer.execute(
+        self.executor.execute(
             'rm -rf {sandbox}'.format(
                 sandbox=sandbox
             )
         )
 
         # make a sandbox
-        self.performer.execute('mkdir -p {sandbox}'.format(sandbox=sandbox))
+        self.executor.execute('mkdir -p {sandbox}'.format(sandbox=sandbox))
 
         # 7z neextrahuje symlinky a dlouhe soubory, mount potrebuje root prava
         self._extract_iso(source_iso, sandbox)
@@ -228,12 +228,12 @@ class VirtualboxMachine(BaseMachine):
                 )
 
         for filepath in ('isolinux.cfg', 'langlist', 'txt.cfg'):
-            self.performer.send_file(
+            self.executor.send_file(
                 '{template_path}/isolinux/{filepath}'.format(template_path=template_path, filepath=filepath),
                 '{sandbox}/isolinux/{filepath}'.format(sandbox=sandbox, filepath=filepath)
             )
 
-        self.performer.execute(
+        self.executor.execute(
             'mkisofs -D -r -V "ubuntu" -cache-inodes -J -l -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -o {target_iso} {sandbox}'.format(
                 target_iso=target_iso,
                 sandbox=sandbox
@@ -241,7 +241,7 @@ class VirtualboxMachine(BaseMachine):
         )
 
         # cleanup
-        self.performer.execute(
+        self.executor.execute(
             'rm -rf {sandbox}'.format(
                 sandbox=sandbox
             )
@@ -254,7 +254,7 @@ class VirtualboxMachine(BaseMachine):
         :param ip: IP address of interface
         :return: str
         """
-        output = self.performer.execute('VBoxManage list hostonlyifs')
+        output = self.executor.execute('VBoxManage list hostonlyifs')
 
         iface = None
         for line in output.splitlines():
@@ -267,12 +267,12 @@ class VirtualboxMachine(BaseMachine):
             if r:
                 break
         else:
-            output = self.performer.execute('VBoxManage hostonlyif create')
+            output = self.executor.execute('VBoxManage hostonlyif create')
             r = re.search("Interface\s\'(\w+)\'\swas\ssuccessfully\screated", output, re.S)
             if r:
                 iface = r.group(1)
-                self.performer.execute('VBoxManage hostonlyif ipconfig {iface} --ip {ip}'.format(iface=iface, ip=ip))
-                self.performer.execute(
+                self.executor.execute('VBoxManage hostonlyif ipconfig {iface} --ip {ip}'.format(iface=iface, ip=ip))
+                self.executor.execute(
                     'VBoxManage dhcpserver add --ifname {iface} --ip {dhcp_ip} --netmask {netmask} --lowerip {lower_ip} --upperip {upper_ip} --enable'.format(
                         iface=iface,
                         dhcp_ip=dhcp_ip,
@@ -288,14 +288,14 @@ class VirtualboxMachine(BaseMachine):
 
     def _create_vm(self, ostype, hdd, memory, share, hostonly_iface):
         # create VM
-        self.performer.execute(
+        self.executor.execute(
             'VBoxManage createvm --name "{ident}" --ostype "{ostype}" --register'.format(
                 ident=self.ident, ostype=ostype
             )
         )
 
         # setup VM + ifaces
-        self.performer.execute(
+        self.executor.execute(
             'VBoxManage modifyvm "{ident}" --memory {memory} --acpi on --vram 16 --boot1 dvd --nic1 nat --nictype1 Am79C973 --nic2 hostonly --nictype2 Am79C970A --hostonlyadapter2 {hostonly_iface}'.format(
                 ident=self.ident,
                 memory=memory,
@@ -309,7 +309,7 @@ class VirtualboxMachine(BaseMachine):
             hdd_dir=hdd_dir
         )
         # create storage
-        self.performer.execute(
+        self.executor.execute(
             'VBoxManage createhd --filename {medium} --size {hdd}'.format(
                 ident=self.ident, medium=medium, hdd=hdd
             )
@@ -317,13 +317,13 @@ class VirtualboxMachine(BaseMachine):
         # if error appears, delete {name}.vdi and "runvboxmanage closemedium disk {name}.vdi"
 
         # create SATA
-        self.performer.execute('VBoxManage storagectl "{ident}" --name "SATA" --add sata --portcount 1'.format(ident=self.ident))
+        self.executor.execute('VBoxManage storagectl "{ident}" --name "SATA" --add sata --portcount 1'.format(ident=self.ident))
 
         # create IDE
-        self.performer.execute('VBoxManage storagectl "{ident}" --name "IDE" --add ide'.format(ident=self.ident))
+        self.executor.execute('VBoxManage storagectl "{ident}" --name "IDE" --add ide'.format(ident=self.ident))
 
         # attach storage to SATA
-        self.performer.execute(
+        self.executor.execute(
             'VBoxManage storageattach "{ident}" --storagectl "SATA" --port 0 --device 0 --type hdd --medium {medium}'.format(
                 ident=self.ident,
                 medium=medium
@@ -332,7 +332,7 @@ class VirtualboxMachine(BaseMachine):
 
         #create shared points
         for name, directory in share.items():
-            self.performer.execute(
+            self.executor.execute(
                 'VBoxManage sharedfolder add "{ident}" --name "{name}" --hostpath "{directory}"'.format(
                     ident=self.ident,
                     name=name,
@@ -342,7 +342,7 @@ class VirtualboxMachine(BaseMachine):
 
     def _install_vm(self, install_iso):
         # attach install iso
-        self.performer.execute(
+        self.executor.execute(
             'VBoxManage storageattach "{ident}" --storagectl "IDE" --port 1 --device 0 --type dvddrive --medium {iso}'.format(
                 ident=self.ident, iso=install_iso
             )
@@ -353,7 +353,7 @@ class VirtualboxMachine(BaseMachine):
 
     def _remove_vm_dvd(self):
         # remove install iso
-        self.performer.execute(
+        self.executor.execute(
             'VBoxManage storageattach "{ident}" --storagectl "IDE" --port 1 --device 0 --type dvddrive --medium none'.format(
                 ident=self.ident
             )
@@ -362,7 +362,7 @@ class VirtualboxMachine(BaseMachine):
     @property
     def ip(self):
         for i in range(20):
-            value_ip = self.performer.execute(
+            value_ip = self.executor.execute(
                 'VBoxManage guestproperty get "{ident}" "/VirtualBox/GuestInfo/Net/1/V4/IP"'.format(
                     ident=self.ident
                 )

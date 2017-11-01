@@ -1,9 +1,10 @@
 from contextlib import contextmanager
 
+from codev.core.executor import HasExecutor
 from .provider import Provider, ConfigurableProvider
 
 
-class Source(Provider, ConfigurableProvider):
+class Source(Provider, ConfigurableProvider, HasExecutor):
     def __init__(self, options, *args, **kwargs):
         self.options = options
         super().__init__(*args, **kwargs)
@@ -12,13 +13,13 @@ class Source(Provider, ConfigurableProvider):
     def name(self):
         return self.__class__.provider_name
 
-    def install(self, performer):
+    def install(self):
         raise NotImplementedError()
 
     @contextmanager
-    def open_codev_file(self, performer):
-        with performer.change_directory(self.directory):
-            with performer.get_fo('.codev') as codev_file:
+    def open_codev_file(self):
+        with self.executor.change_directory(self.directory):
+            with self.executor.get_fo('.codev') as codev_file:
                 yield codev_file
 
     def machine_install(self, machine):

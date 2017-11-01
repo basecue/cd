@@ -8,7 +8,7 @@ class LXDIsolation(Isolator):
     provider_name = 'lxd'
 
     def _get(self, ident):
-        return PrivilegedIsolation(performer=LXDMachine(performer=self.performer, ident=ident))
+        return PrivilegedIsolation(executor=LXDMachine(executor=self.executor, ident=ident))
 
     def __init__(self, *args, ident, **kwargs):
         isolation = self._get(ident)
@@ -30,11 +30,11 @@ class LXDIsolation(Isolator):
         settings = LXDMachinesSettings(data=dict(distribution='ubuntu', release='xenial'))
 
         # TODO - rethink ssh key management
-        ssh_key = self.performer.execute('ssh-add -L')
+        ssh_key = self.executor.execute('ssh-add -L')
 
         isolation.create(settings, ssh_key)
 
-        self.performer.execute(
+        self.executor.execute(
             'lxc config set {container_name} security.nesting true'.format(
                 container_name=isolation.container_name
             )
@@ -79,22 +79,22 @@ class LXDIsolation(Isolator):
     # @contextmanager
     # def _environment(self):
     #     env = {}
-    #     ssh_auth_sock_local = self.performer.execute('echo $SSH_AUTH_SOCK')
-    #     performer_background_runner = None
+    #     ssh_auth_sock_local = self.executor.execute('echo $SSH_AUTH_SOCK')
+    #     executor_background_runner = None
     #     machine_background_runner = None
     #     ssh_auth_sock_remote = None
-    #     if ssh_auth_sock_local and self.performer.check_execute(
+    #     if ssh_auth_sock_local and self.executor.check_execute(
     #         '[ -S {ssh_auth_sock_local} ]'.format(
     #             ssh_auth_sock_local=ssh_auth_sock_local
     #         )
     #     ):
-    #         performer_background_runner = BackgroundExecutor(performer=self.performer)
-    #         machine_background_runner = BackgroundExecutor(performer=self.machine)
+    #         executor_background_runner = BackgroundExecutor(executor=self.executor)
+    #         machine_background_runner = BackgroundExecutor(executor=self.machine)
     #
     #         ssh_auth_sock_remote = '/tmp/{ident}-ssh-agent-sock'.format(ident=machine_background_runner.ident)
     #
     #         # TODO avoid tcp because security reason
-    #         performer_background_runner.execute(
+    #         executor_background_runner.execute(
     #             'socat TCP-LISTEN:44444,bind={gateway},fork UNIX-CONNECT:{ssh_auth_sock_local}'.format(
     #                 gateway=self.machine._gateway,
     #                 ssh_auth_sock_local=ssh_auth_sock_local
@@ -114,7 +114,7 @@ class LXDIsolation(Isolator):
     #     finally:
     #         if ssh_auth_sock_remote:
     #             machine_background_runner.kill()
-    #             performer_background_runner.kill()
+    #             executor_background_runner.kill()
     #
     # def execute(self, command, logger=None, writein=None):
     #     with self._environment() as env:

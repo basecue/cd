@@ -1,9 +1,9 @@
 from .provider import Provider, ConfigurableProvider
-from .executor import Executor
+from .executor import ProxyExecutor, HasExecutor
 from .debug import DebugSettings
 
 
-class BaseMachine(Executor):
+class BaseMachine(ProxyExecutor):
     def __init__(self, *args, ident=None, group=None, groups=None, **kwargs):
         self.group = group
         self.groups = groups
@@ -34,14 +34,13 @@ class BaseMachine(Executor):
         raise NotImplementedError()
 
 
-class MachinesProvider(Provider, ConfigurableProvider):
+class MachinesProvider(Provider, ConfigurableProvider, HasExecutor):
     machine_class = BaseMachine
 
-    def __init__(self, performer, group, groups, *args, **kwargs):
-        self.performer = performer
+    def __init__(self, group, groups, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.group = group
         self.groups = [group] + groups
-        super().__init__(*args, **kwargs)
 
     def idents(self):
         for i in range(1, self.settings.number + 1):
@@ -50,12 +49,12 @@ class MachinesProvider(Provider, ConfigurableProvider):
 
     def create_machines(self):
         if DebugSettings.settings.ssh_copy:
-            ssh_key = '%s\n' % self.performer.execute('ssh-add -L')
+            ssh_key = '%s\n' % self.executor.execute('ssh-add -L')
         else:
             ssh_key = None
 
         for ident in self.idents():
-            machine = self.machine_class(performer=self.performer, ident=ident, group=self.group, groups=self.groups)
+            machine = self.machine_class(executor=self.executor, ident=ident, group=self.group, groups=self.groups)
             if not machine.exists():
                 machine.create(self.settings, ssh_key)
             elif not machine.is_started():
@@ -64,6 +63,6 @@ class MachinesProvider(Provider, ConfigurableProvider):
     @property
     def machines(self):
         for ident in self.idents():
-            machine = self.machine_class(performer=self.performer, ident=ident, group=self.group, groups=self.groups)
+            machine = self.machine_class(executor=self.executor, ident=ident, group=self.group, groups=self.groups)
             if machine.exists():
                 yield machine

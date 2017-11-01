@@ -15,7 +15,7 @@ COMMON_SCRIPTS_PATH = '{directory}/scripts'.format(directory=path.dirname(__file
 
 
 #
-# class Executor(HasPerformer):
+# class Executor(HasExecutor):
 #     def __init__(self, *args, base_dir='', **kwargs):
 #         self.base_dir = base_dir
 #         self.working_dirs = []
@@ -85,19 +85,19 @@ COMMON_SCRIPTS_PATH = '{directory}/scripts'.format(directory=path.dirname(__file
 #
 #     def execute(self, command, logger=None, writein=None):
 #         final_command = self._prepare_command(command)
-#         return self.performer.perform(final_command, logger=logger, writein=writein)
+#         return self.executor.perform(final_command, logger=logger, writein=writein)
 #
 #     def execute_wrapper(self, wrapper_command, command, logger=None, writein=None):
 #         final_command = wrapper_command.format(
 #             command=self._prepare_command(command)
 #         )
-#         return self.performer.perform(final_command, logger=logger, writein=writein)
+#         return self.executor.perform(final_command, logger=logger, writein=writein)
 
 
 
 
 
-# class ScriptExecutor(ProxyPerformer):
+# class ScriptExecutor(ProxyExecutor):
 #
 #     def execute_script(self, script, arguments=None, logger=None):
 #         if arguments is None:
@@ -141,7 +141,7 @@ COMMON_SCRIPTS_PATH = '{directory}/scripts'.format(directory=path.dirname(__file
 #
 #     @contextmanager
 #     def change_directory(self, directory):
-#         with self.performer.change_directory(directory):
+#         with self.executor.change_directory(directory):
 #             yield
 
 

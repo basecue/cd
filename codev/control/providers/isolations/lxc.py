@@ -7,7 +7,7 @@ class LXCIsolation(PrivilegedIsolation):
     provider_name = 'lxc'
 
     def get(self, ident):
-        return PrivilegedIsolation(performer=LXCMachine(performer=self.performer, ident=ident))
+        return PrivilegedIsolation(executor=LXCMachine(executor=self.executor, ident=ident))
 
     def exists(self):
         return self.get(ident).exists()

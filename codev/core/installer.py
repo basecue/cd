@@ -1,4 +1,4 @@
-from .executor import Executor
+from .executor import HasExecutor, CommandError
 
 DISTRIBUTION_ISSUES = {
     'debian': 'Debian',
@@ -12,9 +12,9 @@ class InstallerError(Exception):
     pass
 
 
-class Installer(Executor):
+class Installer(HasExecutor):
     def __init__(self, *args, **kwargs):
-        super().__init__()
+        super().__init__(*args, **kwargs)
         self.__cache_packages = False
         self.__distribution = None
 
@@ -24,19 +24,19 @@ class Installer(Executor):
         if not_installed_packages:
             self._cache_packages()
             if self._distribution() in ('debian', 'ubuntu'):
-                self.execute(
+                self.executor.execute(
                     'DEBIAN_FRONTEND=noninteractive apt-get install {packages} -y --force-yes'.format(
                         packages=' '.join(not_installed_packages)
                     )
                 )
             elif self._distribution() == 'ubuntu-core':
-                self.execute(
+                self.executor.execute(
                     'snap install {packages}'.format(
                         packages=' '.join(not_installed_packages)
                     )
                 )
             elif self._distribution() == 'arch':
-                self.execute(
+                self.executor.execute(
                     'pacman -S {packages} --noconfirm'.format(
                         packages=' '.join(not_installed_packages)
                     )
@@ -44,7 +44,7 @@ class Installer(Executor):
 
     def _distribution(self):
         if not self.__distribution:
-            issue = self.execute('cat /etc/issue')
+            issue = self.executor.execute('cat /etc/issue')
             for distribution, issue_start in DISTRIBUTION_ISSUES.items():
                 if issue.startswith(issue_start):
                     self.__distribution = distribution
@@ -56,7 +56,7 @@ class Installer(Executor):
     def _cache_packages(self):
         if not self.__cache_packages:
             if self._distribution() in ('debian', 'ubuntu'):
-                self.execute('apt-get update')
+                self.executor.execute('apt-get update')
         self.__cache_packages = True
 
     def _is_package_installed(self, package):
@@ -64,9 +64,9 @@ class Installer(Executor):
         # TODO make this os independent
         try:
             if self._distribution() in ('debian', 'ubuntu'):
-                return 'install ok installed' == self.execute(
+                return 'install ok installed' == self.executor.execute(
                     "dpkg-query -W -f='${{Status}}' {package}".format(package=package))
             elif self._distribution() == 'arch':
-                return self.check_execute("pacman -Qi {package}".format(package=package))
+                return self.executor.check_execute("pacman -Qi {package}".format(package=package))
         except CommandError:
             return False

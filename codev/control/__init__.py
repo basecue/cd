@@ -50,50 +50,48 @@ class CodevControl(CodevCore):
         else:
             source_name, source_settings = list(self.configuration_settings.sources.items())[0]
 
-        source = Source(
-            source_name,
-            source_options,
-            settings_data=source_settings
-        )
-
-        # next source
-        if next_source_name:
-            next_source = Source(
-                next_source_name,
-                next_source_options,
-                settings_data=source_settings
-            )
-        else:
-            next_source = None
-
-        # performer
-        performer_settings = self.configuration_settings.performer
-        performer_provider = performer_settings.provider
-        performer_settings_data = performer_settings.settings_data
-
-        performer = Executor(
-            performer_provider,
-            settings_data=performer_settings_data
-        )
-
-        self.source = source
-        self.next_source = next_source
-
         isolation_ident = Ident(
             self.project_name,
             self.configuration_name,
-            self.source.name,
-            self.source.options,
-            self.next_source.name if self.next_source else '',
-            self.next_source.options if self.next_source else ''
+            source_name,
+            source_options,
+            next_source_name,
+            next_source_options if next_source_name else ''
+        )
+
+        # executor
+        executor_settings = self.configuration_settings.executor
+        executor_provider = executor_settings.provider
+        executor_settings_data = executor_settings.settings_data
+
+        executor = Executor(
+            executor_provider,
+            settings_data=executor_settings_data
         )
 
         self.isolation = Isolation(
             self.configuration_settings.isolation.provider,
             settings_data=self.configuration_settings.isolation.settings_data,
             ident=isolation_ident,
-            executor=performer,
+            executor=executor,
         )
+
+        self.source = Source(
+            source_name,
+            source_options,
+            executor=self.isolation,
+            settings_data=source_settings
+        )
+
+        if next_source_name:
+            self.next_source = Source(
+                next_source_name,
+                next_source_options,
+                executor=self.isolation,
+                settings_data=source_settings
+            )
+        else:
+            self.next_source = None
 
     def perform(self, input_vars):
         """
@@ -114,15 +112,23 @@ class CodevControl(CodevCore):
         else:
             current_source = self.next_source
 
-        current_source.install(self.isolation)
+        current_source.install()
 
-        with current_source.open_codev_file(self.isolation) as codev_file:
+        with current_source.open_codev_file() as codev_file:
             current_settings = YAMLSettingsReader().from_yaml(codev_file)
+
+        # FIXME refactorize - same code is in core.__init__
+        current_configuration_settings = current_settings.configurations[self.configuration_name]
+        if self.configuration_option:
+            current_configuration_settings = current_configuration_settings.options[self.configuration_option]
 
         codev_version = current_settings.version
         self.isolation.install(codev_version)
 
-        load_vars = {**current_settings.loaded_vars, **input_vars}
+
+        load_vars = {**current_configuration_settings.isolation.loaded_vars, **input_vars}
+
+
         load_vars.update(DebugSettings.settings.load_vars)
 
         return self.isolation.perform(self.configuration_name, self.configuration_option, load_vars)

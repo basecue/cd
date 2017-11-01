@@ -1,4 +1,3 @@
-from codev.core.executor import Command
 from codev.core.settings import BaseSettings, SettingsError
 from codev.control.isolation import PrivilegedIsolation
 
@@ -12,7 +11,7 @@ class VirtualenvIsolationSettings(BaseSettings):
         elif python_version == '2' or python_version.startswith('2.'):
             return python_version
         else:
-            raise SettingsError('Unsupported python version for virtualenv isolator.')
+            raise SettingsError('Unsupported python version for virtualenv isolation.')
 
 
 class DirectoryIsolation(PrivilegedIsolation):
@@ -21,17 +20,22 @@ class DirectoryIsolation(PrivilegedIsolation):
         return '~/.share/codev/virtualenv/{ident}/'.format(ident=self.ident.as_directory())
 
     def exists(self):
-        return Command.exists_directory(self._get_base_dir()).check_execute(super())
+        # self.check_execute('[ -d {directory} ]'.format(
+        #     directory=self._get_base_dir()
+        # ))
+
+        return self.inherited_executor.exists_directory(self._get_base_dir())
 
     def create(self):
-        return Command(
+        self.inherited_executor(PrivilegedIsolation).execute(
             'mkdir -p {}'.format(self._get_base_dir())
-        ).execute(super())
+        )
 
-    def execute(self, command):
-        return command.change_directory(
+    def execute_command(self, command):
+        command = command.change_directory(
             self._get_base_dir()
-        ).execute(super())
+        )
+        super().execute_command(command)
 
 
 class VirtualenvIsolation(DirectoryIsolation):
@@ -39,19 +43,18 @@ class VirtualenvIsolation(DirectoryIsolation):
     settings_class = VirtualenvIsolationSettings
 
     def exists(self):
-        return super().exists() and Command.exists_directory('env').check_execute(self)
+        return self.inherited_executor.exists() and self.inherited_executor.exists_directory('env')
 
     def create(self):
-        super().create()
+        self.inherited_executor.create()
 
         python_version = self.settings.python_version
-        Command(
-            'virtualenv -p python{python_version} env'.format(
-                python_version=python_version
-            )
-        ).execute(super())
+        self.inherited_executor.execute('virtualenv -p python{python_version} env'.format(
+            python_version=python_version
+        ))
 
-    def execute(self, command):
-        return command.wrap(
+    def execute_command(self, command):
+        command = command.wrap(
             'source env/bin/activate && {command}'
-        ).execute(super())
+        )
+        return super().execute_command(command)

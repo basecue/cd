@@ -1,16 +1,17 @@
+from codev.core.executor import HasExecutor
 from .machines import MachinesProvider
 
 
-class Infrastructure(object):
-    def __init__(self, performer, settings):
-        self.performer = performer
+class Infrastructure(HasExecutor):
+    def __init__(self, settings, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.settings = settings
 
     def _machines_providers(self):
         for machinegroup_name, machinegroup_settings in self.settings.items():
             yield MachinesProvider(
                 machinegroup_settings.provider,
-                self.performer,
+                self.executor,
                 machinegroup_name,
                 machinegroup_settings.groups,
                 settings_data=machinegroup_settings.settings_data

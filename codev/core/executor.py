@@ -1,5 +1,6 @@
 from contextlib import contextmanager
-from functools import wraps
+from copy import copy
+from functools import partialmethod
 
 from codev.core.provider import Provider, ConfigurableProvider
 
@@ -19,23 +20,29 @@ class CommandError(Exception):
 
 
 class Command(object):
+    def __new__(cls, command_or_str, *args, **kwargs):
+        if isinstance(command_or_str, Command):
+            return command_or_str
+        else:
+            return super().__new__(cls)
+
     def __init__(self, command_str, logger=None, writein=None):
         self.command_str = command_str
         self.logger = logger
         self.writein = writein
 
-    @classmethod
-    def exists_directory(cls, directory, logger=None, writein=None):
-        return cls('[ -d {directory} ]'.format(directory=directory), logger=logger, writein=writein)
-
     def __str__(self):
         return self.command_str
 
-    def _include_command_str(self, command_str):
-        return command_str.replace('\\', '\\\\').replace('$', '\$').replace('"', '\\"')
+    def include(self):
+        return self._copy(
+            'bash -c "{command_str}"'.format(
+                command_str=self.command_str.replace('\\', '\\\\').replace('$', '\$').replace('"', '\\"')
+            )
+        )
 
-    def _copy(self, command):
-        return self.__class__(command, logger=self.logger, writein=self.writein)
+    def _copy(self, command_or_str):
+        return self.__class__(command_or_str, logger=self.logger, writein=self.writein)
 
     def change_directory(self, directory):
         return self._copy('cd {directory} && {command_str}'.format(
@@ -44,22 +51,11 @@ class Command(object):
         ))
 
     def wrap(self, command_str):
-        command_str = 'bash -c "{command_str}"'.format(
-            command_str=self._include_command_str(
-                self.command_str
+        return self._copy(
+            command_str.format(
+                command=self.include()
             )
         )
-        return self._copy(command_str)
-
-    def execute(self, executor):
-        return executor.execute(self)
-
-    def check_execute(self, executor):
-        try:
-            self.execute(executor)
-            return True
-        except CommandError:
-            return False
 
 
 class BaseExecutor(object):
@@ -74,20 +70,58 @@ class BaseExecutor(object):
         yield NotImplementedError()
 
 
-class ProxyExecutor(BaseExecutor):
+class HasExecutor(object):
     def __init__(self, *args, executor, **kwargs):
-        self._executor = executor
+        self.executor = executor
         super().__init__(*args, **kwargs)
 
-    def execute(self, command):
-        return command.execute(self._executor)
+
+class ProxyExecutor(HasExecutor):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._directories = []
+
+    def check_execute(self, command_str, logger=None, writein=None):
+        try:
+            self.execute(command_str)
+            return True
+        except CommandError:
+            return False    
+    
+    def execute(self, command_str, logger=None, writein=None):
+        command = Command(command_str, logger=logger, writein=writein)
+        for directory in reversed(self._directories):
+            command = command.change_directory(directory)
+        return self.execute_command(command)
+
+    @property
+    def inherited_executor(self):
+        obj = copy(self)
+        obj.__class__ = [base for base in self.__class__.__bases__ if issubclass(base, ProxyExecutor)][0]
+        return obj
+
+    def execute_command(self, command):
+        return self.executor.execute(command)
 
     def send_file(self, source, target):
-        return self._executor.send_file(source, target)
+        return self.executor.send_file(source, target)
 
     @contextmanager
     def get_fo(self, remote_path):
-        yield from self._executor.get_fo(remote_path)
+        yield from self.executor.get_fo(remote_path)
+
+    @contextmanager
+    def change_directory(self, directory):
+        self._directories.append(directory)
+        yield
+        self._directories.pop()
+
+    def exists_directory(self, directory):
+        return self.check_execute(
+            '[ -d {directory} ]'.format(
+                directory=directory
+            )
+        )
 
 
 class Executor(Provider, ConfigurableProvider, BaseExecutor):
@@ -134,7 +168,7 @@ class BackgroundExecutor(Executor):
     def _isolation_directory(self):
         if not self.__isolation_directory:
             # if not self.ident:
-            #     ssh_info = self.performer.execute('echo $SSH_CLIENT')
+            #     ssh_info = self.executor.execute('echo $SSH_CLIENT')
             #     ip, remote_port, local_port = ssh_info.split()
             #     self.ident = 'control_{ip}_{remote_port}_{local_port}'.format(
             #         ip=ip, remote_port=remote_port, local_port=local_port
@@ -147,7 +181,7 @@ class BackgroundExecutor(Executor):
         return self.__isolation_directory
 
     def _create_isolation(self):
-        self.performer.execute('mkdir -p %s' % self._isolation_directory)
+        self.executor.execute('mkdir -p %s' % self._isolation_directory)
 
         output_file, error_file, exitcode_file, command_file, pid_file, temp_file = map(
             lambda f: '%s/%s' % (self._isolation_directory, f),
@@ -170,16 +204,16 @@ class BackgroundExecutor(Executor):
         return self._isolation_cache
 
     def _clean(self):
-        self.performer.execute('rm -rf %s' % self._isolation_directory)
+        self.executor.execute('rm -rf %s' % self._isolation_directory)
 
     def _file_exists(self, filepath):
-        return self.performer.check_execute('[ -f %s ]' % filepath)
+        return self.executor.check_execute('[ -f %s ]' % filepath)
 
     def _bg_check(self, pid):
-        return self.performer.check_execute('ps -p %s -o pid=' % pid)
+        return self.executor.check_execute('ps -p %s -o pid=' % pid)
 
     def _bg_log(self, logger, skip_lines):
-        output = self.performer.execute('tail {output_file} -n+{skip_lines}'.format(
+        output = self.executor.execute('tail {output_file} -n+{skip_lines}'.format(
             output_file=self._isolation.output_file,
             skip_lines=skip_lines)
         )
@@ -200,7 +234,7 @@ class BackgroundExecutor(Executor):
         self._clean()
 
     def _bg_signal(self, pid, signal=None):
-        return self.performer.execute(
+        return self.executor.execute(
             'pkill {signal}-P {pid}'.format(
                 pid=pid,
                 signal='-%s ' % signal if signal else ''
@@ -216,7 +250,7 @@ class BackgroundExecutor(Executor):
         self._bg_log(logger, skip_lines)
 
     def _cat_file(self, catfile):
-        return self.performer.execute('cat %s' % catfile)
+        return self.executor.execute('cat %s' % catfile)
 
     def _get_bg_running_pid(self):
         return self._cat_file(self._isolation.pid_file)
@@ -231,11 +265,11 @@ class BackgroundExecutor(Executor):
                 if pid and self._bg_check(pid):
                     raise CommandError('Another process is running.')
 
-        self.performer.execute('echo "" > {output_file} > {error_file} > {exitcode_file} > {pid_file}'.format(
+        self.executor.execute('echo "" > {output_file} > {error_file} > {exitcode_file} > {pid_file}'.format(
             **isolation._asdict()
         ))
 
-        self.performer.execute(
+        self.executor.execute(
             'tee {command_file} > /dev/null && chmod +x {command_file}'.format(
                 **isolation._asdict()
             ),
@@ -250,7 +284,7 @@ class BackgroundExecutor(Executor):
         )
 
         # max lines against readline hang
-        pid = self.performer.execute(bg_command, writein=writein)
+        pid = self.executor.execute(bg_command, writein=writein)
 
         if not pid.isdigit():
             raise ValueError('not a pid %s' % pid)

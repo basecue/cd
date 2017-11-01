@@ -1,5 +1,5 @@
 from contextlib import contextmanager
-from subprocess import Popen, PIPE, call
+from subprocess import Popen, PIPE, check_call
 
 from os import fdopen, remove
 from os.path import expanduser
@@ -58,6 +58,8 @@ class LocalExecutor(Executor):
         return output
 
     def send_file(self, source, target):
+        if source == target:
+            return
         self.logger.debug("Send file: '{source}' '{target}'".format(source=source, target=target))
         expanduser_source = expanduser(source)
         if expanduser_source != source:
@@ -66,7 +68,7 @@ class LocalExecutor(Executor):
                     source=source, expanduser_source=expanduser_source
                 )
             )
-        call(['cp', expanduser_source, target])
+        check_call(['cp', expanduser_source, target])
 
     @contextmanager
     def get_fo(self, remote_path):

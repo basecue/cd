@@ -212,8 +212,8 @@ class ConfigurationSettings(BaseConfigurationSettings):
         )
 
     @property
-    def performer(self):
-        return ProviderSettings(self.data.get('performer', {}))
+    def executor(self):
+        return ProviderSettings(self.data.get('executor', {}))
 
     @property
     def infrastructure(self):

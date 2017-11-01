@@ -27,7 +27,7 @@ class AnsibleGitSource(AnsibleSource):
         )
 
     def install(self):
-        self.git.install(self.performer)
+        self.git.install(self.executor)
 
     @property
     def directory(self):

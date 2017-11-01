@@ -1,6 +1,6 @@
 from logging import getLogger
 
-from codev.core.performer import ScriptExecutor, CommandError
+from codev.core.executor import ScriptExecutor, CommandError
 
 from .task import Task
 
@@ -61,7 +61,7 @@ class TasksRunner(ScriptExecutor):
                 # TODO
                 # self.execute_scripts(scripts.onstart, script_info)
 
-                task = Task(task_settings.provider, performer=self.performer, settings_data=task_settings.settings_data)
+                task = Task(task_settings.provider, executor=self.executor, settings_data=task_settings.settings_data)
 
                 name = " '{}'".format(task_name) if task_name else ''
                 logger.info("Preparing task{name}...".format(name=name))

@@ -5,11 +5,11 @@ from logging import getLogger
 from paramiko.client import SSHClient, AutoAddPolicy, NoValidConnectionsError
 from paramiko.agent import AgentRequestHandler
 
-from codev.core.performer import Performer, CommandError, CommandError, OutputReader
+from codev.core.executor import Executor, CommandError, CommandError, OutputReader
 from codev.core.settings import BaseSettings
 
 
-class SSHPerformerSettings(BaseSettings):
+class SSHExecutorSettings(BaseSettings):
     @property
     def hostname(self):
         return self.data.get('hostname', 'localhost')
@@ -27,9 +27,9 @@ class SSHPerformerSettings(BaseSettings):
         return self.data.get('password', None)
 
 
-class SSHperformer(Performer):
+class SSHexecutor(Executor):
     provider_name = 'ssh'
-    settings_class = SSHPerformerSettings
+    settings_class = SSHExecutorSettings
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

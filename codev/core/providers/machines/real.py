@@ -22,7 +22,7 @@ class RealMachine(BaseMachine):
         pass
 
     def install_packages(self, *packages):
-        # TODO use ssh performer
+        # TODO use ssh executor
         pass
 
     @property
