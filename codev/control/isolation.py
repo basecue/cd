@@ -4,8 +4,9 @@ from logging import getLogger
 from time import time
 
 from codev.core.executor import ProxyExecutor, CommandError, Command
+from codev.core.machines import BaseMachine
 
-from codev.core.provider import Provider, ConfigurableProvider
+from codev.core.provider import Provider, HasSettings
 from codev.core.settings import YAMLSettingsReader
 from codev.core.debug import DebugSettings
 
@@ -19,20 +20,15 @@ command_logger = getLogger('command')
 debug_logger = getLogger('debug')
 
 
-class Isolation(Provider, ConfigurableProvider, ProxyExecutor):
+class Isolation(Provider, BaseMachine):
 
-    def __init__(self, *args, ident=None, **kwargs):
-        self.ident = ident
-        super().__init__(*args, **kwargs)
-
-    def create(self):
-        raise NotImplementedError()
-
-    def exists(self):
-        raise NotImplementedError()
-
-    def install(self, version):
-        raise NotImplementedError()
+    def install(self, source):
+        self.execute(
+            'codev-source install {configuration_name}:{configuration_option} {source}:{options}'.format(
+                source=source.provider_name,
+                options=source.options
+            )
+        )
 
     def perform(self, configuration_name, configuration_option, input_vars):
 
@@ -78,7 +74,17 @@ class Isolation(Provider, ConfigurableProvider, ProxyExecutor):
 
 
 class PrivilegedIsolation(Isolation):
-    def install(self, version):
+    def install(self, source):
+        source_directory = 'repository'
+        self.execute('rm -rf {directory}'.format(directory=source_directory))
+        self.execute('mkdir -p {directory}'.format(directory=source_directory))
+        with self.change_directory(source_directory):
+            source.install()
+            with self.get_fo('.codev') as codev_file:
+                return YAMLSettingsReader().from_yaml(codev_file)
+
+    def install_codev(self, version):
+
         self.execute('pip3 install setuptools')
 
         # uninstall previous version of codev (ignore if not installed)

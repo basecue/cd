@@ -5,7 +5,7 @@ from base64 import b64encode
 from time import sleep
 
 from codev.core.settings import BaseSettings
-from codev.core.machines import MachinesProvider, BaseMachine
+from codev.core.machines import MachinesProvider, BaseMachine, Machine
 from codev.core.executor import Executor
 
 
@@ -15,8 +15,38 @@ archlinux: wget, cdrkit | cdrtools
 ubuntu: TODO
 """
 
+class VirtualboxBaseMachineSettings(BaseSettings):
+    @property
+    def distribution(self):
+        return self.data['distribution']
 
-class VirtualboxMachine(BaseMachine):
+    @property
+    def release(self):
+        return self.data['release']
+
+    @property
+    def username(self):
+        return self.data.get('username')
+
+    @property
+    def password(self):
+        return self.data.get('password')
+
+    @property
+    def memory(self):
+        return self.data.get('memory', 20000)
+
+    @property
+    def hdd(self):
+        return self.data.get('hdd', 1024)
+
+    @property
+    def share(self):
+        return self.data.get('share', {})
+
+
+class VirtualboxBaseMachine(BaseMachine):
+    settings_class = VirtualboxBaseMachineSettings
 
     def exists(self):
         return '"{ident}"'.format(ident=self.ident) in self.executor.execute('VBoxManage list vms').split()
@@ -28,9 +58,9 @@ class VirtualboxMachine(BaseMachine):
     def start(self):
         self.executor.execute('VBoxManage startvm "{ident}" --type headless'.format(ident=self.ident))
 
-    def create(self, settings, ssh_key):
-        distribution = settings.distribution
-        release = settings.release
+    def create(self):
+        distribution = self.settings.distribution
+        release = self.settings.release
         if distribution != 'ubuntu':
             raise RuntimeError("Distribution '{distribution}' is not supported".format(distribution=distribution))
         if release in ('wily', 'xenial'):
@@ -46,7 +76,7 @@ class VirtualboxMachine(BaseMachine):
 
         vm_iso = '/tmp/{ident}.iso'.format(
             release=release,
-            ident=self.ident
+            ident=self.ident.as_directory()
         )
 
         packages = ['virtualbox-guest-utils', 'openssh-server']
@@ -55,9 +85,9 @@ class VirtualboxMachine(BaseMachine):
 
         self._prepare_ubuntu_iso(
             release_iso, vm_iso,
-            settings.username, settings.password, self.ident,
+            self.settings.username, self.settings.password, self.ident,
             device_1=device_1, device_2=device_2,
-            packages=packages, ssh_authorized_keys=[ssh_key]
+            packages=packages, ssh_authorized_keys=[self.settings.ssh_key]
         )
 
         iface_ip = '192.168.77.100'
@@ -68,9 +98,9 @@ class VirtualboxMachine(BaseMachine):
         iface = self._create_vbox_iface(iface_ip, dhcp_ip, netmask, lower_ip, upper_ip)
         self._create_vm(
             ostype='Ubuntu_64',
-            memory=settings.memory,
-            hdd=settings.hdd,
-            share=settings.share,
+            memory=self.settings.memory,
+            hdd=self.settings.hdd,
+            share=self.settings.share,
             hostonly_iface=iface
         )
 
@@ -88,22 +118,18 @@ class VirtualboxMachine(BaseMachine):
 
         self.start()
 
-    def execute(self, command, logger=None, writein=None):
+    def execute_command(self, command):
 
-        return Executor('ssh', settings_data={'hostname': self.ip, 'username': 'root'}).execute(
-            self._prepare_command(command), logger=logger, writein=writein
+        return Executor(
+            'ssh', settings_data={'hostname': self._ip, 'username': 'root'}
+        ).execute(
+            command
         )
         # return super().execute(
         #     'ssh root@{ip} -- {command}'.format(
         #         ip=self.ip, command=command, logger=logger, writein=writein
         #     )
         # )
-
-    def destroy(self):
-        raise NotImplementedError()
-
-    def stop(self):
-        raise NotImplementedError()
 
     def _download_ubuntu_iso(self, release, subtype='server', arch='amd64'):
         release_to_number = {
@@ -360,7 +386,7 @@ class VirtualboxMachine(BaseMachine):
         )
 
     @property
-    def ip(self):
+    def _ip(self):
         for i in range(20):
             value_ip = self.executor.execute(
                 'VBoxManage guestproperty get "{ident}" "/VirtualBox/GuestInfo/Net/1/V4/IP"'.format(
@@ -380,41 +406,9 @@ class VirtualboxMachine(BaseMachine):
         # )
 
 
-class VirtualboxMachinesSettings(BaseSettings):
-    @property
-    def distribution(self):
-        return self.data['distribution']
-
-    @property
-    def release(self):
-        return self.data['release']
-
-    @property
-    def number(self):
-        return int(self.data.get('number', 1))
-
-    @property
-    def username(self):
-        return self.data.get('username')
-
-    @property
-    def password(self):
-        return self.data.get('password')
-
-    @property
-    def memory(self):
-        return self.data.get('memory', 20000)
-
-    @property
-    def hdd(self):
-        return self.data.get('hdd', 1024)
-
-    @property
-    def share(self):
-        return self.data.get('share', {})
-
-
-class VirtualboxMachinesProvider(MachinesProvider):
+class VirtualBoxMachine(Machine, VirtualboxBaseMachine):
     provider_name = 'virtualbox'
-    settings_class = VirtualboxMachinesSettings
-    machine_class = VirtualboxMachine
+
+    @property
+    def ip(self):
+        return self._ip

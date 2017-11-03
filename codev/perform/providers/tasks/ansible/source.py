@@ -1,10 +1,8 @@
-from codev.core.provider import Provider, ConfigurableProvider
+from codev.core.executor import HasExecutor
+from codev.core.provider import Provider, HasSettings
 
 
-class AnsibleSource(Provider, ConfigurableProvider):
-    def __init__(self, executor, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.executor = executor
+class AnsibleSource(Provider, HasSettings, HasExecutor):
 
     def install(self):
         raise NotImplementedError()

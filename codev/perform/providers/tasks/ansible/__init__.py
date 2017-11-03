@@ -5,7 +5,6 @@ from logging import getLogger
 
 import os.path
 
-from codev.core import Isolator
 from codev.core.executor import CommandError
 from codev.core.installer import Installer
 from codev.core.settings import BaseSettings, ProviderSettings
@@ -61,25 +60,24 @@ class AnsibleTask(Task):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.isolator = Isolator(
-            'virtualenv',
+        self.virtualenv = VirtualenvBaseMachine(
             executor=self.executor,
             settings_data=dict(python='2'),
             ident='codevansible')
 
     def prepare(self):
         # TODO requirements - python-dev, python-virtualenv
-        self.isolator.create()
-        self.isolator.execute('pip install --upgrade setuptools==34.0.2')
-        self.isolator.execute('pip install --upgrade pycrypto==2.6.1 cffi==1.9.1 markupsafe==0.23 PyYAML==3.12 cffi==1.9.1 cryptography==1.7.1 paramiko==2.1.1 Jinja2==2.9.4 httplib2==0.9.2 six==1.10.0 ecdsa==0.11')
+        self.virtualenv.create()
+        self.virtualenv.execute('pip install --upgrade setuptools==34.0.2')
+        self.virtualenv.execute('pip install --upgrade pycrypto==2.6.1 cffi==1.9.1 markupsafe==0.23 PyYAML==3.12 cffi==1.9.1 cryptography==1.7.1 paramiko==2.1.1 Jinja2==2.9.4 httplib2==0.9.2 six==1.10.0 ecdsa==0.11')
 
         version_add = ''
         if self.settings.version:
             version_add = '==%s' % self.settings.version
-        self.isolator.execute('pip install --upgrade ansible{version_add}'.format(version_add=version_add))
+        self.virtualenv.execute('pip install --upgrade ansible{version_add}'.format(version_add=version_add))
 
         for module in self.settings.modules:
-            self.isolator.execute('pip install --upgrade {module}'.format(module=module))
+            self.virtualenv.execute('pip install --upgrade {module}'.format(module=module))
 
     def run(self, infrastructure, status, input_vars):
         inventory = configparser.ConfigParser(allow_no_value=True, delimiters=('',))
@@ -159,17 +157,17 @@ class AnsibleTask(Task):
             source_directory = ''
 
         directory = os.path.join(source_directory, self.settings.directory)
-        with self.isolator.change_directory(directory):
+        with self.virtualenv.change_directory(directory):
             requirements = self.settings.requirements
             if requirements:
-                self.isolator.execute('ansible-galaxy install -r {requirements}'.format(requirements=requirements))
+                self.virtualenv.execute('ansible-galaxy install -r {requirements}'.format(requirements=requirements))
 
-            if self.isolator.check_execute('[ -f hosts ]'):
-                self.isolator.execute('cp hosts {inventory}'.format(inventory=inventory_directory))
+            if self.virtualenv.check_execute('[ -f hosts ]'):
+                self.virtualenv.execute('cp hosts {inventory}'.format(inventory=inventory_directory))
 
             machine_idents = [machine.ident for machine in infrastructure.machines]
 
-            self.isolator.execute('{env_vars}ansible-playbook -v -i {inventory} {playbook} --limit={limit} {extra_vars}{vault_password_file}'.format(
+            self.virtualenv.execute('{env_vars}ansible-playbook -v -i {inventory} {playbook} --limit={limit} {extra_vars}{vault_password_file}'.format(
                 inventory=inventory_directory,
                 playbook=self.settings.playbook,
                 limit=','.join(machine_idents),

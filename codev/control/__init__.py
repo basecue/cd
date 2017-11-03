@@ -107,27 +107,25 @@ class CodevControl(CodevCore):
         else:
             created = False
 
+        if not self.isolation.is_started():
+            self.isolation.start()
+
         if created or not self.next_source:
             current_source = self.source
         else:
             current_source = self.next_source
 
-        current_source.install()
 
-        with current_source.open_codev_file() as codev_file:
-            current_settings = YAMLSettingsReader().from_yaml(codev_file)
+        current_settings = self.isolation.install(current_source)
+
+        self.isolation.install_codev(current_settings.version)
+
 
         # FIXME refactorize - same code is in core.__init__
         current_configuration_settings = current_settings.configurations[self.configuration_name]
         if self.configuration_option:
             current_configuration_settings = current_configuration_settings.options[self.configuration_option]
-
-        codev_version = current_settings.version
-        self.isolation.install(codev_version)
-
-
         load_vars = {**current_configuration_settings.isolation.loaded_vars, **input_vars}
-
 
         load_vars.update(DebugSettings.settings.load_vars)
 
@@ -161,7 +159,7 @@ class CodevControl(CodevCore):
             project=self.project_name,
             configuration=self.configuration_name,
             configuration_option=self.configuration_option,
-            source=self.source.name,
+            source=self.source.provider_name,
             source_options=self.source.options,
             next_source=self.next_source.name if self.next_source else '',
             next_source_options=self.next_source.options if self.next_source else '',

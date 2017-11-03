@@ -1,6 +1,6 @@
 from logging import getLogger
 
-from codev.core.executor import ScriptExecutor, CommandError
+from codev.core.executor import CommandError
 
 from .task import Task
 
@@ -8,7 +8,7 @@ from .task import Task
 logger = getLogger(__name__)
 
 
-class TasksRunner(ScriptExecutor):
+class TasksRunner(object):
     def __init__(self, tasks, infrastructure, *args, **kwargs):
         self.tasks = tasks
         self.infrastructure = infrastructure

@@ -69,7 +69,8 @@ class Provider(object, metaclass=ProviderMetaClass):
             cls.provider_class.providers[provider_name] = provider_cls
 
 
-class ConfigurableProvider(object):
+# FIXME move to another module
+class HasSettings(object):
     settings_class = None
 
     def __init__(self, *args, settings_data=None, **kwargs):

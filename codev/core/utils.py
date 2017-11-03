@@ -15,4 +15,11 @@ class Ident(object):
         return tuple(filter(None, self._ident))
 
     def as_directory(self):
-        return '_'.join(self.as_tuple())
+        return '_'.join(self.as_tuple()).replace('/', '-')
+
+
+class HasIdent(object):
+    def __init__(self, *args, ident=None, **kwargs):
+        assert isinstance(ident, Ident)
+        self.ident = ident
+        super().__init__(*args, **kwargs)

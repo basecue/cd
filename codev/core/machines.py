@@ -1,16 +1,23 @@
-from .provider import Provider, ConfigurableProvider
+from codev.core.utils import HasIdent
+from .provider import Provider, HasSettings
 from .executor import ProxyExecutor, HasExecutor
 from .debug import DebugSettings
 
 
-class BaseMachine(ProxyExecutor):
-    def __init__(self, *args, ident=None, group=None, groups=None, **kwargs):
-        self.group = group
-        self.groups = groups
-        self.ident = ident
-        super().__init__(*args, **kwargs)
+class BaseMachine(ProxyExecutor, HasSettings, HasIdent):
+    # def __init__(self, *args, ident=None, group=None, groups=None, **kwargs):
+    #     self.group = group
+    #     self.groups = groups
+    #     self.ident = ident
+    #     super().__init__(*args, **kwargs)
 
     def exists(self):
+        raise NotImplementedError()
+
+    def create(self):
+        raise NotImplementedError()
+
+    def destroy(self):
         raise NotImplementedError()
 
     def is_started(self):
@@ -19,22 +26,22 @@ class BaseMachine(ProxyExecutor):
     def start(self):
         raise NotImplementedError()
 
-    def create(self, settings, ssh_key):
-        raise NotImplementedError()
-
-    def destroy(self):
-        raise NotImplementedError()
-
     def stop(self):
         raise NotImplementedError()
+    #
+    # @property
+    # def ip(self):
+    #     #TODO rename to host
+    #     raise NotImplementedError()
 
-    @property
-    def ip(self):
-        #TODO rename to host
-        raise NotImplementedError()
+
+class Machine(Provider, BaseMachine):
+    pass
+    # def clone(self):
+    #     raise NotImplementedError()
 
 
-class MachinesProvider(Provider, ConfigurableProvider, HasExecutor):
+class MachinesProvider(Provider, HasSettings, HasExecutor):
     machine_class = BaseMachine
 
     def __init__(self, group, groups, *args, **kwargs):

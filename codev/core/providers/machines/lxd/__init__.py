@@ -12,35 +12,23 @@ from codev.core.executor import BackgroundExecutor, CommandError
 logger = getLogger(__name__)
 
 
-class LXDMachine(BaseMachine):
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # self.__container_directory = None
-        self.__share_directory = None
-        self.__gateway = None
-        self.base_dir = '/root'
-
+class LXDBaseMachine(BaseMachine):
     @property
-    def container_name(self):
-        return '-'.join(self.ident).replace('/', '-').replace('_', '-')
+    def _container_name(self):
+        return self.ident.as_directory()
 
     def exists(self):
         output = self.executor.execute(
             'lxc list -cn --format=json ^{container_name}$'.format(
-                container_name=self.container_name
+                container_name=self._container_name
             )
         )
         return bool(json.loads(output))
 
-    def wait_for_start(self):
-        while not self.is_started():
-            sleep(0.5)
-
     def is_started(self):
         output = self.executor.execute(
             'lxc info {container_name}'.format(
-                container_name=self.container_name
+                container_name=self._container_name
             )
         )
         for line in output.splitlines():
@@ -61,34 +49,65 @@ class LXDMachine(BaseMachine):
         else:
             raise ValueError('Bad state: {}'.format(state))
 
-    def create(self, settings, ssh_key): #, ip=None, gateway=None):
-        distribution = settings.distribution
-        release = settings.release
+    def _wait_for_start(self):
+        while not self.is_started():
+            sleep(0.5)
+
+    def create(self):
+        distribution = self.settings.distribution
+        release = self.settings.release
 
         self.executor.execute(
             'lxc launch images:{distribution}/{release} {container_name}'.format(
-                container_name=self.container_name,
+                container_name=self._container_name,
                 distribution=distribution,
                 release=release
             )
         )
 
-        self.wait_for_start()
-
-        self.install_packages('openssh-server')
-
-        # authorize user for ssh
-        if ssh_key:
-            self.execute('mkdir -p .ssh')
-            self.execute('tee .ssh/authorized_keys', writein=ssh_key)
+        self._wait_for_start()
 
     def destroy(self):
         self.executor.execute('lxc delete {container_name} --force'.format(
-            container_name=self.container_name,
+            container_name=self._container_name,
         ))
 
-        # TODO share
-        self.executor.execute('rm -rf {share_directory}'.format(share_directory=self.share_directory))
+        # # TODO share
+        # self.executor.execute('rm -rf {share_directory}'.format(share_directory=self.share_directory))
+
+    def start(self):
+        self.executor.execute('lxc start {container_name}'.format(
+            container_name=self._container_name,
+        ))
+
+        self._wait_for_start()
+
+        return True
+
+    def stop(self):
+        self.executor.execute('lxc stop {container_name}'.format(
+            container_name=self._container_name,
+        ))
+
+
+class LXDMachine(LXDBaseMachine):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # self.__container_directory = None
+        self.__share_directory = None
+        self.__gateway = None
+        self.base_dir = '/root'
+
+    def create(self): #, ip=None, gateway=None):
+        self.install_packages('openssh-server')
+
+        # authorize user for ssh
+        if self.settings.ssh_key:
+            self.execute('mkdir -p .ssh')
+            self.execute('tee .ssh/authorized_keys', writein=self.settings.ssh_key)
+
+
 
     # def _configure(self, ip=None, gateway=None):
     #     self.executor.execute('mkdir -p {share_directory} && chmod 7777 {share_directory}'.format(
@@ -172,19 +191,6 @@ class LXDMachine(BaseMachine):
     # def container_config(self):
     #     return '{container_directory}/config'.format(container_directory=self._container_directory)
 
-    def start(self):
-        self.executor.execute('lxc start {container_name}'.format(
-            container_name=self.container_name,
-        ))
-
-        self.wait_for_start()
-
-        return True
-
-    def stop(self):
-        self.executor.execute('lxc stop {container_name}'.format(
-            container_name=self.container_name,
-        ))
 
     @property
     def ip(self):

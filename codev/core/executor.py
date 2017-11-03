@@ -1,8 +1,8 @@
 from contextlib import contextmanager
 from copy import copy
-from functools import partialmethod
 
-from codev.core.provider import Provider, ConfigurableProvider
+from codev.core.provider import Provider, HasSettings
+from os import path
 
 
 class CommandError(Exception):
@@ -108,7 +108,9 @@ class ProxyExecutor(HasExecutor):
 
     @contextmanager
     def get_fo(self, remote_path):
-        yield from self.executor.get_fo(remote_path)
+        remote_path = path.join(*[directory for directory in reversed(self._directories)], remote_path)
+        with self.executor.get_fo(remote_path) as fo:
+            yield fo
 
     @contextmanager
     def change_directory(self, directory):
@@ -124,7 +126,7 @@ class ProxyExecutor(HasExecutor):
         )
 
 
-class Executor(Provider, ConfigurableProvider, BaseExecutor):
+class Executor(Provider, HasSettings, BaseExecutor):
     # def __init__(self, *args, **kwargs):
     #     super().__init__(*args, **kwargs)
         # TODO move to future authentication module

@@ -50,46 +50,42 @@ class Git(object):
 
         # obtain fingerprint from server and set .ssh/known_hosts properly
 
-        hostname = urlparse(self.repository_url).hostname
+        # hostname = urlparse(self.repository_url).hostname
 
-        executor.execute('mkdir -p ~/.ssh')
-        ssh_line = executor.execute('ssh-keyscan -t rsa {hostname} 2> /dev/null'.format(hostname=hostname))
-        if not executor.check_execute('grep -qxF "{ssh_line}" ~/.ssh/known_hosts'.format(ssh_line=ssh_line)):
-            executor.execute('echo "{ssh_line}" >> ~/.ssh/known_hosts'.format(ssh_line=ssh_line))
+        # executor.execute('mkdir -p ~/.ssh')
+        # ssh_line = executor.execute('ssh-keyscan -t rsa {hostname} 2> /dev/null'.format(hostname=hostname))
+        # if not executor.check_execute('grep -qxF "{ssh_line}" ~/.ssh/known_hosts'.format(ssh_line=ssh_line)):
+        #     executor.execute('echo "{ssh_line}" >> ~/.ssh/known_hosts'.format(ssh_line=ssh_line))
 
         # clean directory
-        if self.directory:
-            if executor.exists_directory(self.directory):
-                executor.check_execute('rm -rf {directory}'.format(directory=self.directory))
+        # if self.directory:
+        #     if executor.exists_directory(self.directory):
+        #         executor.check_execute('rm -rf {directory}'.format(directory=self.directory))
 
-        if self.directory:
-            directory = self.directory
-        else:
-            directory = '.'
+        # if self.directory:
+        #     directory = self.directory
+        # else:
+        #     directory = '.'
 
         # clone repository
         if self.branch:
-            executor.execute('git clone {url} --branch {object} --single-branch {directory}'.format(
+            executor.execute('git clone {url} --branch {object} --single-branch .'.format(
                 url=self.repository_url,
-                directory=directory,
                 object=self.branch
             ))
         elif self.commit:
-            executor.execute('git init {directory}'.format(directory=directory))
-            with executor.change_directory(directory):
-                executor.execute('git remote add origin {url}'.format(url=self.repository_url))
-                executor.execute('git fetch origin {commit}'.format(commit=self.commit))
-                executor.execute('git reset --hard FETCH_HEAD')
+            executor.execute('git init .')
+            executor.execute('git remote add origin {url}'.format(url=self.repository_url))
+            executor.execute('git fetch origin {commit}'.format(commit=self.commit))
+            executor.execute('git reset --hard FETCH_HEAD')
         else:  # if self.version
-            executor.execute('git clone {url} {directory}'.format(
+            executor.execute('git clone {url} .'.format(
                 url=self.repository_url,
-                directory=directory
             ))
-            with executor.change_directory(directory):
-                executor.execute('git checkout {version}'.format(
-                    url=self.repository_url,
-                    version=self.version
-                ))
+            executor.execute('git checkout {version}'.format(
+                url=self.repository_url,
+                version=self.version
+            ))
 
 
 class GitSource(Source):

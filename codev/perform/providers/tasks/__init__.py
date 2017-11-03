@@ -1,2 +1,2 @@
 from .ansible import AnsibleTask
-from .fabric import FabricTask
+# from .fabric import FabricTask

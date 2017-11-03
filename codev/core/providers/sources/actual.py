@@ -24,16 +24,9 @@ class ActualSource(Source):
         # install gunzip
         # TODO requirements
         # executor.install_packages('gzip')
-        self.executor.execute('rm -rf {directory}'.format(directory=self.directory))
-        self.executor.execute('mkdir -p {directory}'.format(directory=self.directory))
 
         self.executor.execute(
-            'tar -xzf {archive} --directory {directory}'.format(
-                archive=remote_archive, directory=self.directory
+            'tar -xzf {archive}'.format(
+                archive=remote_archive
             )
         )
-
-    @contextmanager
-    def open_codev_file(self):
-        with open('.codev') as codev_file:
-            yield codev_file

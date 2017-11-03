@@ -12,16 +12,7 @@ from codev.core.executor import BackgroundExecutor, CommandError, CommandError
 
 logger = getLogger(__name__)
 
-
-class LXCMachine(BaseMachine):
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.__container_directory = None
-        self.__share_directory = None
-        self.__gateway = None
-        self.base_dir = '/root'
-
+class LXCBaseMachine(BaseMachine):
     def exists(self):
         try:
             output = self.executor.execute('lxc-ls')
@@ -30,7 +21,7 @@ class LXCMachine(BaseMachine):
             return False
         return self.ident in output.split()
 
-    def is_started(self):
+    def started(self):
         output = self.executor.execute('lxc-info -n {container_name} -s'.format(
             container_name=self.ident,
         ))
@@ -82,6 +73,33 @@ class LXCMachine(BaseMachine):
         if ssh_key:
             self.execute('mkdir -p .ssh')
             self.execute('tee .ssh/authorized_keys', writein=ssh_key)
+
+    def start(self):
+        self.executor.execute('lxc-start -n {container_name}'.format(
+            container_name=self.ident,
+        ))
+        #TODO timeout
+        while not self.is_started():
+            sleep(0.5)
+
+        return True
+
+    def stop(self):
+        self.executor.execute('lxc-stop -n {container_name}'.format(
+            container_name=self.ident,
+        ))
+
+
+class LXCMachine(LXCBaseMachine):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.__container_directory = None
+        self.__share_directory = None
+        self.__gateway = None
+        self.base_dir = '/root'
+
+
 
     def destroy(self):
         self.executor.execute('rm -rf {share_directory}'.format(share_directory=self.share_directory))
@@ -177,20 +195,7 @@ class LXCMachine(BaseMachine):
     def container_config(self):
         return '{container_directory}/config'.format(container_directory=self._container_directory)
 
-    def start(self):
-        self.executor.execute('lxc-start -n {container_name}'.format(
-            container_name=self.ident,
-        ))
-        #TODO timeout
-        while not self.is_started():
-            sleep(0.5)
 
-        return True
-
-    def stop(self):
-        self.executor.execute('lxc-stop -n {container_name}'.format(
-            container_name=self.ident,
-        ))
 
     @property
     def ip(self):
