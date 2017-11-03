@@ -1,7 +1,6 @@
-from contextlib import contextmanager
-
 from codev.core.executor import HasExecutor
-from .provider import Provider, HasSettings
+from codev.core.settings import HasSettings
+from .provider import Provider
 
 
 class Source(Provider, HasSettings, HasExecutor):
@@ -11,16 +10,3 @@ class Source(Provider, HasSettings, HasExecutor):
 
     def install(self):
         raise NotImplementedError()
-
-    # @contextmanager
-    # def open_codev_file(self):
-    #     with self.executor.change_directory(self.directory):
-    #         with self.executor.get_fo('.codev') as codev_file:
-    #             yield codev_file
-
-    # def machine_install(self, machine):
-    #     pass
-    #
-    # @property
-    # def directory(self):
-    #     return 'repository'

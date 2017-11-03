@@ -1,37 +1,38 @@
 from codev.core.executor import HasExecutor
-from .machines import MachinesProvider
+from codev.core.settings import HasSettings
+from .machines import Machine
 
 
 class Infrastructure(HasExecutor):
-    def __init__(self, settings, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, *args, settings, **kwargs):
         self.settings = settings
+        super().__init__(*args, **kwargs)
+    # def _machines_providers(self):
+    #     for machinegroup_name, machinegroup_settings in self.settings.items():
+    #         yield MachinesProvider(
+    #             machinegroup_settings.provider,
+    #             self.executor,
+    #             machinegroup_name,
+    #             machinegroup_settings.groups,
+    #             settings_data=machinegroup_settings.settings_data
+    #         )
+    #
+    # def get_machine_by_ident(self, ident):
+    #     for machine in self.machines:
+    #         if ident == machine.ident:
+    #             return machine
+    #     raise KeyError(ident)
 
-    def _machines_providers(self):
-        for machinegroup_name, machinegroup_settings in self.settings.items():
-            yield MachinesProvider(
-                machinegroup_settings.provider,
-                self.executor,
-                machinegroup_name,
-                machinegroup_settings.groups,
-                settings_data=machinegroup_settings.settings_data
-            )
+    def create(self):
+        for machines_name, machines_settings in self.settings.items():
+            for i in range(machines_settings.number):
+                machine = Machine(
+                    machines_settings.provider,
+                    executor=self.executor,
+                    settings_data=machines_settings.settings_data
+                )
+                machine.start_or_create()
 
-    def get_machine_by_ident(self, ident):
-        for machine in self.machines:
-            if ident == machine.ident:
-                return machine
-        raise KeyError(ident)
-
-    def create_machines(self):
-        for machinegroup_provider in self._machines_providers():
-            machinegroup_provider.create_machines()
-
-    @property
-    def machines(self):
-        for machines_provider in self._machines_providers():
-            for machine in machines_provider.machines:
-                yield machine
 
     # @property
     # def groups(self):
@@ -41,16 +42,16 @@ class Infrastructure(HasExecutor):
     #             groups.setdefault(group, []).append(machine)
     #     return groups
 
-    @property
-    def main_groups(self):
-        groups = {}
-        for machine in self.machines:
-            groups.setdefault(machine.group, []).append(machine)
-        return groups
-
-    @property
-    def status(self):
-        return {
-            group: [dict(ident=machine.ident, ip=machine.ip) for machine in machines]
-            for group, machines in self.main_groups.items()
-        }
+    # @property
+    # def main_groups(self):
+    #     groups = {}
+    #     for machine in self.machines:
+    #         groups.setdefault(machine.group, []).append(machine)
+    #     return groups
+    #
+    # @property
+    # def status(self):
+    #     return {
+    #         group: [dict(ident=machine.ident, ip=machine.ip) for machine in machines]
+    #         for group, machines in self.main_groups.items()
+    #     }

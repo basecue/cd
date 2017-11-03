@@ -1,5 +1,6 @@
 from codev.core.executor import HasExecutor
-from codev.core.provider import Provider, HasSettings
+from codev.core.provider import Provider
+from codev.core.settings import HasSettings
 
 
 class AnsibleSource(Provider, HasSettings, HasExecutor):

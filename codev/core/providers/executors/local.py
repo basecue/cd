@@ -72,5 +72,7 @@ class LocalExecutor(Executor):
 
     @contextmanager
     def get_fo(self, remote_path):
+        remote_path = expanduser(remote_path)
+        self.logger.debug("Get file: '{remote_path}'".format(remote_path=remote_path))
         with open(remote_path) as fo:
             yield fo

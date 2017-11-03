@@ -30,7 +30,7 @@ class CodevPerform(CodevCore):
         super().__init__(settings, configuration_name, configuration_option)
 
         executor = LocalExecutor()
-        self.infrastructure = Infrastructure(executor, self.configuration_settings.infrastructure)
+        self.infrastructure = Infrastructure(executor=executor, settings=self.configuration_settings.infrastructure)
         self.tasks_runner = TasksRunner(self.configuration_settings.tasks, self.infrastructure, executor=executor)
 
     def run(self, input_vars):
@@ -43,27 +43,28 @@ class CodevPerform(CodevCore):
 
         input_vars.update(DebugSettings.settings.load_vars)
 
+        self.infrastructure.create()
         # logger.info("Run configuration {configuration}.")
-        return self.tasks_runner.run(self.status, input_vars)
+        return self.tasks_runner.run(input_vars)
 
-    def execute(self, script, arguments=None):
-        """
-        Run script.
-
-        :param script: Script to execute
-        :type script: str
-        :param arguments: Arguments passed to script
-        :return: True if executed command returns 0
-        :rtype: bool
-        """
-        arguments.update(self.status)
-        try:
-            self.tasks_runner.execute_script(script, arguments, logger=command_logger)
-        except CommandError as e:
-            logger.error(e)
-            return False
-        else:
-            return True
+    # def execute(self, script, arguments=None):
+    #     """
+    #     Run script.
+    #
+    #     :param script: Script to execute
+    #     :type script: str
+    #     :param arguments: Arguments passed to script
+    #     :return: True if executed command returns 0
+    #     :rtype: bool
+    #     """
+    #     arguments.update(self.status)
+    #     try:
+    #         self.tasks_runner.execute_script(script, arguments, logger=command_logger)
+    #     except CommandError as e:
+    #         logger.error(e)
+    #         return False
+    #     else:
+    #         return True
 
     @property
     def status(self):

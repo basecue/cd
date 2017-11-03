@@ -1,5 +1,6 @@
 from codev.core.executor import HasExecutor
-from codev.core.provider import Provider, HasSettings
+from codev.core.provider import Provider
+from codev.core.settings import HasSettings
 
 
 class Task(Provider, HasSettings, HasExecutor):
@@ -7,6 +8,6 @@ class Task(Provider, HasSettings, HasExecutor):
     def prepare(self):
         raise NotImplementedError()
 
-    def run(self, infrastructure, script_info, input_vars):
+    def run(self, infrastructure, input_vars):
         raise NotImplementedError()
 

@@ -76,7 +76,7 @@ class VirtualboxBaseMachine(BaseMachine):
 
         vm_iso = '/tmp/{ident}.iso'.format(
             release=release,
-            ident=self.ident.as_directory()
+            ident=self.ident.as_file()
         )
 
         packages = ['virtualbox-guest-utils', 'openssh-server']
@@ -406,7 +406,7 @@ class VirtualboxBaseMachine(BaseMachine):
         # )
 
 
-class VirtualBoxMachine(Machine, VirtualboxBaseMachine):
+class VirtualboxMachine(Machine, VirtualboxBaseMachine):
     provider_name = 'virtualbox'
 
     @property

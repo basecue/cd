@@ -1,5 +1,6 @@
+from codev.core.settings import HasSettings
 from codev.core.utils import HasIdent
-from .provider import Provider, HasSettings
+from .provider import Provider
 from .executor import ProxyExecutor, HasExecutor
 from .debug import DebugSettings
 
@@ -28,6 +29,18 @@ class BaseMachine(ProxyExecutor, HasSettings, HasIdent):
 
     def stop(self):
         raise NotImplementedError()
+
+    def start_or_create(self):
+        if not self.exists():
+            self.create()
+            created = True
+        else:
+            created = False
+
+        if not self.is_started():
+            self.start()
+        return created
+
     #
     # @property
     # def ip(self):

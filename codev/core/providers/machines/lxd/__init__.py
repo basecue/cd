@@ -15,7 +15,7 @@ logger = getLogger(__name__)
 class LXDBaseMachine(BaseMachine):
     @property
     def _container_name(self):
-        return self.ident.as_directory()
+        return self.ident.as_file()
 
     def exists(self):
         output = self.executor.execute(

@@ -1,14 +1,12 @@
 # from os import environ
 import configparser
 import json
+import os.path
 from logging import getLogger
 
-import os.path
-
-from codev.core.executor import CommandError
+from codev.core.providers.machines import VirtualenvBaseMachine
 from codev.core.installer import Installer
 from codev.core.settings import BaseSettings, ProviderSettings
-
 from codev.perform.task import Task
 from .source import AnsibleSource
 from .sources import *
@@ -79,7 +77,7 @@ class AnsibleTask(Task):
         for module in self.settings.modules:
             self.virtualenv.execute('pip install --upgrade {module}'.format(module=module))
 
-    def run(self, infrastructure, status, input_vars):
+    def run(self, infrastructure, input_vars):
         inventory = configparser.ConfigParser(allow_no_value=True, delimiters=('',))
 
         # creating inventory
@@ -106,7 +104,6 @@ class AnsibleTask(Task):
             'source_directory': self.executor.execute('pwd'),
             'ssh_config': ssh_config,
         }
-        template_vars.update(status)
         template_vars.update(input_vars)
 
         # extra vars

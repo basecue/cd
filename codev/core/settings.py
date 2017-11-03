@@ -25,6 +25,7 @@ yaml.add_constructor(_mapping_tag, dict_constructor)
 """
 """
 
+
 # TODO check all data.get vs data[] and consider defaults
 
 
@@ -56,6 +57,10 @@ class InfrastructureSettings(ProviderSettings):
     @property
     def groups(self):
         return self.data.get('groups', [])
+
+    @property
+    def number(self):
+        return self.data.get('number', 1)
 
 
 class DictSettings(OrderedDict):
@@ -132,11 +137,6 @@ class IsolationScriptsSettings(BaseSettings):
 
 
 class IsolationSettings(ProviderSettings):
-    @property
-    def loaded_vars(self):
-        return {
-            var: open(file).read() for var, file in self.data.get('load_vars', {}).items()
-        }
 
     @property
     def connectivity(self):
@@ -173,6 +173,12 @@ class BaseConfigurationSettings(BaseSettings):
     def scripts(self):
         return ConfigurationScriptsSettings(self.data.get('scripts', {}))
 
+    @property
+    def loaded_vars(self):
+        return {
+            var: open(file).read() for var, file in self.data.get('load_vars', {}).items()
+        }
+
 
 class OptionSettings(BaseConfigurationSettings):
     def __init__(self, data, configuration):
@@ -195,6 +201,15 @@ class OptionSettings(BaseConfigurationSettings):
             return ConfigurationScriptsSettings(self.data.get('scripts', {}))
         else:
             return self._configuration.scripts
+
+    @property
+    def loaded_vars(self):
+        if 'load_vars' in self.data:
+            return {
+                var: open(file).read() for var, file in self.data.get('load_vars', {}).items()
+            }
+        else:
+            return self._configuration.loaded_vars
 
     def __getattr__(self, item):
         return getattr(self._configuration, item)
@@ -267,6 +282,29 @@ class Settings(BaseSettings):
     def sources(self):
         return ListDictSettings(self.data.get('sources', []))
 
+    def get_current_configuration(self, name, option):
+        try:
+            configuration = self.configurations[name]
+        except KeyError:
+            raise ValueError(
+                "Configuration '{name}' is not found.".format(
+                    name=name
+                )
+            )
+
+        if option:
+            try:
+                return configuration.options[option]
+            except KeyError:
+                raise ValueError(
+                    "Option '{option}' is not found in configuration '{name}'.".format(
+                        name=name,
+                        option=option,
+                    )
+                )
+        else:
+            return configuration
+
 
 class YAMLSettingsReader(object):
     def __init__(self, settings_class=Settings):
@@ -289,3 +327,12 @@ class YAMLSettingsWriter(object):
     def save_to_file(self, filepath):
         with open(filepath, 'w+') as file:
             yaml.dump(self.settings.data, file)
+
+
+class HasSettings(object):
+    settings_class = None
+
+    def __init__(self, *args, settings_data=None, **kwargs):
+        if self.__class__.settings_class:
+            self.settings = self.__class__.settings_class(settings_data)
+        super().__init__(*args, **kwargs)

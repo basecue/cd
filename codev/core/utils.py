@@ -14,7 +14,7 @@ class Ident(object):
     def as_tuple(self):
         return tuple(filter(None, self._ident))
 
-    def as_directory(self):
+    def as_file(self):
         return '_'.join(self.as_tuple()).replace('/', '-')
 
 

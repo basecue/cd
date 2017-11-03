@@ -1,10 +1,12 @@
+from contextlib import contextmanager
+
 from codev.core.machines import BaseMachine
 
 
 class DirectoryBaseMachine(BaseMachine):
 
     def _get_base_dir(self):
-        return '~/.share/codev/virtualenv/{ident}/'.format(ident=self.ident.as_directory())
+        return '~/.share/codev/virtualenv/{ident}/'.format(ident=self.ident.as_file())
 
     def exists(self):
         return self.inherited_executor.exists_directory(self._get_base_dir())
@@ -18,7 +20,13 @@ class DirectoryBaseMachine(BaseMachine):
         command = command.change_directory(
             self._get_base_dir()
         )
-        super().execute_command(command)
+        return super().execute_command(command)
+
+    @contextmanager
+    def get_fo(self, remote_path):
+        with self.change_directory(self._get_base_dir()):
+            with super().get_fo(remote_path) as fo:
+                yield fo
 
 
 class VirtualenvBaseMachine(DirectoryBaseMachine):

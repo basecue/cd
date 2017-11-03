@@ -1,4 +1,3 @@
-from contextlib import contextmanager
 import shutil
 from time import time
 from uuid import uuid1

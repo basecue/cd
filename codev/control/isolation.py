@@ -6,7 +6,7 @@ from time import time
 from codev.core.executor import ProxyExecutor, CommandError, Command
 from codev.core.machines import BaseMachine
 
-from codev.core.provider import Provider, HasSettings
+from codev.core.provider import Provider
 from codev.core.settings import YAMLSettingsReader
 from codev.core.debug import DebugSettings
 
@@ -23,18 +23,27 @@ debug_logger = getLogger('debug')
 class Isolation(Provider, BaseMachine):
 
     def install(self, source):
-        self.execute(
-            'codev-source install {configuration_name}:{configuration_option} {source}:{options}'.format(
-                source=source.provider_name,
-                options=source.options
-            )
-        )
+        # self.execute(
+        #     'codev-source install {configuration_name}:{configuration_option} {source}:{options}'.format(
+        #         source=source.provider_name,
+        #         options=source.options
+        #     )
+        # )
+        pass
 
-    def perform(self, configuration_name, configuration_option, input_vars):
+    def perform(self, source, configuration_name, configuration_option, input_vars):
 
         # FIXME
         # version = self.executor.execute('pip3 show codev | grep ^Version | cut -d " " -f 2')
         # logger.info("Run 'codev {version}' in isolation.".format(version=version))
+
+        current_settings = self.install(source)
+
+        current_configuration_settings = current_settings.get_current_configuration(configuration_name, configuration_option)
+
+        load_vars = {**current_configuration_settings.loaded_vars, **input_vars}
+
+        load_vars.update(DebugSettings.settings.load_vars)
 
         if DebugSettings.perform_settings:
             perform_debug = ' '.join(
@@ -74,16 +83,24 @@ class Isolation(Provider, BaseMachine):
 
 
 class PrivilegedIsolation(Isolation):
+    source_directory = 'repository'
+
     def install(self, source):
-        source_directory = 'repository'
-        self.execute('rm -rf {directory}'.format(directory=source_directory))
-        self.execute('mkdir -p {directory}'.format(directory=source_directory))
-        with self.change_directory(source_directory):
+        self.execute('rm -rf {directory}'.format(directory=self.source_directory))
+        self.execute('mkdir -p {directory}'.format(directory=self.source_directory))
+        with self.change_directory(self.source_directory):
             source.install()
             with self.get_fo('.codev') as codev_file:
-                return YAMLSettingsReader().from_yaml(codev_file)
+                current_settings = YAMLSettingsReader().from_yaml(codev_file)
 
-    def install_codev(self, version):
+        self._install_codev(current_settings.version)
+        return current_settings
+
+    def perform(self, source, configuration_name, configuration_option, input_vars):
+        with self.change_directory(self.source_directory):
+            super().perform(source, configuration_name, configuration_option, input_vars)
+
+    def _install_codev(self, version):
 
         self.execute('pip3 install setuptools')
 

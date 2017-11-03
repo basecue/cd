@@ -1,8 +1,10 @@
 from contextlib import contextmanager
 from copy import copy
 
-from codev.core.provider import Provider, HasSettings
+from codev.core.provider import Provider
 from os import path
+
+from codev.core.settings import HasSettings
 
 
 class CommandError(Exception):
