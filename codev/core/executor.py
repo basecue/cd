@@ -61,7 +61,7 @@ class Command(object):
 
 
 class BaseExecutor(object):
-    def execute(self, command):
+    def execute_command(self, command):
         raise NotImplementedError()
 
     def send_file(self, source, target):
@@ -103,7 +103,7 @@ class ProxyExecutor(HasExecutor):
         return obj
 
     def execute_command(self, command):
-        return self.executor.execute(command)
+        return self.executor.execute_command(command)
 
     def send_file(self, source, target):
         return self.executor.send_file(source, target)
@@ -126,6 +126,16 @@ class ProxyExecutor(HasExecutor):
                 directory=directory
             )
         )
+
+    def exists_file(self, filepath):
+        return self.check_execute(
+            '[ -f {filepath} ]'.format(
+                filepath=filepath
+            )
+        )
+
+    def create_directory(self, directory):
+        self.execute('mkdir -p {directory}'.format(directory=directory))
 
 
 class Executor(Provider, HasSettings, BaseExecutor):

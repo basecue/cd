@@ -14,8 +14,14 @@ class Ident(object):
     def as_tuple(self):
         return tuple(filter(None, self._ident))
 
+    def as_str_tuple(self):
+        return tuple(map(str, self.as_tuple()))
+
     def as_file(self):
-        return '_'.join(self.as_tuple()).replace('/', '-')
+        return '_'.join(self.as_str_tuple()).replace('/', '-')
+
+    def __str__(self):
+        return self.as_file()
 
 
 class HasIdent(object):

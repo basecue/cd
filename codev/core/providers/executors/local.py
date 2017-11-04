@@ -17,7 +17,7 @@ class LocalExecutor(Executor):
         self.logger = getLogger(__name__)
         super().__init__(*args, **kwargs)
 
-    def execute(self, command):
+    def execute_command(self, command):
         self.logger.debug("Execute command: '%s'" % command)
 
         outtempfd, outtemppath = mkstemp()

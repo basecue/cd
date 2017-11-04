@@ -1,5 +1,6 @@
 from codev.core.executor import HasExecutor
 from codev.core.settings import HasSettings
+from codev.core.utils import Ident
 from .machines import Machine
 
 
@@ -28,6 +29,7 @@ class Infrastructure(HasExecutor):
             for i in range(machines_settings.number):
                 machine = Machine(
                     machines_settings.provider,
+                    ident=Ident(machines_name, i + 1),
                     executor=self.executor,
                     settings_data=machines_settings.settings_data
                 )

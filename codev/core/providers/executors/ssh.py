@@ -70,7 +70,7 @@ class SSHexecutor(Executor):
         stderr = chan.makefile_stderr('rb', bufsize)
         return stdin, stdout, stderr
 
-    def execute(self, command, logger=None, writein=None):
+    def execute_command(self, command):
         self.logger.debug("Execute command: '%s'" % command)
         if not self.client:
             self._connect()
@@ -78,11 +78,11 @@ class SSHexecutor(Executor):
         stdin, stdout, stderr = self._paramiko_exec_command(command)
 
         # read stdout asynchronously - in 'realtime'
-        output_reader = OutputReader(stdout, stderr, logger=logger or self.output_logger)
+        output_reader = OutputReader(stdout, stderr, logger=command.logger)
 
-        if writein:
+        if command.writein:
             # write writein to stdin
-            stdin.write(writein)
+            stdin.write(command.writein)
             stdin.flush()
             stdin.channel.shutdown_write()
 
