@@ -5,7 +5,7 @@ from base64 import b64encode
 from time import sleep
 
 from codev.core.settings import BaseSettings
-from codev.core.machines import MachinesProvider, BaseMachine, Machine
+from codev.core.machines import BaseMachine, Machine
 from codev.core.executor import Executor
 
 
@@ -48,6 +48,12 @@ class VirtualboxBaseMachineSettings(BaseSettings):
 class VirtualboxBaseMachine(BaseMachine):
     settings_class = VirtualboxBaseMachineSettings
 
+    @property
+    def executor(self):
+        return Executor(
+            'ssh', settings_data={'hostname': self._ip, 'username': 'root'}
+        )
+
     def exists(self):
         return '"{ident}"'.format(ident=self.ident) in self.inherited_executor.execute('VBoxManage list vms').split()
 
@@ -83,11 +89,14 @@ class VirtualboxBaseMachine(BaseMachine):
 
         # TODO packages installation according to runner - ie. ansible require python2
 
+        # FIXME authentication module
+        ssh_key = self.inherited_executor.execute('ssh-add -L')
+
         self._prepare_ubuntu_iso(
             release_iso, vm_iso,
             self.settings.username, self.settings.password, self.ident,
             device_1=device_1, device_2=device_2,
-            packages=packages, ssh_authorized_keys=[self.settings.ssh_key]
+            packages=packages, ssh_authorized_keys=[ssh_key]
         )
 
         iface_ip = '192.168.77.100'
@@ -118,42 +127,57 @@ class VirtualboxBaseMachine(BaseMachine):
 
         self.start()
 
-    def execute_command(self, command):
-
-        return Executor(
-            'ssh', settings_data={'hostname': self._ip, 'username': 'root'}
-        ).execute_command(
-            command
-        )
-        # return super().execute(
-        #     'ssh root@{ip} -- {command}'.format(
-        #         ip=self.ip, command=command, logger=logger, writein=writein
-        #     )
-        # )
-
     def _download_ubuntu_iso(self, release, subtype='server', arch='amd64'):
+        # FIXME generalize
+
+        def parse_sums_file(fo):
+            for iso_checksum in fo:
+                r = re.match(iso_file_pattern, iso_checksum)
+                if r:
+                    iso_file = r.group(1)
+                    return iso_file, iso_checksum
+
+            raise Exception() #FIXME
+
         release_to_number = {
-            'trusty': '14.04.3',
+            'trusty': '14.04',
             'wily': '15.10',
             'xenial': '16.04'
         }
 
         release_number = release_to_number[release]
+        base_directory = '~/.cache/codev/{release_number}/'.format(release_number=release_number)
+        release_base_url = 'http://releases.ubuntu.com/{release_number}/'.format(release_number=release_number)
+        iso_file_pattern = '\w+\s+\*(ubuntu-[\d.]+-{subtype}-{arch}.iso)'.format(subtype=subtype, arch=arch)
 
-        release_iso = '~/.cache/codev/ubuntu.{release}.iso'.format(release=release)
-        if not self.inherited_executor.exists_file(release_iso):
-            self.inherited_executor.create_direcory('~/.cache/codev/')
-            self.inherited_executor.execute(
-                'wget http://releases.ubuntu.com/{release_dir}/ubuntu-{release_number}-{subtype}-{arch}.iso -O {release_iso} -o /dev/null'.format(
-                    release_dir='.'.join(release_number.split('.')[:2]),
-                    release_number=release_number,
-                    subtype=subtype,
-                    arch=arch,
-                    release_iso=release_iso
+
+        self.inherited_executor.create_directory(base_directory)
+        with self.inherited_executor.change_directory(base_directory):
+
+            # download SHA256SUMS and gpg
+            self.inherited_executor.execute('wget {release_base_url}SHA256SUMS -o /dev/null'.format(release_base_url=release_base_url))
+
+            with self.inherited_executor.get_fo('SHA256SUMS') as fo:
+                iso_file, iso_checksum = parse_sums_file(fo)
+
+            iso_file_path = path.join(base_directory, iso_file)
+            if not self.inherited_executor.exists_file(iso_file_path):
+                self.inherited_executor.execute('wget {release_base_url}SHA256SUMS.gpg -o /dev/null'.format(release_base_url=release_base_url))
+
+                self.inherited_executor.execute('gpg --keyserver hkp://keyserver.ubuntu.com --recv-keys "8439 38DF 228D 22F7 B374 2BC0 D94A A3F0 EFE2 1092" "C598 6B4F 1257 FFA8 6632 CBA7 4618 1433 FBB7 5451"')
+                self.inherited_executor.execute('gpg --list-keys --with-fingerprint 0xFBB75451 0xEFE21092')
+                self.inherited_executor.execute('gpg --verify SHA256SUMS.gpg SHA256SUMS')
+
+                self.inherited_executor.execute(
+                    'wget {release_base_url}{iso_file} -o /dev/null'.format(
+                        release_base_url=release_base_url,
+                        iso_file=iso_file
+                    )
                 )
-            )
-            # TODO check checksum and move file to release_iso, else delete it and raise exception
-        return release_iso
+
+                self.inherited_executor.execute('sha256sum -c', writein=iso_checksum)
+
+        return iso_file_path
 
     def _extract_iso(self, source_iso, target_dir):
         actual_directory = '/'
@@ -198,7 +222,7 @@ class VirtualboxBaseMachine(BaseMachine):
     def _prepare_ubuntu_iso(
         self, source_iso, target_iso, username, password, hostname,
         ip='', gateway='', nameserver='', device_1='enp0s3', device_2='enp0s8',
-        packages=None, ssh_private_key='', ssh_public_key='', ssh_authorized_keys=None
+        packages=None, ssh_authorized_keys=None
     ):
 
         if packages is None:
@@ -246,8 +270,6 @@ class VirtualboxBaseMachine(BaseMachine):
                         packages='\n'.join(packages),
                         post_nochroot='',
                         post='echo "{username} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers'.format(username=username),
-                        ssh_private_key=ssh_private_key,
-                        ssh_public_key=ssh_public_key,
                         ssh_authorized_keys='\n'.join(ssh_authorized_keys),
                         hostname=hostname
                     )

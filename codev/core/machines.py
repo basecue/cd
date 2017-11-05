@@ -53,36 +53,36 @@ class Machine(Provider, BaseMachine):
     # def clone(self):
     #     raise NotImplementedError()
 
-
-class MachinesProvider(Provider, HasSettings, HasExecutor):
-    machine_class = BaseMachine
-
-    def __init__(self, group, groups, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.group = group
-        self.groups = [group] + groups
-
-    def idents(self):
-        for i in range(1, self.settings.number + 1):
-            ident = '%s-%000d' % (self.group.replace('_', '-'), i)
-            yield ident
-
-    def create_machines(self):
-        if DebugSettings.settings.ssh_copy:
-            ssh_key = '%s\n' % self.executor.execute('ssh-add -L')
-        else:
-            ssh_key = None
-
-        for ident in self.idents():
-            machine = self.machine_class(executor=self.executor, ident=ident, group=self.group, groups=self.groups)
-            if not machine.exists():
-                machine.create(self.settings, ssh_key)
-            elif not machine.is_started():
-                machine.start()
-
-    @property
-    def machines(self):
-        for ident in self.idents():
-            machine = self.machine_class(executor=self.executor, ident=ident, group=self.group, groups=self.groups)
-            if machine.exists():
-                yield machine
+#
+# class MachinesProvider(Provider, HasSettings, HasExecutor):
+#     machine_class = BaseMachine
+#
+#     def __init__(self, group, groups, *args, **kwargs):
+#         super().__init__(*args, **kwargs)
+#         self.group = group
+#         self.groups = [group] + groups
+#
+#     def idents(self):
+#         for i in range(1, self.settings.number + 1):
+#             ident = '%s-%000d' % (self.group.replace('_', '-'), i)
+#             yield ident
+#
+#     def create_machines(self):
+#         if DebugSettings.settings.ssh_copy:
+#             ssh_key = '%s\n' % self.executor.execute('ssh-add -L')
+#         else:
+#             ssh_key = None
+#
+#         for ident in self.idents():
+#             machine = self.machine_class(executor=self.executor, ident=ident, group=self.group, groups=self.groups)
+#             if not machine.exists():
+#                 machine.create(self.settings, ssh_key)
+#             elif not machine.is_started():
+#                 machine.start()
+#
+#     @property
+#     def machines(self):
+#         for ident in self.idents():
+#             machine = self.machine_class(executor=self.executor, ident=ident, group=self.group, groups=self.groups)
+#             if machine.exists():
+#                 yield machine

@@ -74,8 +74,12 @@ class BaseExecutor(object):
 
 class HasExecutor(object):
     def __init__(self, *args, executor, **kwargs):
-        self.executor = executor
+        self.__executor = executor
         super().__init__(*args, **kwargs)
+
+    @property
+    def executor(self):
+        return self.__executor
 
 
 class ProxyExecutor(HasExecutor):
