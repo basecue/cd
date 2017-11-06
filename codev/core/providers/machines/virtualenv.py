@@ -1,6 +1,7 @@
 from contextlib import contextmanager
 
 from codev.core.machines import BaseMachine
+from codev.core.settings import SettingsError, BaseSettings
 
 
 class DirectoryBaseMachine(BaseMachine):
@@ -12,7 +13,7 @@ class DirectoryBaseMachine(BaseMachine):
         return self.inherited_executor.exists_directory(self._get_base_dir())
 
     def create(self):
-        self.inherited_executor().execute(
+        self.inherited_executor.execute(
             'mkdir -p {}'.format(self._get_base_dir())
         )
 
@@ -29,7 +30,21 @@ class DirectoryBaseMachine(BaseMachine):
                 yield fo
 
 
+class VirtualenvBaseMachineSettings(BaseSettings):
+    @property
+    def python_version(self):
+        python_version = self.data.get('python', None)
+        if not python_version:
+            return 3
+        elif python_version == '2' or python_version.startswith('2.'):
+            return python_version
+        else:
+            raise SettingsError('Unsupported python version for virtualenv isolation.')
+
+
 class VirtualenvBaseMachine(DirectoryBaseMachine):
+    settings_class = VirtualenvBaseMachineSettings
+
     def exists(self):
         return self.inherited_executor.exists() and self.inherited_executor.exists_directory('env')
 

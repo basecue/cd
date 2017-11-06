@@ -7,6 +7,7 @@ from logging import getLogger
 from codev.core.providers.machines import VirtualenvBaseMachine
 from codev.core.installer import Installer
 from codev.core.settings import BaseSettings, ProviderSettings
+from codev.core.utils import Ident
 from codev.perform.task import Task
 from .source import AnsibleSource
 from .sources import *
@@ -61,7 +62,7 @@ class AnsibleTask(Task):
         self.virtualenv = VirtualenvBaseMachine(
             executor=self.executor,
             settings_data=dict(python='2'),
-            ident='codevansible')
+            ident=Ident('codevansible'))
 
     def prepare(self):
         # TODO requirements - python-dev, python-virtualenv

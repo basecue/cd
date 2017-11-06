@@ -20,8 +20,11 @@ class Ident(object):
     def as_file(self):
         return '_'.join(self.as_str_tuple()).replace('/', '-')
 
+    def as_hostname(self):
+        return '-'.join(self.as_str_tuple()).replace('/', '-').replace('_', '-')
+
     def __str__(self):
-        return self.as_file()
+        return self.as_tuple()
 
 
 class HasIdent(object):

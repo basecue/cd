@@ -55,14 +55,14 @@ class VirtualboxBaseMachine(BaseMachine):
         )
 
     def exists(self):
-        return '"{ident}"'.format(ident=self.ident) in self.inherited_executor.execute('VBoxManage list vms').split()
+        return '"{vm_name}"'.format(vm_name=self.vm_name) in self.inherited_executor.execute('VBoxManage list vms').split()
 
     def is_started(self):
         output = self.inherited_executor.execute("VBoxManage list runningvms")
-        return bool(re.search('^\"{ident}\"\s+.*'.format(ident=self.ident), output, re.MULTILINE))
+        return bool(re.search('^\"{vm_name}\"\s+.*'.format(vm_name=self.vm_name), output, re.MULTILINE))
 
     def start(self):
-        self.inherited_executor.execute('VBoxManage startvm "{ident}" --type headless'.format(ident=self.ident))
+        self.inherited_executor.execute('VBoxManage startvm "{vm_name}" --type headless'.format(vm_name=self.vm_name))
 
     def create(self):
         distribution = self.settings.distribution
@@ -94,7 +94,7 @@ class VirtualboxBaseMachine(BaseMachine):
 
         self._prepare_ubuntu_iso(
             release_iso, vm_iso,
-            self.settings.username, self.settings.password, self.ident,
+            self.settings.username, self.settings.password, self.ident.as_hostname(),
             device_1=device_1, device_2=device_2,
             packages=packages, ssh_authorized_keys=[ssh_key]
         )
@@ -127,6 +127,10 @@ class VirtualboxBaseMachine(BaseMachine):
 
         self.start()
 
+    @property
+    def vm_name(self):
+        return self.ident.as_file()
+
     def _download_ubuntu_iso(self, release, subtype='server', arch='amd64'):
         # FIXME generalize
 
@@ -150,7 +154,6 @@ class VirtualboxBaseMachine(BaseMachine):
         release_base_url = 'http://releases.ubuntu.com/{release_number}/'.format(release_number=release_number)
         iso_file_pattern = '\w+\s+\*(ubuntu-[\d.]+-{subtype}-{arch}.iso)'.format(subtype=subtype, arch=arch)
 
-
         self.inherited_executor.create_directory(base_directory)
         with self.inherited_executor.change_directory(base_directory):
 
@@ -164,6 +167,7 @@ class VirtualboxBaseMachine(BaseMachine):
             if not self.inherited_executor.exists_file(iso_file_path):
                 self.inherited_executor.execute('wget {release_base_url}SHA256SUMS.gpg -o /dev/null'.format(release_base_url=release_base_url))
 
+                #FIXME test it
                 self.inherited_executor.execute('gpg --keyserver hkp://keyserver.ubuntu.com --recv-keys "8439 38DF 228D 22F7 B374 2BC0 D94A A3F0 EFE2 1092" "C598 6B4F 1257 FFA8 6632 CBA7 4618 1433 FBB7 5451"')
                 self.inherited_executor.execute('gpg --list-keys --with-fingerprint 0xFBB75451 0xEFE21092')
                 self.inherited_executor.execute('gpg --verify SHA256SUMS.gpg SHA256SUMS')
@@ -337,15 +341,15 @@ class VirtualboxBaseMachine(BaseMachine):
     def _create_vm(self, ostype, hdd, memory, share, hostonly_iface):
         # create VM
         self.inherited_executor.execute(
-            'VBoxManage createvm --name "{ident}" --ostype "{ostype}" --register'.format(
-                ident=self.ident, ostype=ostype
+            'VBoxManage createvm --name "{vm_name}" --ostype "{ostype}" --register'.format(
+                vm_name=self.vm_name, ostype=ostype
             )
         )
 
         # setup VM + ifaces
         self.inherited_executor.execute(
-            'VBoxManage modifyvm "{ident}" --memory {memory} --acpi on --vram 16 --boot1 dvd --nic1 nat --nictype1 Am79C973 --nic2 hostonly --nictype2 Am79C970A --hostonlyadapter2 {hostonly_iface}'.format(
-                ident=self.ident,
+            'VBoxManage modifyvm "{vm_name}" --memory {memory} --acpi on --vram 16 --boot1 dvd --nic1 nat --nictype1 Am79C973 --nic2 hostonly --nictype2 Am79C970A --hostonlyadapter2 {hostonly_iface}'.format(
+                vm_name=self.vm_name,
                 memory=memory,
                 hostonly_iface=hostonly_iface
             )
@@ -353,46 +357,46 @@ class VirtualboxBaseMachine(BaseMachine):
 
         hdd_dir = '.share/codev/virtualbox'
         medium = '{hdd_dir}/{ident}.vdi'.format(
-            ident=self.ident,
+            ident=self.ident.as_file(),
             hdd_dir=hdd_dir
         )
         # create storage
         self.inherited_executor.execute(
             'VBoxManage createhd --filename {medium} --size {hdd}'.format(
-                ident=self.ident, medium=medium, hdd=hdd
+                medium=medium, hdd=hdd
             )
         )
         # if error appears, delete {name}.vdi and "runvboxmanage closemedium disk {name}.vdi"
 
         # create SATA
-        self.inherited_executor.execute('VBoxManage storagectl "{ident}" --name "SATA" --add sata --portcount 1'.format(ident=self.ident))
+        self.inherited_executor.execute('VBoxManage storagectl "{vm_name}" --name "SATA" --add sata --portcount 1'.format(vm_name=self.vm_name))
 
         # create IDE
-        self.inherited_executor.execute('VBoxManage storagectl "{ident}" --name "IDE" --add ide'.format(ident=self.ident))
+        self.inherited_executor.execute('VBoxManage storagectl "{vm_name}" --name "IDE" --add ide'.format(vm_name=self.vm_name))
 
         # attach storage to SATA
         self.inherited_executor.execute(
-            'VBoxManage storageattach "{ident}" --storagectl "SATA" --port 0 --device 0 --type hdd --medium {medium}'.format(
-                ident=self.ident,
+            'VBoxManage storageattach "{vm_name}" --storagectl "SATA" --port 0 --device 0 --type hdd --medium {medium}'.format(
+                vm_name=self.vm_name,
                 medium=medium
             )
         )
 
         #create shared points
-        for name, directory in share.items():
+        for share_name, share_directory in share.items():
             self.inherited_executor.execute(
-                'VBoxManage sharedfolder add "{ident}" --name "{name}" --hostpath "{directory}"'.format(
-                    ident=self.ident,
-                    name=name,
-                    directory=directory
+                'VBoxManage sharedfolder add "{vm_name}" --name "{share_name}" --hostpath "{share_directory}"'.format(
+                    vm_name=self.vm_name,
+                    share_name=share_name,
+                    share_directory=share_directory
                 )
             )
 
     def _install_vm(self, install_iso):
         # attach install iso
         self.inherited_executor.execute(
-            'VBoxManage storageattach "{ident}" --storagectl "IDE" --port 1 --device 0 --type dvddrive --medium {iso}'.format(
-                ident=self.ident, iso=install_iso
+            'VBoxManage storageattach "{vm_name}" --storagectl "IDE" --port 1 --device 0 --type dvddrive --medium {iso}'.format(
+                vm_name=self.vm_name, iso=install_iso
             )
         )
 
@@ -402,8 +406,8 @@ class VirtualboxBaseMachine(BaseMachine):
     def _remove_vm_dvd(self):
         # remove install iso
         self.inherited_executor.execute(
-            'VBoxManage storageattach "{ident}" --storagectl "IDE" --port 1 --device 0 --type dvddrive --medium none'.format(
-                ident=self.ident
+            'VBoxManage storageattach "{vm_name}" --storagectl "IDE" --port 1 --device 0 --type dvddrive --medium none'.format(
+                vm_name=self.vm_name
             )
         )
 
@@ -411,8 +415,8 @@ class VirtualboxBaseMachine(BaseMachine):
     def _ip(self):
         for i in range(20):
             value_ip = self.inherited_executor.execute(
-                'VBoxManage guestproperty get "{ident}" "/VirtualBox/GuestInfo/Net/1/V4/IP"'.format(
-                    ident=self.ident
+                'VBoxManage guestproperty get "{vm_name}" "/VirtualBox/GuestInfo/Net/1/V4/IP"'.format(
+                    vm_name=self.vm_name
                 )
             )
             if value_ip == 'No value set!':
