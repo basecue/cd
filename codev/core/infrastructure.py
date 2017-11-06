@@ -25,16 +25,19 @@ class Infrastructure(HasExecutor):
     #     raise KeyError(ident)
 
     def create(self):
+        for machine in self.machines:
+            machine.start_or_create()
+
+    @property
+    def machines(self):
         for machines_name, machines_settings in self.settings.items():
             for i in range(machines_settings.number):
-                machine = Machine(
+                yield Machine(
                     machines_settings.provider,
                     ident=Ident(machines_name, i + 1),
                     executor=self.executor,
                     settings_data=machines_settings.settings_data
                 )
-                machine.start_or_create()
-
 
     # @property
     # def groups(self):

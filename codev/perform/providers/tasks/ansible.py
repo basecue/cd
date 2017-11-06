@@ -4,6 +4,7 @@ import json
 import os.path
 from logging import getLogger
 
+from codev.core import Source
 from codev.core.providers.machines import VirtualenvBaseMachine
 from codev.core.installer import Installer
 from codev.core.settings import BaseSettings, ProviderSettings
@@ -85,7 +86,7 @@ class AnsibleTask(Task):
         for machine in infrastructure.machines:
             for group in machine.groups:
                 inventory.add_section(group)
-                inventory.set(group, machine.ident, '')
+                inventory.set(group, machine.ident.as_hostname(), '')
             # ansible node additional requirements
             Installer(executor=machine).install_packages('python')
 
@@ -99,13 +100,18 @@ class AnsibleTask(Task):
         ssh_config = '/tmp/codev.ansible.ssh_config'
         with open(ssh_config, 'w+') as ssh_config_file:
             for machine in infrastructure.machines:
-                ssh_config_file.write('Host {machine.ident}\n  HostName {machine.ip}\n\n'.format(machine=machine))
+                ssh_config_file.write(
+                    'Host {hostname}\n  HostName {ip}\n\n'.format(
+                        hostname=machine.ident.as_hostname(),
+                        ip=machine.ip
+                    )
+                )
 
-        template_vars = {
-            'source_directory': self.executor.execute('pwd'),
-            'ssh_config': ssh_config,
-        }
-        template_vars.update(input_vars)
+        # template_vars = {
+        #     'source_directory': self.executor.execute('pwd'),
+        #     'ssh_config': ssh_config,
+        # }
+        # template_vars.update(input_vars)
 
         # extra vars
 
@@ -132,7 +138,7 @@ class AnsibleTask(Task):
                 [
                     '{key}="{value}"'.format(
                         key=key,
-                        value=value.format(**template_vars) if isinstance(value, str) else value
+                        value=value.format(**input_vars) if isinstance(value, str) else value
                     ) for key, value in env_vars_dict.items()
                 ]
             )
@@ -142,15 +148,16 @@ class AnsibleTask(Task):
         writein = None
         if self.settings.vault_password:
             vault_password_file = ' --vault-password-file=/bin/cat'
-            writein = self.settings.vault_password.format(**template_vars)
+            writein = self.settings.vault_password.format(**input_vars)
         else:
             vault_password_file = ''
 
         # support for different source of ansible configuration
         if self.settings.source.provider:
-            source = AnsibleSource(self.settings.source.provider, self.executor, settings_data=self.settings.source.settings_data)
-            source.install()
-            source_directory = source.directory
+            source_directory = '/tmp/ansiblesource'
+            with self.executor.change_directory(source_directory):
+                source = Source(self.settings.source.provider, executor=self.executor, settings_data=self.settings.source.settings_data)
+                source.install()
         else:
             source_directory = ''
 
@@ -160,7 +167,7 @@ class AnsibleTask(Task):
             if requirements:
                 self.virtualenv.execute('ansible-galaxy install -r {requirements}'.format(requirements=requirements))
 
-            if self.virtualenv.check_execute('[ -f hosts ]'):
+            if self.virtualenv.exists_file('hosts'):
                 self.virtualenv.execute('cp hosts {inventory}'.format(inventory=inventory_directory))
 
             machine_idents = [machine.ident for machine in infrastructure.machines]

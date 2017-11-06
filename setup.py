@@ -12,10 +12,7 @@ with open('codev/__init__.py', 'rb') as f:
 REQUIRES = [
     'click==6.6',
     'PyYAML==3.11',
-    'paramiko==2.0.0',
     'colorama==0.3.7',
-    'GitPython==2.0.2',
-    'Unidecode==0.4.20'
 ]
 
 cmdclass = {}

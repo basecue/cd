@@ -1,4 +1,5 @@
 from contextlib import contextmanager
+from multiprocessing.pool import ThreadPool
 from subprocess import Popen, PIPE, check_call
 
 from os import fdopen, remove
@@ -6,8 +7,9 @@ from os.path import expanduser
 from logging import getLogger
 
 from tempfile import mkstemp
+from time import sleep
 
-from codev.core.executor import Executor, CommandError, OutputReader
+from codev.core.executor import Executor, CommandError
 
 
 class LocalExecutor(Executor):
@@ -60,15 +62,8 @@ class LocalExecutor(Executor):
     def send_file(self, source, target):
         if source == target:
             return
-        self.logger.debug("Send file: '{source}' '{target}'".format(source=source, target=target))
-        expanduser_source = expanduser(source)
-        if expanduser_source != source:
-            self.logger.debug(
-                "Expanduser: '{source}' -> '{expanduser_source}'".format(
-                    source=source, expanduser_source=expanduser_source
-                )
-            )
-        check_call(['cp', expanduser_source, target])
+
+        check_call(['cp', source, target])
 
     @contextmanager
     def get_fo(self, remote_path):
@@ -76,3 +71,57 @@ class LocalExecutor(Executor):
         self.logger.debug("Get file: '{remote_path}'".format(remote_path=remote_path))
         with open(remote_path) as fo:
             yield fo
+
+
+class OutputReader(object):
+    thread_pool = ThreadPool(processes=2)
+
+    def __init__(self, stdout, stderr, logger=None):
+        self._stdout_output = []
+        self._stderr_output = []
+
+        self.terminated = False
+
+        self._stdout_reader = self.thread_pool.apply_async(
+            self._reader,
+            args=(stdout,),
+            kwds=dict(logger=logger)
+        )
+
+        self._stderr_reader = self.thread_pool.apply_async(
+            self._reader,
+            args=(stderr,)
+        )
+
+    def _reader(self, output, logger=None):
+        output_lines = []
+        while True:
+            try:
+                if self.terminated:
+                    output.flush()
+
+                lines = output.readlines()
+            except ValueError:  # closed file
+                break
+
+            if not lines:
+                if self.terminated:
+                    break
+
+                sleep(0.1)
+                continue
+
+            for line in lines:
+                output_line = line.decode('utf-8').rstrip('\n')
+                output_lines.append(output_line)
+                if logger:
+                    logger.debug(output_line)
+
+        return '\n'.join(output_lines)
+
+    def output(self):
+        self.terminated = True
+        return self._stdout_reader.get(), self._stderr_reader.get()
+
+
+

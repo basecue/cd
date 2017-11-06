@@ -1,5 +1,6 @@
 from contextlib import contextmanager
 from copy import copy
+from os.path import expanduser
 
 from codev.core.provider import Provider
 from os import path
@@ -110,7 +111,9 @@ class ProxyExecutor(HasExecutor):
         return self.executor.execute_command(command)
 
     def send_file(self, source, target):
-        return self.executor.send_file(source, target)
+        self.logger.debug("Send file: '{source}' '{target}'".format(source=source, target=target))
+        expanduser_source = expanduser(source)
+        return self.executor.send_file(expanduser_source, target)
 
     @contextmanager
     def get_fo(self, remote_path):
@@ -120,6 +123,7 @@ class ProxyExecutor(HasExecutor):
 
     @contextmanager
     def change_directory(self, directory):
+        assert directory
         self._directories.append(directory)
         yield
         self._directories.pop()
@@ -354,63 +358,5 @@ class BackgroundExecutor(Executor):
 
     def kill(self):
         return self._control(self._bg_kill)
-
-
-"""
-Output reader
-"""
-from multiprocessing.pool import ThreadPool
-
-
-class OutputReader(object):
-    thread_pool = ThreadPool(processes=2)
-
-    def __init__(self, stdout, stderr, logger=None):
-        self._stdout_output = []
-        self._stderr_output = []
-
-        self.terminated = False
-
-        self._stdout_reader = self.thread_pool.apply_async(
-            self._reader,
-            args=(stdout,),
-            kwds=dict(logger=logger)
-        )
-
-        self._stderr_reader = self.thread_pool.apply_async(
-            self._reader,
-            args=(stderr,)
-        )
-
-    def _reader(self, output, logger=None):
-        output_lines = []
-        while True:
-            try:
-                if self.terminated:
-                    output.flush()
-
-                lines = output.readlines()
-            except ValueError:  # closed file
-                break
-
-            if not lines:
-                if self.terminated:
-                    break
-
-                sleep(0.1)
-                continue
-
-            for line in lines:
-                output_line = line.decode('utf-8').rstrip('\n')
-                output_lines.append(output_line)
-                if logger:
-                    logger.debug(output_line)
-
-        return '\n'.join(output_lines)
-
-    def output(self):
-        self.terminated = True
-        return self._stdout_reader.get(), self._stderr_reader.get()
-
 
 
