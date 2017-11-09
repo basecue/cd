@@ -1,5 +1,4 @@
 import shutil
-from time import time
 from uuid import uuid1
 
 from codev.core.source import Source
@@ -7,10 +6,6 @@ from codev.core.source import Source
 
 class ActualSource(Source):
     provider_name = 'actual'
-
-    def __init__(self, options, *args, **kwargs):
-        options = options or str(time())
-        super().__init__(options, *args, **kwargs)
 
     def install(self):
         filename = uuid1()

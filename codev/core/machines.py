@@ -1,8 +1,7 @@
 from codev.core.settings import HasSettings
 from codev.core.utils import HasIdent
+from .executor import ProxyExecutor
 from .provider import Provider
-from .executor import ProxyExecutor, HasExecutor
-from .debug import DebugSettings
 
 
 class BaseMachine(ProxyExecutor, HasSettings, HasIdent):
@@ -49,10 +48,12 @@ class BaseMachine(ProxyExecutor, HasSettings, HasIdent):
 
 
 class Machine(Provider, BaseMachine):
-    pass
     # def clone(self):
     #     raise NotImplementedError()
 
+    def __init__(self, *args, groups=[], **kwargs):
+        self.groups = groups
+        super().__init__(*args, **kwargs)
 #
 # class MachinesProvider(Provider, HasSettings, HasExecutor):
 #     machine_class = BaseMachine

@@ -1,9 +1,9 @@
 from codev.core.executor import HasExecutor
-from codev.core.settings import HasSettings
 from codev.core.utils import Ident
 from .machines import Machine
 
 
+#FIXME refactorize to be based from HasSettings
 class Infrastructure(HasExecutor):
     def __init__(self, *args, settings, **kwargs):
         self.settings = settings
@@ -36,7 +36,8 @@ class Infrastructure(HasExecutor):
                     machines_settings.provider,
                     ident=Ident(machines_name, i + 1),
                     executor=self.executor,
-                    settings_data=machines_settings.settings_data
+                    settings_data=machines_settings.settings_data,
+                    groups=machines_settings.groups
                 )
 
     # @property
@@ -54,9 +55,10 @@ class Infrastructure(HasExecutor):
     #         groups.setdefault(machine.group, []).append(machine)
     #     return groups
     #
-    # @property
-    # def status(self):
-    #     return {
-    #         group: [dict(ident=machine.ident, ip=machine.ip) for machine in machines]
-    #         for group, machines in self.main_groups.items()
-    #     }
+    @property
+    def status(self):
+        return ''
+        # return {
+        #     group: [dict(ident=machine.ident, ip=machine.ip) for machine in machines]
+        #     for group, machines in self.main_groups.items()
+        # }

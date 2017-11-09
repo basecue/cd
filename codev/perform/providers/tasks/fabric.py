@@ -1,5 +1,5 @@
-from codev.core import BaseSettings, SettingsError
-from codev.core import Isolator
+from codev.core import BaseSettings, SettingsError, VirtualenvBaseMachine
+from codev.core.utils import Ident
 
 from codev.perform.task import Task
 
@@ -27,11 +27,11 @@ class FabricTask(Task):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.isolator = Isolator(
-            'virtualenv',
+        self.isolator = VirtualenvBaseMachine(
             executor=self.executor,
             settings_data=dict(python='2'),
-            ident='codevfabric')
+            ident=Ident('codevfabric')
+        )
 
     def prepare(self):
         # TODO requirements - python-dev, python-virtualenv

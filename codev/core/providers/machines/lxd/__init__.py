@@ -6,7 +6,7 @@ from logging import getLogger
 from os import path
 
 from codev.core.settings import BaseSettings
-from codev.core.machines import MachinesProvider, BaseMachine
+from codev.core.machines import BaseMachine, Machine
 from codev.core.executor import BackgroundExecutor, CommandError
 
 logger = getLogger(__name__)
@@ -357,7 +357,7 @@ class LXDMachine(LXDBaseMachine):
             )
 
 
-class LXDMachinesSettings(BaseSettings):
+class LXDMachineSettings(BaseSettings):
     @property
     def distribution(self):
         return self.data.get('distribution')
@@ -366,12 +366,8 @@ class LXDMachinesSettings(BaseSettings):
     def release(self):
         return self.data.get('release')
 
-    @property
-    def number(self):
-        return int(self.data.get('number', 1))
 
 
-class LXCMachinesProvider(MachinesProvider):
+class LXCMachine(Machine, LXDBaseMachine):
     provider_name = 'lxd'
-    settings_class = LXDMachinesSettings
-    machine_class = LXDMachine
+    settings_class = LXDMachineSettings

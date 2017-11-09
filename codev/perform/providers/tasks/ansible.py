@@ -10,8 +10,6 @@ from codev.core.installer import Installer
 from codev.core.settings import BaseSettings, ProviderSettings
 from codev.core.utils import Ident
 from codev.perform.task import Task
-from .source import AnsibleSource
-from .sources import *
 
 logger = getLogger(__name__)
 

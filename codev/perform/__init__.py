@@ -1,15 +1,12 @@
 from logging import getLogger
 
 from codev.core import CodevCore
-from codev.core.infrastructure import Infrastructure
-from codev.core.executor import CommandError
-from codev.core.providers.executors.local import LocalExecutor
 from codev.core.debug import DebugSettings
-
-from .providers import *
-from .runner import TasksRunner
-
+from codev.core.infrastructure import Infrastructure
+from codev.core.providers.executors.local import LocalExecutor
+from codev.perform.task import Task
 from .log import logging_config
+from .providers import *
 
 logger = getLogger(__name__)
 command_logger = getLogger('command')
@@ -29,9 +26,11 @@ class CodevPerform(CodevCore):
 
         super().__init__(settings, configuration_name, configuration_option)
 
-        executor = LocalExecutor()
-        self.infrastructure = Infrastructure(executor=executor, settings=self.configuration_settings.infrastructure)
-        self.tasks_runner = TasksRunner(self.configuration_settings.tasks, self.infrastructure, executor=executor)
+        self.executor = LocalExecutor()
+        self.infrastructure = Infrastructure(
+            executor=self.executor,
+            settings=self.configuration_settings.infrastructure
+        )
 
     def run(self, input_vars):
         """
@@ -44,8 +43,17 @@ class CodevPerform(CodevCore):
         input_vars.update(DebugSettings.settings.load_vars)
 
         self.infrastructure.create()
-        # logger.info("Run configuration {configuration}.")
-        return self.tasks_runner.run(input_vars)
+
+        for task_name, task_settings in self.configuration_settings.tasks.items():
+            task = Task(task_settings.provider, executor=self.executor, settings_data=task_settings.settings_data)
+
+            name = " '{}'".format(task_name) if task_name else ''
+            logger.info("Preparing task{name}...".format(name=name))
+            task.prepare()
+
+            logger.info("Running task{name}...".format(name=name))
+            task.run(self.infrastructure, input_vars)
+
 
     # def execute(self, script, arguments=None):
     #     """

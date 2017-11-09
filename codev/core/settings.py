@@ -53,16 +53,6 @@ class ProviderSettings(BaseSettings):
         return self.data.get('settings', {})
 
 
-class InfrastructureSettings(ProviderSettings):
-    @property
-    def groups(self):
-        return self.data.get('groups', [])
-
-    @property
-    def number(self):
-        return self.data.get('number', 1)
-
-
 class DictSettings(OrderedDict):
     def __init__(self, cls, data, *args, **kwargs):
         super().__init__()
@@ -213,6 +203,16 @@ class OptionSettings(BaseConfigurationSettings):
 
     def __getattr__(self, item):
         return getattr(self._configuration, item)
+
+
+class InfrastructureSettings(ProviderSettings):
+    @property
+    def groups(self):
+        return self.data.get('groups', [])
+
+    @property
+    def number(self):
+        return self.data.get('number', 1)
 
 
 class ConfigurationSettings(BaseConfigurationSettings):
