@@ -9,7 +9,7 @@ from urllib.parse import parse_qs, urlencode
 
 
 def send_message(
-    message, color, url, channel, username, project, configuration, configuration_option, source, source_options, icon
+    message, color, url, channel, username, project, configuration, configuration_option, source, source_option, icon
 ):
     format_vars = dict(
         project=project,
@@ -40,7 +40,7 @@ def send_message(
                     },
                     {
                         "title": "Source",
-                        "value": '{source}:{source_options}'.format(source=source, source_options=source_options),
+                        "value": '{source}:{source_option}'.format(source=source, source_option=source_option),
                         "short": True
                     },
                 ],
@@ -67,7 +67,7 @@ if __name__ == "__main__":
     configuration_option = arguments.get('configuration_option', '')
 
     source = arguments.get('source')
-    source_options = arguments.get('source_options')
+    source_option = arguments.get('source_option')
 
     url = arguments.get('url', '')
     channel = arguments.get('channel', '')
@@ -77,5 +77,5 @@ if __name__ == "__main__":
     color = arguments.get('color', 'good')
 
     send_message(
-        message, color, url, channel, username, project, configuration, configuration_option, source, source_options, icon
+        message, color, url, channel, username, project, configuration, configuration_option, source, source_option, icon
     )

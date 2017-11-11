@@ -1,6 +1,6 @@
 from logging import getLogger
 
-from codev.core import CodevCore
+from codev.core import Codev
 from codev.core.debug import DebugSettings
 from codev.core.infrastructure import Infrastructure
 from codev.core.providers.executors.local import LocalExecutor
@@ -12,7 +12,7 @@ logger = getLogger(__name__)
 command_logger = getLogger('command')
 
 
-class CodevPerform(CodevCore):
+class CodevPerform(Codev):
     """
     Installation of project.
     """

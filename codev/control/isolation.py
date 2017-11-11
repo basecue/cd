@@ -3,11 +3,11 @@ from hashlib import sha256
 from logging import getLogger
 from time import time
 
+from codev.core import Codev
 from codev.core.executor import ProxyExecutor, CommandError, Command
 from codev.core.machines import BaseMachine
 
 from codev.core.provider import Provider
-from codev.core.settings import YAMLSettingsReader
 from codev.core.debug import DebugSettings
 
 # from codev.core.isolator import Isolator
@@ -22,14 +22,10 @@ debug_logger = getLogger('debug')
 
 class Isolation(Provider, BaseMachine):
 
-    def install(self, source):
-        # self.execute(
-        #     'codev-source install {configuration_name}:{configuration_option} {source}:{options}'.format(
-        #         source=source.provider_name,
-        #         options=source.options
-        #     )
-        # )
+    def install_codev(self, source, configuration_name, configuration_option):
         pass
+
+
 
     def perform(self, source, configuration_name, configuration_option, input_vars):
 
@@ -37,11 +33,9 @@ class Isolation(Provider, BaseMachine):
         # version = self.executor.execute('pip3 show codev | grep ^Version | cut -d " " -f 2')
         # logger.info("Run 'codev {version}' in isolation.".format(version=version))
 
-        current_settings = self.install(source)
+        codev = self.install_codev(source, configuration_name, configuration_option)
 
-        current_configuration_settings = current_settings.get_current_configuration(configuration_name, configuration_option)
-
-        load_vars = {**current_configuration_settings.loaded_vars, **input_vars}
+        load_vars = {**codev.configuration.loaded_vars, **input_vars}
 
         load_vars.update(DebugSettings.settings.load_vars)
 
@@ -83,22 +77,19 @@ class Isolation(Provider, BaseMachine):
 
 
 class PrivilegedIsolation(Isolation):
+
     source_directory = 'repository'
 
-    def install(self, source):
+    def install_codev(self, source, configuration_name, configuration_option):
         self.execute('rm -rf {directory}'.format(directory=self.source_directory))
         self.execute('mkdir -p {directory}'.format(directory=self.source_directory))
         with self.change_directory(self.source_directory):
-            source.install()
+            source.install(self)
             with self.get_fo('.codev') as codev_file:
-                current_settings = YAMLSettingsReader().from_yaml(codev_file)
+                codev = Codev.from_yaml(codev_file, configuration_name=configuration_name, configuration_option=configuration_option)
 
-        self._install_codev(current_settings.version)
-        return current_settings
-
-    def perform(self, source, configuration_name, configuration_option, input_vars):
-        with self.change_directory(self.source_directory):
-            super().perform(source, configuration_name, configuration_option, input_vars)
+        self._install_codev(codev.version)
+        return codev
 
     def _install_codev(self, version):
 
@@ -121,6 +112,12 @@ class PrivilegedIsolation(Isolation):
 
             self.send_file(distfile, remote_distfile)
             self.execute('pip3 install --upgrade {distfile}'.format(distfile=remote_distfile))
+
+    def perform(self, source, configuration_name, configuration_option, input_vars):
+        with self.change_directory(self.source_directory):
+            super().perform(source, configuration_name, configuration_option, input_vars)
+
+
 
 
 # class IsolationX(object):
@@ -191,7 +188,7 @@ class PrivilegedIsolation(Isolation):
 #     #         environment=arguments['environment'],
 #     #         configuration=arguments['configuration'],
 #     #         source=arguments['source'],
-#     #         source_options=arguments['source_options'],
+#     #         source_option=arguments['source_option'],
 #     #         perform_debug=perform_debug
 #     #     )
 #     #     with self.change_directory(self.current_source.directory):
@@ -288,7 +285,7 @@ class PrivilegedIsolation(Isolation):
 #
 #         status = dict(
 #             current_source=self.current_source.name,
-#             current_source_options=self.current_source.options,
+#             current_source_option=self.current_source.option,
 #             infrastructure=infrastructure_status
 #         )
 #         if self.isolator.exists():

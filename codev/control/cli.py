@@ -36,13 +36,13 @@ def source_transition(codev_control_status):
             color_next_source=color_next_source,
         ))
 
-        transition = ' -> {color_next_source}{next_source}:{next_source_options}{color_reset}'.format(
+        transition = ' -> {color_next_source}{next_source}:{next_source_option}{color_reset}'.format(
             **codev_control_status, **color_options
         )
     else:
         transition = ''
 
-    return '{color_source}{source}:{source_options}{color_reset}{transition}'.format(
+    return '{color_source}{source}:{source_option}{color_reset}{transition}'.format(
         transition=transition,
         **codev_control_status, **color_options
     )
@@ -79,24 +79,23 @@ def confirmation_message(message):
 def codev_control_options(func):
     @wraps(func)
     def codev_control_wrapper(
-            settings,
             configuration,
             source,
             next_source,
             **kwargs):
 
-        source_name, source_options = parse_options(source)
-        next_source_name, next_source_options = parse_options(next_source)
+        source_name, source_option = parse_options(source)
+        next_source_name, next_source_option = parse_options(next_source)
         configuration_name, configuration_option = parse_options(configuration)
 
-        codev_control = CodevControl(
-            settings,
-            configuration_name,
+        codev_control = CodevControl.from_file(
+            '.codev',
+            configuration_name=configuration_name,
             configuration_option=configuration_option,
             source_name=source_name,
-            source_options=source_options,
+            source_option=source_option,
             next_source_name=next_source_name,
-            next_source_options=next_source_options
+            next_source_option=next_source_option
         )
         return func(codev_control, **kwargs)
 

@@ -14,12 +14,17 @@ class GitSourceSettings(BaseSettings):
     def version(self):
         return self.data.get('version')
 
+    def parse_option(self, option):
+        if self.version and option != self.version:
+            raise Exception("Version '{option}' is not allowed for git source.".format(option=option))
+
 
 class GitSource(Source):
     provider_name = 'git'
+    settings_class = GitSourceSettings
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def parse_version(self):
+        version = self.option
 
         remotes = self.executor.execute('git remote').splitlines()
 
@@ -39,14 +44,14 @@ class GitSource(Source):
 
         self.branch, self.tag, self.commit = None, None, None
 
-        if not self.settings.version:
+        if not version:
             self.branch = self.executor.execute(
                 'git branch -r --points-at {remote}/HEAD | grep -v HEAD'.format(remote=remote)
             )
             self.commit = None
 
         else:
-            version = self.settings.version
+
             if self.find_branch(remote, version):
                 self.branch = version
             elif self.find_tag(version):
@@ -66,7 +71,8 @@ class GitSource(Source):
     def find_commit(self, commit):
         return self.executor.check_execute('git log -F {commit} -n 1 --pretty=oneline'.format(commit=commit))
 
-    def install(self):
+    def install(self, executor):
+        self.parse_version()
         # TODO requirements
         # executor.install_packages('git')
 

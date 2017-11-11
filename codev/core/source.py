@@ -1,8 +1,7 @@
-from codev.core.executor import HasExecutor
 from codev.core.settings import HasSettings
 from .provider import Provider
 
 
-class Source(Provider, HasSettings, HasExecutor):
-    def install(self):
+class Source(Provider, HasSettings):
+    def install(self, executor):
         raise NotImplementedError()

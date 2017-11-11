@@ -215,124 +215,112 @@ class InfrastructureSettings(ProviderSettings):
         return self.data.get('number', 1)
 
 
-class ConfigurationSettings(BaseConfigurationSettings):
-    def __init__(self, data, default_sources):
-        super().__init__(data)
-        self.default_sources = default_sources
+# class ConfigurationSettings(BaseConfigurationSettings):
+#     def __init__(self, data, default_sources):
+#         super().__init__(data)
+#         self.default_sources = default_sources
+#
+#     @property
+#     def sources(self):
+#         return ListDictSettings(
+#             self.data.get('sources', [])
+#         )
+#
+#     @property
+#     def executor(self):
+#         return ProviderSettings(self.data.get('executor', {}))
+#
+#     @property
+#     def infrastructure(self):
+#         return DictSettings(InfrastructureSettings, self.data.get('infrastructure', {}))
+#
+#     @property
+#     def isolation(self):
+#         return IsolationSettings(self.data.get('isolation', {}))
+#
+#     @property
+#     def options(self):
+#         return DictSettings(
+#             OptionSettings,
+#             self.data['options'],
+#             self
+#         )
+#
+# 
+# class Settings(BaseSettings):
+# 
+#     def __init__(self, data=None):
+#         super().__init__(self.default_data)
+#         if data:
+#             self.data.update(data)
+# 
+#     @property
+#     def default_data(self):
+#         return OrderedDict((
+#             ('version', __version__),
+#             ('project', path.basename(path.abspath(path.curdir))),
+#             ('configurations', {})
+#         ))
+# 
+#     @property
+#     def version(self):
+#         return self.data['version']
+# 
+#     @property
+#     def project(self):
+#         return self.data['project']
+# 
+#     @property
+#     def configurations(self):
+#         return self.data['configurations']
 
-    @property
-    def sources(self):
-        return ListDictSettings(
-            self.data.get('sources', [])
-        )
-
-    @property
-    def executor(self):
-        return ProviderSettings(self.data.get('executor', {}))
-
-    @property
-    def infrastructure(self):
-        return DictSettings(InfrastructureSettings, self.data.get('infrastructure', {}))
-
-    @property
-    def isolation(self):
-        return IsolationSettings(self.data.get('isolation', {}))
-
-    @property
-    def options(self):
-        return DictSettings(
-            OptionSettings,
-            self.data['options'],
-            self
-        )
-
-
-class Settings(BaseSettings):
-
-    def __init__(self, data=None):
-        super().__init__(self.default_data)
-        if data:
-            self.data.update(data)
-
-    @property
-    def default_data(self):
-        return OrderedDict((
-            ('version', __version__),
-            ('project', path.basename(path.abspath(path.curdir))),
-            ('configurations', {})
-        ))
-
-    @property
-    def version(self):
-        return self.data['version']
-
-    @property
-    def project(self):
-        return self.data['project']
-
-    @property
-    def configurations(self):
-        return DictSettings(
-            ConfigurationSettings,
-            self.data['configurations'],
-            default_sources=self.sources
-        )
-
-    @property
-    def sources(self):
-        return ListDictSettings(self.data.get('sources', []))
-
-    def get_current_configuration(self, name, option):
-        try:
-            configuration = self.configurations[name]
-        except KeyError:
-            raise ValueError(
-                "Configuration '{name}' is not found.".format(
-                    name=name
-                )
-            )
-
-        if option:
-            try:
-                return configuration.options[option]
-            except KeyError:
-                raise ValueError(
-                    "Option '{option}' is not found in configuration '{name}'.".format(
-                        name=name,
-                        option=option,
-                    )
-                )
-        else:
-            return configuration
+    #FIXME
+    #         default_sources=self.sources
+    #     )
+    #
+    # @property
+    # def sources(self):
+    #     return ListDictSettings(self.data.get('sources', []))
 
 
-class YAMLSettingsReader(object):
-    def __init__(self, settings_class=Settings):
-        self.settings_class = settings_class
-
-    def from_file(self, filepath, *args, **kwargs):
-        with open(filepath) as file:
-            return self.from_yaml(file, *args, **kwargs)
-
-    def from_yaml(self, yamldata, *args, **kwargs):
-        return self.settings_class(yaml.load(yamldata), *args, **kwargs)
-
-
-class YAMLSettingsWriter(object):
-    def __init__(self, settings=None):
-        if settings is None:
-            settings = Settings()
-        self.settings = settings
-
-    def save_to_file(self, filepath):
-        with open(filepath, 'w+') as file:
-            yaml.dump(self.settings.data, file)
+# class YAMLSettingsReader(object):
+#     def __init__(self, settings_class=Settings):
+#         self.settings_class = settings_class
+#
+#     def from_file(self, filepath, *args, **kwargs):
+#         with open(filepath) as file:
+#             return self.from_yaml(file, *args, **kwargs)
+#
+#     def from_yaml(self, yamldata, *args, **kwargs):
+#         return self.settings_class(yaml.load(yamldata), *args, **kwargs)
+#
+#
+# class YAMLSettingsWriter(object):
+#     def __init__(self, settings=None):
+#         if settings is None:
+#             settings = Settings()
+#         self.settings = settings
+#
+#     def save_to_file(self, filepath):
+#         with open(filepath, 'w+') as file:
+#             yaml.dump(self.settings.data, file)
 
 
 class HasSettings(object):
     settings_class = None
+    option_func = None
 
-    def __init__(self, *args, settings_data=None, **kwargs):
+    def __init__(self, *args, settings_data=None, option=None, **kwargs):
         if self.__class__.settings_class:
             self.settings = self.__class__.settings_class(settings_data)
+
+            # TODO think about self.option = self.settings.parse_option(option)
+            self.option = option
+
+            if option is not None:
+                self.settings.parse_option(option)
+        else:
+            self.settings = None
+            self.option = option
+
         super().__init__(*args, **kwargs)

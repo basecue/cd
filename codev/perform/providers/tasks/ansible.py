@@ -154,8 +154,8 @@ class AnsibleTask(Task):
         if self.settings.source.provider:
             source_directory = '/tmp/ansiblesource'
             with self.executor.change_directory(source_directory):
-                source = Source(self.settings.source.provider, executor=self.executor, settings_data=self.settings.source.settings_data)
-                source.install()
+                source = Source(self.settings.source.provider, settings_data=self.settings.source.settings_data)
+                source.install(self.executor)
         else:
             source_directory = ''
 

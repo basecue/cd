@@ -8,7 +8,6 @@ import click
 from codev import __version__
 
 from .debug import DebugSettings
-from .settings import YAMLSettingsReader
 
 logger = getLogger(__name__)
 
@@ -35,15 +34,14 @@ def nice_exception(func):
 
 def path_option(func):
     @wraps(func)
-    def settings_wrapper(path, *args, **kwargs):
+    def path_wrapper(path, *args, **kwargs):
         chdir(path)
-        settings = YAMLSettingsReader().from_file('.codev')
-        return func(settings, *args, **kwargs)
+        return func(*args, **kwargs)
 
     return click.option('-p', '--path',
                         default='./',
                         metavar='<path to repository>',
-                        help='path to repository')(settings_wrapper)
+                        help='path to repository')(path_wrapper)
 
 
 def bool_exit_enable(func):
