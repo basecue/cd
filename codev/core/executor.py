@@ -62,6 +62,11 @@ class Command(object):
 
 
 class BaseExecutor(object):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.directories = []
+
     def execute_command(self, command):
         raise NotImplementedError()
 
@@ -71,62 +76,6 @@ class BaseExecutor(object):
     @contextmanager
     def get_fo(self, remote_path):
         yield NotImplementedError()
-
-
-class HasExecutor(object):
-    def __init__(self, *args, executor, **kwargs):
-        self.__executor = executor
-        super().__init__(*args, **kwargs)
-
-    @property
-    def executor(self):
-        return self.__executor
-
-
-class ProxyExecutor(HasExecutor):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._directories = []
-
-    def check_execute(self, command_str, logger=None, writein=None):
-        try:
-            self.execute(command_str, logger=logger, writein=writein)
-            return True
-        except CommandError:
-            return False    
-    
-    def execute(self, command_str, logger=None, writein=None):
-        command = Command(command_str, logger=logger, writein=writein)
-        for directory in reversed(self._directories):
-            command = command.change_directory(directory)
-        return self.execute_command(command)
-
-    @property
-    def inherited_executor(self):
-        obj = copy(self)
-        obj.__class__ = [base for base in self.__class__.__bases__ if issubclass(base, ProxyExecutor)][0]
-        return obj
-
-    def execute_command(self, command):
-        return self.executor.execute_command(command)
-
-    def send_file(self, source, target):
-        self.logger.debug("Send file: '{source}' '{target}'".format(source=source, target=target))
-        expanduser_source = expanduser(source)
-        return self.executor.send_file(expanduser_source, target)
-
-    @contextmanager
-    def get_fo(self, remote_path):
-        remote_path = path.join(*[directory for directory in reversed(self._directories)], remote_path)
-        with self.executor.get_fo(remote_path) as fo:
-            yield fo
-
-    @contextmanager
-    def change_directory(self, directory):
-        assert directory
-        self._directories.append(directory)
-        yield
-        self._directories.pop()
 
     def exists_directory(self, directory):
         return self.check_execute(
@@ -144,6 +93,56 @@ class ProxyExecutor(HasExecutor):
 
     def create_directory(self, directory):
         self.execute('mkdir -p {directory}'.format(directory=directory))
+
+    def check_execute(self, command_str, logger=None, writein=None):
+        try:
+            self.execute(command_str, logger=logger, writein=writein)
+            return True
+        except CommandError:
+            return False
+
+    @contextmanager
+    def change_directory(self, directory):
+        assert directory
+        self.directories.append(directory)
+        yield
+        self.directories.pop()
+
+    def execute(self, command_str, logger=None, writein=None):
+        command = Command(command_str, logger=logger, writein=writein)
+        for directory in reversed(self.directories):
+            command = command.change_directory(directory)
+        return self.execute_command(command)
+
+
+class HasExecutor(object):
+    def __init__(self, *args, executor, **kwargs):
+        self.executor = executor
+        super().__init__(*args, **kwargs)
+
+
+class ProxyExecutor(HasExecutor, BaseExecutor):
+    executor_class = None
+
+    def __init__(self, *args, executor, **kwargs):
+        super().__init__(*args, executor=executor, **kwargs)
+
+        if self.executor_class:
+            self.executor = self.executor_class(*args, executor=self.executor, **kwargs)
+
+    def execute_command(self, command):
+        return self.executor.execute_command(command)
+
+    def send_file(self, source, target):
+        # logger.debug("Send file: '{source}' '{target}'".format(source=source, target=target))
+        expanduser_source = expanduser(source)
+        return self.executor.send_file(expanduser_source, target)
+
+    @contextmanager
+    def get_fo(self, remote_path):
+        remote_path = path.join(*[directory for directory in reversed(self.directories)], remote_path)
+        with self.executor.get_fo(remote_path) as fo:
+            yield fo
 
 
 class Executor(Provider, HasSettings, BaseExecutor):

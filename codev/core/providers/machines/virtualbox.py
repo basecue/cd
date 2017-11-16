@@ -55,14 +55,14 @@ class VirtualboxBaseMachine(BaseMachine):
         )
 
     def exists(self):
-        return '"{vm_name}"'.format(vm_name=self.vm_name) in self.inherited_executor.execute('VBoxManage list vms').split()
+        return '"{vm_name}"'.format(vm_name=self.vm_name) in self.executor.execute('VBoxManage list vms').split()
 
     def is_started(self):
-        output = self.inherited_executor.execute("VBoxManage list runningvms")
+        output = self.executor.execute("VBoxManage list runningvms")
         return bool(re.search('^\"{vm_name}\"\s+.*'.format(vm_name=self.vm_name), output, re.MULTILINE))
 
     def start(self):
-        self.inherited_executor.execute('VBoxManage startvm "{vm_name}" --type headless'.format(vm_name=self.vm_name))
+        self.executor.execute('VBoxManage startvm "{vm_name}" --type headless'.format(vm_name=self.vm_name))
 
     def create(self):
         distribution = self.settings.distribution
@@ -90,7 +90,7 @@ class VirtualboxBaseMachine(BaseMachine):
         # TODO packages installation according to runner - ie. ansible require python2
 
         # FIXME authentication module
-        ssh_key = self.inherited_executor.execute('ssh-add -L')
+        ssh_key = self.executor.execute('ssh-add -L')
 
         self._prepare_ubuntu_iso(
             release_iso, vm_iso,
@@ -123,7 +123,7 @@ class VirtualboxBaseMachine(BaseMachine):
         except:
             pass
         else:
-            self.inherited_executor.execute('rm {vm_iso}'.format(vm_iso=vm_iso))
+            self.executor.execute('rm {vm_iso}'.format(vm_iso=vm_iso))
 
         self.start()
 
@@ -154,42 +154,42 @@ class VirtualboxBaseMachine(BaseMachine):
         release_base_url = 'http://releases.ubuntu.com/{release_number}/'.format(release_number=release_number)
         iso_file_pattern = '\w+\s+\*(ubuntu-[\d.]+-{subtype}-{arch}.iso)'.format(subtype=subtype, arch=arch)
 
-        self.inherited_executor.create_directory(base_directory)
-        with self.inherited_executor.change_directory(base_directory):
+        self.executor.create_directory(base_directory)
+        with self.executor.change_directory(base_directory):
 
             # download SHA256SUMS and gpg
-            self.inherited_executor.execute('wget {release_base_url}SHA256SUMS -o /dev/null'.format(release_base_url=release_base_url))
+            self.executor.execute('wget {release_base_url}SHA256SUMS -o /dev/null'.format(release_base_url=release_base_url))
 
-            with self.inherited_executor.get_fo('SHA256SUMS') as fo:
+            with self.executor.get_fo('SHA256SUMS') as fo:
                 iso_file, iso_checksum = parse_sums_file(fo)
 
             iso_file_path = path.join(base_directory, iso_file)
-            if not self.inherited_executor.exists_file(iso_file_path):
-                self.inherited_executor.execute('wget {release_base_url}SHA256SUMS.gpg -o /dev/null'.format(release_base_url=release_base_url))
+            if not self.executor.exists_file(iso_file_path):
+                self.executor.execute('wget {release_base_url}SHA256SUMS.gpg -o /dev/null'.format(release_base_url=release_base_url))
 
                 #FIXME test it
-                self.inherited_executor.execute('gpg --keyserver hkp://keyserver.ubuntu.com --recv-keys "8439 38DF 228D 22F7 B374 2BC0 D94A A3F0 EFE2 1092" "C598 6B4F 1257 FFA8 6632 CBA7 4618 1433 FBB7 5451"')
-                self.inherited_executor.execute('gpg --list-keys --with-fingerprint 0xFBB75451 0xEFE21092')
-                self.inherited_executor.execute('gpg --verify SHA256SUMS.gpg SHA256SUMS')
+                self.executor.execute('gpg --keyserver hkp://keyserver.ubuntu.com --recv-keys "8439 38DF 228D 22F7 B374 2BC0 D94A A3F0 EFE2 1092" "C598 6B4F 1257 FFA8 6632 CBA7 4618 1433 FBB7 5451"')
+                self.executor.execute('gpg --list-keys --with-fingerprint 0xFBB75451 0xEFE21092')
+                self.executor.execute('gpg --verify SHA256SUMS.gpg SHA256SUMS')
 
-                self.inherited_executor.execute(
+                self.executor.execute(
                     'wget {release_base_url}{iso_file} -o /dev/null'.format(
                         release_base_url=release_base_url,
                         iso_file=iso_file
                     )
                 )
 
-                self.inherited_executor.execute('sha256sum -c', writein=iso_checksum)
+                self.executor.execute('sha256sum -c', writein=iso_checksum)
 
         return iso_file_path
 
     def _extract_iso(self, source_iso, target_dir):
         actual_directory = '/'
-        for line in self.inherited_executor.execute('isoinfo -R -l -i {source_iso}'.format(source_iso=source_iso)).splitlines():
+        for line in self.executor.execute('isoinfo -R -l -i {source_iso}'.format(source_iso=source_iso)).splitlines():
             r = re.match('^Directory\slisting\sof\s(.*)$', line)
             if r:
                 actual_directory = r.group(1)
-                self.inherited_executor.create_directory(
+                self.executor.create_directory(
                     '{target_dir}{actual_directory}'.format(
                         target_dir=target_dir,
                         actual_directory=actual_directory
@@ -199,7 +199,7 @@ class VirtualboxBaseMachine(BaseMachine):
                 r = re.match('^-.*\]\s+(.*)', line)
                 if r:
                     filename = r.group(1)
-                    self.inherited_executor.execute(
+                    self.executor.execute(
                         'isoinfo -R -i {source_iso} -x {actual_directory}{filename} > {target_dir}{actual_directory}{filename}'.format(
                             target_dir=target_dir,
                             actual_directory=actual_directory,
@@ -214,7 +214,7 @@ class VirtualboxBaseMachine(BaseMachine):
                     symlink = r.group(1)
                     target = r.group(2)
 
-                    self.inherited_executor.execute(
+                    self.executor.execute(
                         'cd {target_dir}{actual_directory} && ln -s {target} {symlink}'.format(
                             target_dir=target_dir,
                             actual_directory=actual_directory,
@@ -236,14 +236,14 @@ class VirtualboxBaseMachine(BaseMachine):
         dir_path = path.dirname(__file__)
         template_path = '{dir_path}/ubuntu_template'.format(dir_path=dir_path)
         # cleanup
-        self.inherited_executor.execute(
+        self.executor.execute(
             'rm -rf {sandbox}'.format(
                 sandbox=sandbox
             )
         )
 
         # make a sandbox
-        self.inherited_executor.create_directory(sandbox)
+        self.executor.create_directory(sandbox)
 
         # 7z neextrahuje symlinky a dlouhe soubory, mount potrebuje root prava
         self._extract_iso(source_iso, sandbox)
@@ -280,12 +280,12 @@ class VirtualboxBaseMachine(BaseMachine):
                 )
 
         for filepath in ('isolinux.cfg', 'langlist', 'txt.cfg'):
-            self.inherited_executor.send_file(
+            self.executor.send_file(
                 '{template_path}/isolinux/{filepath}'.format(template_path=template_path, filepath=filepath),
                 '{sandbox}/isolinux/{filepath}'.format(sandbox=sandbox, filepath=filepath)
             )
 
-        self.inherited_executor.execute(
+        self.executor.execute(
             'mkisofs -D -r -V "ubuntu" -cache-inodes -J -l -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -o {target_iso} {sandbox}'.format(
                 target_iso=target_iso,
                 sandbox=sandbox
@@ -293,7 +293,7 @@ class VirtualboxBaseMachine(BaseMachine):
         )
 
         # cleanup
-        self.inherited_executor.execute(
+        self.executor.execute(
             'rm -rf {sandbox}'.format(
                 sandbox=sandbox
             )
@@ -306,7 +306,7 @@ class VirtualboxBaseMachine(BaseMachine):
         :param ip: IP address of interface
         :return: str
         """
-        output = self.inherited_executor.execute('VBoxManage list hostonlyifs')
+        output = self.executor.execute('VBoxManage list hostonlyifs')
 
         iface = None
         for line in output.splitlines():
@@ -319,12 +319,12 @@ class VirtualboxBaseMachine(BaseMachine):
             if r:
                 break
         else:
-            output = self.inherited_executor.execute('VBoxManage hostonlyif create')
+            output = self.executor.execute('VBoxManage hostonlyif create')
             r = re.search("Interface\s\'(\w+)\'\swas\ssuccessfully\screated", output, re.S)
             if r:
                 iface = r.group(1)
-                self.inherited_executor.execute('VBoxManage hostonlyif ipconfig {iface} --ip {ip}'.format(iface=iface, ip=ip))
-                self.inherited_executor.execute(
+                self.executor.execute('VBoxManage hostonlyif ipconfig {iface} --ip {ip}'.format(iface=iface, ip=ip))
+                self.executor.execute(
                     'VBoxManage dhcpserver add --ifname {iface} --ip {dhcp_ip} --netmask {netmask} --lowerip {lower_ip} --upperip {upper_ip} --enable'.format(
                         iface=iface,
                         dhcp_ip=dhcp_ip,
@@ -340,14 +340,14 @@ class VirtualboxBaseMachine(BaseMachine):
 
     def _create_vm(self, ostype, hdd, memory, share, hostonly_iface):
         # create VM
-        self.inherited_executor.execute(
+        self.executor.execute(
             'VBoxManage createvm --name "{vm_name}" --ostype "{ostype}" --register'.format(
                 vm_name=self.vm_name, ostype=ostype
             )
         )
 
         # setup VM + ifaces
-        self.inherited_executor.execute(
+        self.executor.execute(
             'VBoxManage modifyvm "{vm_name}" --memory {memory} --acpi on --vram 16 --boot1 dvd --nic1 nat --nictype1 Am79C973 --nic2 hostonly --nictype2 Am79C970A --hostonlyadapter2 {hostonly_iface}'.format(
                 vm_name=self.vm_name,
                 memory=memory,
@@ -361,7 +361,7 @@ class VirtualboxBaseMachine(BaseMachine):
             hdd_dir=hdd_dir
         )
         # create storage
-        self.inherited_executor.execute(
+        self.executor.execute(
             'VBoxManage createhd --filename {medium} --size {hdd}'.format(
                 medium=medium, hdd=hdd
             )
@@ -369,13 +369,13 @@ class VirtualboxBaseMachine(BaseMachine):
         # if error appears, delete {name}.vdi and "runvboxmanage closemedium disk {name}.vdi"
 
         # create SATA
-        self.inherited_executor.execute('VBoxManage storagectl "{vm_name}" --name "SATA" --add sata --portcount 1'.format(vm_name=self.vm_name))
+        self.executor.execute('VBoxManage storagectl "{vm_name}" --name "SATA" --add sata --portcount 1'.format(vm_name=self.vm_name))
 
         # create IDE
-        self.inherited_executor.execute('VBoxManage storagectl "{vm_name}" --name "IDE" --add ide'.format(vm_name=self.vm_name))
+        self.executor.execute('VBoxManage storagectl "{vm_name}" --name "IDE" --add ide'.format(vm_name=self.vm_name))
 
         # attach storage to SATA
-        self.inherited_executor.execute(
+        self.executor.execute(
             'VBoxManage storageattach "{vm_name}" --storagectl "SATA" --port 0 --device 0 --type hdd --medium {medium}'.format(
                 vm_name=self.vm_name,
                 medium=medium
@@ -384,7 +384,7 @@ class VirtualboxBaseMachine(BaseMachine):
 
         #create shared points
         for share_name, share_directory in share.items():
-            self.inherited_executor.execute(
+            self.executor.execute(
                 'VBoxManage sharedfolder add "{vm_name}" --name "{share_name}" --hostpath "{share_directory}"'.format(
                     vm_name=self.vm_name,
                     share_name=share_name,
@@ -394,7 +394,7 @@ class VirtualboxBaseMachine(BaseMachine):
 
     def _install_vm(self, install_iso):
         # attach install iso
-        self.inherited_executor.execute(
+        self.executor.execute(
             'VBoxManage storageattach "{vm_name}" --storagectl "IDE" --port 1 --device 0 --type dvddrive --medium {iso}'.format(
                 vm_name=self.vm_name, iso=install_iso
             )
@@ -405,7 +405,7 @@ class VirtualboxBaseMachine(BaseMachine):
 
     def _remove_vm_dvd(self):
         # remove install iso
-        self.inherited_executor.execute(
+        self.executor.execute(
             'VBoxManage storageattach "{vm_name}" --storagectl "IDE" --port 1 --device 0 --type dvddrive --medium none'.format(
                 vm_name=self.vm_name
             )
@@ -414,7 +414,7 @@ class VirtualboxBaseMachine(BaseMachine):
     @property
     def _ip(self):
         for i in range(20):
-            value_ip = self.inherited_executor.execute(
+            value_ip = self.executor.execute(
                 'VBoxManage guestproperty get "{vm_name}" "/VirtualBox/GuestInfo/Net/1/V4/IP"'.format(
                     vm_name=self.vm_name
                 )

@@ -1,15 +1,12 @@
-from codev.control import Isolation
-from codev.core.executor import Executor
-from codev.core.settings import BaseSettings, ListDictSettings, ProviderSettings, DictSettings, InfrastructureSettings, \
-    IsolationSettings, TaskSettings, ConfigurationScriptsSettings, HasSettings
-from codev.core.source import Source
+from codev.core.settings import BaseSettings, DictSettings, InfrastructureSettings, \
+    TaskSettings, ConfigurationScriptsSettings, HasSettings
+from codev.core.utils import status
 
 
 class ConfigurationSettings(BaseSettings):
     # def __init__(self, data, default_sources):
     #     super().__init__(data)
     #     self.default_sources = default_sources
-
 
     @property
     def infrastructure(self):
@@ -25,7 +22,6 @@ class ConfigurationSettings(BaseSettings):
     @property
     def scripts(self):
         return ConfigurationScriptsSettings(self.data.get('scripts', {}))
-
 
     def parse_option(self, option):
         if option:
@@ -45,52 +41,34 @@ class ConfigurationSettings(BaseSettings):
 class Configuration(HasSettings):
     settings_class = ConfigurationSettings
 
+    def __init__(self, name, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.name = name
 
-class ConfigurationControlSettings(ConfigurationSettings):
-    @property
-    def sources(self):
-        return ListDictSettings(
-            self.data.get('sources', [])
-        )
-
-    @property
-    def executor(self):
-        return ProviderSettings(self.data.get('executor', {}))
-
-    @property
-    def isolation(self):
-        return IsolationSettings(self.data.get('isolation', {}))
-
-    @property
-    def loaded_vars(self):
-        return {
-            var: open(file).read() for var, file in self.data.get('load_vars', {}).items()
-        }
-
-
-class ConfigurationControl(Configuration):
-    settings_class = ConfigurationControlSettings
-
-    @property
-    def executor(self):
-        executor_provider = self.settings.executor.provider
-        executor_settings_data = self.settings.executor.settings_data
-
-        return Executor(
-            executor_provider,
-            settings_data=executor_settings_data
-        )
-
-    def get_source(self, name, option):
+    @classmethod
+    def get(cls, name, configurations, option):
         try:
-            return Source(name, settings_data=self.settings.sources[name], option=option)
+            settings_data = configurations[name]
         except KeyError:
-            raise ValueError()
+            raise ValueError(
+                "Configuration '{name}' is not found.".format(
+                    name=name
+                )
+            )
+        try:
+            return cls(name, settings_data=settings_data, option=option)
+        except ValueError as e:
+            raise ValueError(
+                "Option '{option}' is not found in configuration '{name}'.".format(
+                    option=option,
+                    name=name
+                )
+            )
 
-    def get_isolation(self, ident):
-        return Isolation(
-            self.settings.isolation.provider,
-            settings_data=self.settings.isolation.settings_data,
-            ident=ident,
-            executor=self.executor,
+    @property
+    @status
+    def status(self):
+        return dict(
+            name=self.name,
+            option=self.option
         )

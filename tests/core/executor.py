@@ -3,7 +3,7 @@ from codev.core.executor import BaseExecutor, ProxyExecutor
 
 class TestExecutor(BaseExecutor):
 
-    def execute(self, command):
+    def execute_command(self, command):
         return str(command)
 
 
@@ -70,7 +70,9 @@ class TestBasicInheritance(BaseTestExecutor):
                 command = command.wrap('wrap {command} && another')
                 return super().execute_command(command)
 
-        class TestInheritedProxyExecutor(TestProxyExecutor):
+        class TestInheritedProxyExecutor(ProxyExecutor):
+            executor_class = TestProxyExecutor
+
             def execute_command(self, command, logger=None, writein=None):
                 command = command.wrap('wrap2 {command} && another2')
                 return super().execute_command(command)
@@ -151,3 +153,27 @@ class TestBasicInheritance(BaseTestExecutor):
         assert return_command == 'wrap bash -c "wrap2 bash -c \\"cd {directory2} && {command}\\" && another2" && another'.format(directory2=directory2, command=command)
 
 
+class TestAdvancedInheritance(BaseTestExecutor):
+    @classmethod
+    def setup_class(cls):
+        super().setup_class()
+
+        class TestProxyExecutor(ProxyExecutor):
+
+            def execute_command(self, command):
+                command = command.wrap('wrap {command} && another')
+                return super().execute_command(command)
+
+        class TestInheritedProxyExecutor(ProxyExecutor):
+            executor_class = TestProxyExecutor
+
+            def execute_command(self, command, logger=None, writein=None):
+                command = command.wrap('wrap2 {command} && another2')
+                return super().execute_command(command)
+
+        class TestSecondInheritedProxyExecutor(ProxyExecutor):
+            executor_class = TestInheritedProxyExecutor
+
+
+        cls.test_proxy_executor = TestProxyExecutor(executor=cls.test_executor)
+        cls.test_inherited_proxy_executor = TestSecondInheritedProxyExecutor(executor=cls.test_executor)

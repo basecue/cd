@@ -311,8 +311,8 @@ class HasSettings(object):
     option_func = None
 
     def __init__(self, *args, settings_data=None, option=None, **kwargs):
-        if self.__class__.settings_class:
-            self.settings = self.__class__.settings_class(settings_data)
+        if self.settings_class:
+            self.settings = self.settings_class(settings_data)
 
             # TODO think about self.option = self.settings.parse_option(option)
             self.option = option

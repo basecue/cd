@@ -15,8 +15,8 @@ def source_transition(codev_control_status):
     :return:
     """
     # TODO deploy vs destroy (different highlighted source in transition)
-    next_source_available = bool(codev_control_status['next_source'])
-    isolation_exists = bool(codev_control_status['isolation'])
+    next_source_available = bool(codev_control_status.next_source)
+    isolation_exists = bool(codev_control_status.isolation)
 
     color_options = dict(
         color_source=color.GREEN,
@@ -36,13 +36,13 @@ def source_transition(codev_control_status):
             color_next_source=color_next_source,
         ))
 
-        transition = ' -> {color_next_source}{next_source}:{next_source_option}{color_reset}'.format(
+        transition = ' -> {color_next_source}{next_source}:{next_source.option}{color_reset}'.format(
             **codev_control_status, **color_options
         )
     else:
         transition = ''
 
-    return '{color_source}{source}:{source_option}{color_reset}{transition}'.format(
+    return '{color_source}{source.name}:{source.option}{color_reset}{transition}'.format(
         transition=transition,
         **codev_control_status, **color_options
     )
@@ -53,14 +53,13 @@ def confirmation_message(message):
         @wraps(f)
         def confirmation_wrapper(codev_control, force, **kwargs):
             if not force:
-                codev_control_status = codev_control.status
                 if not click.confirm(
                         message.format(
-                            source_transition=source_transition(codev_control_status),
+                            source_transition=source_transition(codev_control.status),
                             configuration_with_option=configuration_with_option(
-                                codev_control_status['configuration'], codev_control_status['configuration_option']
+                                codev_control.status.configuration.name, codev_control.status.configuration.option
                             ),
-                            **codev_control_status
+                            **codev_control.status
                         )
                 ):
                     raise click.Abort()

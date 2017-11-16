@@ -23,10 +23,20 @@ class GitSource(Source):
     provider_name = 'git'
     settings_class = GitSourceSettings
 
-    def parse_version(self):
+    def parse_version(self, executor):
+        def find_branch(remote, branch):
+            branches = executor.execute('git branch -r').splitlines()
+            return '{remote}/{branch}'.format(remote=remote, branch=branch) in branches
+
+        def find_tag(tag):
+            return tag in executor.execute('git tag').splitlines()
+
+        def find_commit(commit):
+            return executor.check_execute('git log -F {commit} -n 1 --pretty=oneline'.format(commit=commit))
+
         version = self.option
 
-        remotes = self.executor.execute('git remote').splitlines()
+        remotes = executor.execute('git remote').splitlines()
 
         if self.settings.remote:
             if self.settings.remote not in remotes:
@@ -40,39 +50,32 @@ class GitSource(Source):
         if self.settings.url:
             self.repository_url = self.settings.url
         else:
-            self.repository_url = self.executor.execute('git remote get-url {remote}'.format(remote=remote))
+            self.repository_url = executor.execute('git remote get-url {remote}'.format(remote=remote))
 
-        self.branch, self.tag, self.commit = None, None, None
+        branch, tag, commit = None, None, None
 
         if not version:
-            self.branch = self.executor.execute(
+            branch = executor.execute(
                 'git branch -r --points-at {remote}/HEAD | grep -v HEAD'.format(remote=remote)
             )
-            self.commit = None
+            commit = None
 
         else:
 
-            if self.find_branch(remote, version):
-                self.branch = version
-            elif self.find_tag(version):
-                self.tag = version
-            elif self.find_commit(version):
-                self.commit = version
+            if find_branch(remote, version):
+                branch = version
+            elif find_tag(version):
+                tag = version
+            elif find_commit(version):
+                commit = version
             else:
                 raise ValueError("Branch, tag or commit '{version}' not found.".format(version=version))
 
-    def find_branch(self, remote, branch):
-        branches = self.executor.execute('git branch -r').splitlines()
-        return '{remote}/{branch}'.format(remote=remote, branch=branch) in branches
-
-    def find_tag(self, tag):
-        return tag in self.executor.execute('git tag').splitlines()
-
-    def find_commit(self, commit):
-        return self.executor.check_execute('git log -F {commit} -n 1 --pretty=oneline'.format(commit=commit))
+        return branch, tag, commit
 
     def install(self, executor):
-        self.parse_version()
+        branch, tag, commit = self.parse_version(executor)
+
         # TODO requirements
         # executor.install_packages('git')
 
@@ -86,22 +89,23 @@ class GitSource(Source):
         #     executor.execute('echo "{ssh_line}" >> ~/.ssh/known_hosts'.format(ssh_line=ssh_line))
 
         # clone repository
-        if self.branch:
-            self.executor.execute('git clone {url} --branch {branch} --single-branch .'.format(
+
+        if branch:
+            executor.execute('git clone {url} --branch {branch} --single-branch .'.format(
                 url=self.repository_url,
-                branch=self.branch
+                branch=branch
             ))
-        elif self.commit:
-            self.executor.execute('git init .')
-            self.executor.execute('git remote add origin {url}'.format(url=self.repository_url))
-            self.executor.execute('git fetch origin {commit}'.format(commit=self.commit))
-            self.executor.execute('git reset --hard FETCH_HEAD')
+        elif commit:
+            executor.execute('git init .')
+            executor.execute('git remote add origin {url}'.format(url=self.repository_url))
+            executor.execute('git fetch origin {commit}'.format(commit=commit))
+            executor.execute('git reset --hard FETCH_HEAD')
         else:  # if self.tag
-            self.executor.execute('git clone {url} .'.format(
+            executor.execute('git clone {url} .'.format(
                 url=self.repository_url,
             ))
-            self.executor.execute('git checkout {tag}'.format(
+            executor.execute('git checkout {tag}'.format(
                 url=self.repository_url,
-                tag=self.tag
+                tag=tag
             ))
 

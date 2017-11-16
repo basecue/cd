@@ -10,10 +10,10 @@ class DirectoryBaseMachine(BaseMachine):
         return '~/.share/codev/virtualenv/{ident}/'.format(ident=self.ident.as_file())
 
     def exists(self):
-        return self.inherited_executor.exists_directory(self._get_base_dir())
+        return self.executor.exists_directory(self._get_base_dir())
 
     def create(self):
-        self.inherited_executor.execute(
+        self.executor.execute(
             'mkdir -p {}'.format(self._get_base_dir())
         )
 
@@ -42,17 +42,18 @@ class VirtualenvBaseMachineSettings(BaseSettings):
             raise SettingsError('Unsupported python version for virtualenv isolation.')
 
 
-class VirtualenvBaseMachine(DirectoryBaseMachine):
+class VirtualenvBaseMachine(BaseMachine):
     settings_class = VirtualenvBaseMachineSettings
+    executor_class = DirectoryBaseMachine
 
     def exists(self):
-        return self.inherited_executor.exists() and self.inherited_executor.exists_directory('env')
+        return self.executor.exists() and self.executor.exists_directory('env')
 
     def create(self):
-        self.inherited_executor.create()
+        self.executor.create()
 
         python_version = self.settings.python_version
-        self.inherited_executor.execute('virtualenv -p python{python_version} env'.format(
+        self.executor.execute('virtualenv -p python{python_version} env'.format(
             python_version=python_version
         ))
 
@@ -60,7 +61,7 @@ class VirtualenvBaseMachine(DirectoryBaseMachine):
         return True
 
     def destroy(self):
-        self.inherited_executor.execute('rm -rf env')
+        self.executor.execute('rm -rf env')
 
     def execute_command(self, command):
         command = command.wrap(

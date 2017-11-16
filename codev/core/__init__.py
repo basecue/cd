@@ -45,38 +45,30 @@ class CodevSettings(BaseSettings):
 
 class Codev(HasSettings):
     settings_class = CodevSettings
-    configuration_class = NotImplemented
+    configuration_class = Configuration
 
     def __init__(self, *args, configuration_name='', configuration_option='', **kwargs):
         super().__init__(*args, **kwargs)
 
-        try:
-            configuration_settings = self.settings.configurations[configuration_name]
-        except KeyError:
-            raise ValueError(
-                "Configuration '{name}' is not found.".format(
-                    name=configuration_name
-                )
-            )
-        try:
-            self.configuration = self.__class__.configuration_class(settings_data=configuration_settings, option=configuration_option)
-        except ValueError as e:
-            raise ValueError(
-                "Option '{option}' is not found in configuration '{name}'.".format(
-                    option=e.kwargs['options'],
-                    name=configuration_name
-                )
-            )
+        self.configuration = self.configuration_class.get(
+            configuration_name,
+            self.settings.configurations,
+            configuration_option
+        )
 
     @classmethod
-    def from_file(self, filepath, *args, **kwargs):
+    def from_file(cls, filepath, *args, **kwargs):
         with open(filepath) as file:
-            return self.from_yaml(file, *args, **kwargs)
+            return cls.from_yaml(file, *args, **kwargs)
 
     @classmethod
     def from_yaml(cls, yamldata, *args, **kwargs):
         settings_data = yaml.load(yamldata)
         return cls(*args, settings_data=settings_data, **kwargs)
+
+    @property
+    def version(self):
+        return self.settings.version
 
     # def save_to_file(self, filepath):
     #     with open(filepath, 'w+') as file:

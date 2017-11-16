@@ -1,15 +1,11 @@
 from logging import getLogger
 
+from codev.control.configuration import ConfigurationControl
 from codev.core import Codev
-from codev.core.configuration import ConfigurationControl
-from codev.core.source import Source
 from codev.core.debug import DebugSettings
-from codev.core.utils import Ident
-
+from codev.core.utils import Ident, status
 from .isolation import Isolation
-
 from .log import logging_config
-
 from .providers import *
 
 logger = getLogger(__name__)
@@ -32,23 +28,22 @@ class CodevControl(Codev):
             source_option='',
             next_source_name='',
             next_source_option='',
+            **kwargs
     ):
         logging_config(DebugSettings.settings.loglevel)
 
-        super().__init__(*args, configuration_name=configuration_name, configuration_option=configuration_option)
+        super().__init__(*args, configuration_name=configuration_name, configuration_option=configuration_option, **kwargs)
 
-        # source
-        if source_name:
-            try:
-                self.source = self.configuration.get_source(source_name, source_option)
-            except ValueError:
-                raise ValueError(
-                    "Source '{source_name}' is not allowed source for configuration '{configuration_name}'.".format(
-                        source_name=source_name,
-                        configuration_name=configuration_name,
-                        project_name=self.settings.project
-                    )
+        try:
+            self.source = self.configuration.get_source(source_name, source_option)
+        except ValueError:
+            raise ValueError(
+                "Source '{source_name}' is not allowed source for configuration '{configuration_name}'.".format(
+                    source_name=source_name,
+                    configuration_name=configuration_name,
+                    project_name=self.settings.project
                 )
+            )
         # else:
         #     source_name, source_settings = list(self.configuration.sources.items())[0]
 
@@ -85,7 +80,8 @@ class CodevControl(Codev):
         else:
             current_source = self.next_source
 
-        return self.isolation.perform(current_source, self.configuration_name, self.configuration_option, input_vars)
+        codev = self.isolation.install_codev(current_source)
+        return self.isolation.perform(codev, input_vars)
 
 
     # FIXME
@@ -105,6 +101,7 @@ class CodevControl(Codev):
     #         return False
 
     @property
+    @status
     def status(self):
         """
         Info about installation

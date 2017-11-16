@@ -1,19 +1,14 @@
 from json import dumps
-from hashlib import sha256
 from logging import getLogger
-from time import time
 
 from codev.core import Codev
-from codev.core.executor import ProxyExecutor, CommandError, Command
-from codev.core.machines import BaseMachine
-
-from codev.core.provider import Provider
 from codev.core.debug import DebugSettings
+from codev.core.executor import CommandError
+from codev.core.machines import BaseMachine
+from codev.core.provider import Provider
+from .log import logging_config
 
 # from codev.core.isolator import Isolator
-from codev.core.infrastructure import Infrastructure
-
-from .log import logging_config
 
 logger = getLogger(__name__)
 command_logger = getLogger('command')
@@ -22,18 +17,19 @@ debug_logger = getLogger('debug')
 
 class Isolation(Provider, BaseMachine):
 
-    def install_codev(self, source, configuration_name, configuration_option):
+    def __init__(self, *args, configuration_name, configuration_option, **kwargs):
+        self.configuration_name = configuration_name
+        self.configuration_option = configuration_option
+        super().__init__(*args, **kwargs)
+
+    def install_codev(self, source):
         pass
 
-
-
-    def perform(self, source, configuration_name, configuration_option, input_vars):
+    def perform(self, codev, input_vars):
 
         # FIXME
         # version = self.executor.execute('pip3 show codev | grep ^Version | cut -d " " -f 2')
         # logger.info("Run 'codev {version}' in isolation.".format(version=version))
-
-        codev = self.install_codev(source, configuration_name, configuration_option)
 
         load_vars = {**codev.configuration.loaded_vars, **input_vars}
 
@@ -53,8 +49,8 @@ class Isolation(Provider, BaseMachine):
         try:
             self.execute(
                 'codev-perform run {configuration_name}:{configuration_option} --force {perform_debug}'.format(
-                    configuration_name=configuration_name,
-                    configuration_option=configuration_option,
+                    configuration_name=self.configuration_name,
+                    configuration_option=self.configuration_option,
                     perform_debug=perform_debug
                 ), logger=command_logger, writein=dumps(input_vars)
             )
@@ -80,13 +76,13 @@ class PrivilegedIsolation(Isolation):
 
     source_directory = 'repository'
 
-    def install_codev(self, source, configuration_name, configuration_option):
+    def install_codev(self, source):
         self.execute('rm -rf {directory}'.format(directory=self.source_directory))
         self.execute('mkdir -p {directory}'.format(directory=self.source_directory))
         with self.change_directory(self.source_directory):
             source.install(self)
             with self.get_fo('.codev') as codev_file:
-                codev = Codev.from_yaml(codev_file, configuration_name=configuration_name, configuration_option=configuration_option)
+                codev = Codev.from_yaml(codev_file, configuration_name=self.configuration_name, configuration_option=self.configuration_option)
 
         self._install_codev(codev.version)
         return codev
@@ -113,9 +109,9 @@ class PrivilegedIsolation(Isolation):
             self.send_file(distfile, remote_distfile)
             self.execute('pip3 install --upgrade {distfile}'.format(distfile=remote_distfile))
 
-    def perform(self, source, configuration_name, configuration_option, input_vars):
+    def perform(self, source, input_vars):
         with self.change_directory(self.source_directory):
-            super().perform(source, configuration_name, configuration_option, input_vars)
+            super().perform(source, input_vars)
 
 
 
