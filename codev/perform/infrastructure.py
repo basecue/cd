@@ -18,10 +18,11 @@ class MachinesSettings(ProviderSettings):
 class InfrastructureSettings(BaseSettings):
     @property
     def machines(self):
-        return self.data.items()
+        for machines_name, machines_settings in self.data.items():
+            yield machines_name, MachinesSettings(data=machines_settings)
 
 
-class Infrastructure(HasExecutor, HasSettings):
+class Infrastructure(HasSettings, HasExecutor):
     settings_class = InfrastructureSettings
 
     # def _machines_providers(self):
@@ -52,7 +53,7 @@ class Infrastructure(HasExecutor, HasSettings):
                     machines_settings.provider,
                     ident=Ident(machines_name, i + 1),
                     executor=self.executor,
-                    settings_data=machines_settings,
+                    settings_data=machines_settings.settings_data,
                     groups=machines_settings.groups
                 )
 
