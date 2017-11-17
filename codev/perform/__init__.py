@@ -2,8 +2,8 @@ from logging import getLogger
 
 from codev.core import Codev
 from codev.core.debug import DebugSettings
-from codev.core.infrastructure import Infrastructure
 from codev.core.providers.executors.local import LocalExecutor
+from codev.perform.configuration import ConfigurationPerform
 from codev.perform.task import Task
 from .log import logging_config
 from .providers import *
@@ -16,21 +16,21 @@ class CodevPerform(Codev):
     """
     Installation of project.
     """
+
+    configuration_class = ConfigurationPerform
+
     def __init__(
             self,
-            settings,
-            configuration_name,
-            configuration_option=''
+            *args,
+            **kwargs
     ):
         logging_config(DebugSettings.settings.loglevel)
 
-        super().__init__(settings, configuration_name, configuration_option)
+        super().__init__(*args, **kwargs)
 
         self.executor = LocalExecutor()
-        self.infrastructure = Infrastructure(
-            executor=self.executor,
-            settings=self.configuration_settings.infrastructure
-        )
+        self.infrastructure = self.configuration.get_infrastructure(self.executor)
+
 
     def run(self, input_vars):
         """
@@ -44,7 +44,7 @@ class CodevPerform(Codev):
 
         self.infrastructure.create()
 
-        for task_name, task_settings in self.configuration_settings.tasks.items():
+        for task_name, task_settings in self.configuration.settings.tasks.items():
             task = Task(task_settings.provider, executor=self.executor, settings_data=task_settings.settings_data)
 
             name = " '{}'".format(task_name) if task_name else ''

@@ -22,8 +22,6 @@ class CodevControl(Codev):
     def __init__(
             self,
             *args,
-            configuration_name='',
-            configuration_option='',
             source_name='',
             source_option='',
             next_source_name='',
@@ -32,7 +30,7 @@ class CodevControl(Codev):
     ):
         logging_config(DebugSettings.settings.loglevel)
 
-        super().__init__(*args, configuration_name=configuration_name, configuration_option=configuration_option, **kwargs)
+        super().__init__(*args, **kwargs)
 
         try:
             self.source = self.configuration.get_source(source_name, source_option)
@@ -40,8 +38,7 @@ class CodevControl(Codev):
             raise ValueError(
                 "Source '{source_name}' is not allowed source for configuration '{configuration_name}'.".format(
                     source_name=source_name,
-                    configuration_name=configuration_name,
-                    project_name=self.settings.project
+                    configuration_name=self.configuration.name
                 )
             )
         # else:
@@ -49,7 +46,7 @@ class CodevControl(Codev):
 
         isolation_ident = Ident(
             self.settings.project,
-            configuration_name,
+            self.configuration.name,
             source_name,
             source_option,
             next_source_name,

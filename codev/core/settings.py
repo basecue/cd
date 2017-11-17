@@ -26,9 +26,6 @@ yaml.add_constructor(_mapping_tag, dict_constructor)
 """
 
 
-# TODO check all data.get vs data[] and consider defaults
-
-
 class SettingsError(Exception):
     pass
 
@@ -205,14 +202,14 @@ class OptionSettings(BaseConfigurationSettings):
         return getattr(self._configuration, item)
 
 
-class InfrastructureSettings(ProviderSettings):
-    @property
-    def groups(self):
-        return self.data.get('groups', [])
-
-    @property
-    def number(self):
-        return self.data.get('number', 1)
+# class InfrastructureSettings(ProviderSettings):
+#     @property
+#     def groups(self):
+#         return self.data.get('groups', [])
+#
+#     @property
+#     def number(self):
+#         return self.data.get('number', 1)
 
 
 # class ConfigurationSettings(BaseConfigurationSettings):

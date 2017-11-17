@@ -1,5 +1,4 @@
-from codev.core.settings import BaseSettings, DictSettings, InfrastructureSettings, \
-    TaskSettings, ConfigurationScriptsSettings, HasSettings
+from codev.core.settings import BaseSettings, ConfigurationScriptsSettings, HasSettings
 from codev.core.utils import status
 
 
@@ -7,17 +6,6 @@ class ConfigurationSettings(BaseSettings):
     # def __init__(self, data, default_sources):
     #     super().__init__(data)
     #     self.default_sources = default_sources
-
-    @property
-    def infrastructure(self):
-        return DictSettings(InfrastructureSettings, self.data.get('infrastructure', {}))
-
-    @property
-    def tasks(self):
-        return DictSettings(
-            TaskSettings,
-            self.data.get('tasks', {})
-        )
 
     @property
     def scripts(self):
@@ -36,6 +24,10 @@ class ConfigurationSettings(BaseSettings):
                     ),
                     option
                 )
+
+    @property
+    def load_vars(self):
+        return self.data.get('load_vars', {})
 
 
 class Configuration(HasSettings):
@@ -64,6 +56,12 @@ class Configuration(HasSettings):
                     name=name
                 )
             )
+
+    @property
+    def loaded_vars(self):
+        return {
+            var: open(file).read() for var, file in self.settings.load_vars.items()
+        }
 
     @property
     @status

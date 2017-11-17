@@ -1,13 +1,29 @@
+from codev.core import HasSettings
 from codev.core.executor import HasExecutor
+from codev.core.machines import Machine
+from codev.core.settings import ProviderSettings, BaseSettings
 from codev.core.utils import Ident
-from .machines import Machine
 
 
-#FIXME refactorize to be based from HasSettings
-class Infrastructure(HasExecutor):
-    def __init__(self, *args, settings, **kwargs):
-        self.settings = settings
-        super().__init__(*args, **kwargs)
+class MachinesSettings(ProviderSettings):
+    @property
+    def groups(self):
+        return self.data.get('groups', [])
+
+    @property
+    def number(self):
+        return self.data.get('number', 1)
+
+
+class InfrastructureSettings(BaseSettings):
+    @property
+    def machines(self):
+        return self.data.items()
+
+
+class Infrastructure(HasExecutor, HasSettings):
+    settings_class = InfrastructureSettings
+
     # def _machines_providers(self):
     #     for machinegroup_name, machinegroup_settings in self.settings.items():
     #         yield MachinesProvider(
@@ -30,13 +46,13 @@ class Infrastructure(HasExecutor):
 
     @property
     def machines(self):
-        for machines_name, machines_settings in self.settings.items():
+        for machines_name, machines_settings in self.settings.machines:
             for i in range(machines_settings.number):
                 yield Machine(
                     machines_settings.provider,
                     ident=Ident(machines_name, i + 1),
                     executor=self.executor,
-                    settings_data=machines_settings.settings_data,
+                    settings_data=machines_settings,
                     groups=machines_settings.groups
                 )
 

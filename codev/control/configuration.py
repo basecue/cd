@@ -20,12 +20,6 @@ class ConfigurationControlSettings(ConfigurationSettings):
     def isolation(self):
         return IsolationSettings(self.data.get('isolation', {}))
 
-    @property
-    def loaded_vars(self):
-        return {
-            var: open(file).read() for var, file in self.data.get('load_vars', {}).items()
-        }
-
 
 class ConfigurationControl(Configuration):
     settings_class = ConfigurationControlSettings

@@ -4,7 +4,7 @@ import json
 import os.path
 from logging import getLogger
 
-from codev.core import Source
+from codev.core.source import Source
 from codev.core.providers.machines import VirtualenvBaseMachine
 from codev.core.installer import Installer
 from codev.core.settings import BaseSettings, ProviderSettings

@@ -14,13 +14,12 @@ def confirmation_message(message):
         @wraps(f)
         def confirmation_wrapper(codev_perform, force, **kwargs):
             if not force:
-                codev_perform_status = codev_perform.status
                 if not click.confirm(
                     message.format(
                         configuration_with_option=configuration_with_option(
-                            codev_perform_status['configuration'], codev_perform_status['configuration_name']
+                            codev_perform.status.configuration.name, codev_perform.status.configuration.option
                         ),
-                        **codev_perform_status,
+                        **codev_perform.status,
                     )
                 ):
                     raise click.Abort()
@@ -39,15 +38,14 @@ def confirmation_message(message):
 def codev_perform_options(func):
     @wraps(func)
     def codev_perform_wrapper(
-            settings,
             configuration,
             **kwargs):
 
         configuration_name, configuration_option = parse_options(configuration)
 
-        codev_perform = CodevPerform(
-            settings,
-            configuration_name,
+        codev_perform = CodevPerform.from_file(
+            '.codev',
+            configuration_name=configuration_name,
             configuration_option=configuration_option,
         )
         return func(codev_perform, **kwargs)
