@@ -305,7 +305,6 @@ class OptionSettings(BaseConfigurationSettings):
 
 class HasSettings(object):
     settings_class = None
-    option_func = None
 
     def __init__(self, *args, settings_data=None, option=None, **kwargs):
         if self.settings_class:

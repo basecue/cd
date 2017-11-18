@@ -227,7 +227,7 @@ class LXCMachine(LXCBaseMachine):
         return self.__gateway
 
     @contextmanager
-    def get_fo(self, remote_path):
+    def open_file(self, remote_path):
         tempfile = '/tmp/codev.{ident}.tempfile'.format(ident=self.ident)
 
         remote_path = self._sanitize_path(remote_path)
@@ -238,7 +238,7 @@ class LXCMachine(LXCBaseMachine):
             container_root=self.container_root
         ))
         try:
-            with self.executor.get_fo(tempfile) as fo:
+            with self.executor.open_file(tempfile) as fo:
                 yield fo
         finally:
             self.executor.execute('lxc-usernsexec -- rm {tempfile}'.format(tempfile=tempfile))

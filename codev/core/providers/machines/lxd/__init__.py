@@ -221,7 +221,7 @@ class LXDMachine(LXDBaseMachine):
         return self.__gateway
 
     @contextmanager
-    def get_fo(self, remote_path):
+    def open_file(self, remote_path):
         tempfile = '/tmp/codev.{container_name}.tempfile'.format(container_name=self.container_name)
         remote_path = self._sanitize_path(remote_path)
         self.executor.execute(
@@ -232,7 +232,7 @@ class LXDMachine(LXDBaseMachine):
             )
         )
         try:
-            with self.executor.get_fo(tempfile) as fo:
+            with self.executor.open_file(tempfile) as fo:
                 yield fo
         finally:
             self.executor.execute('rm {tempfile}'.format(tempfile=tempfile))

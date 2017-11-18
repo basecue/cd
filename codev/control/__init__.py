@@ -32,18 +32,6 @@ class CodevControl(Codev):
 
         super().__init__(*args, **kwargs)
 
-        try:
-            self.source = self.configuration.get_source(source_name, source_option)
-        except ValueError:
-            raise ValueError(
-                "Source '{source_name}' is not allowed source for configuration '{configuration_name}'.".format(
-                    source_name=source_name,
-                    configuration_name=self.configuration.name
-                )
-            )
-        # else:
-        #     source_name, source_settings = list(self.configuration.sources.items())[0]
-
         isolation_ident = Ident(
             self.settings.project,
             self.configuration.name,
@@ -55,7 +43,18 @@ class CodevControl(Codev):
 
         # executor
 
-        self.isolation = self.configuration.get_isolation(isolation_ident)
+        self.isolation = self.configuration.get_isolation(ident=isolation_ident)
+
+        # FIXME refactorize to isolation
+        try:
+            self.source = self.configuration.get_source(source_name, source_option)
+        except ValueError:
+            raise ValueError(
+                "Source '{source_name}' is not allowed source for configuration '{configuration_name}'.".format(
+                    source_name=source_name,
+                    configuration_name=self.configuration.name
+                )
+            )
 
         if next_source_name:
             self.next_source = self.configuration.get_source(next_source_name, next_source_option)

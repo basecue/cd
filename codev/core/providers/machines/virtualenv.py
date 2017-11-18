@@ -24,9 +24,9 @@ class DirectoryBaseMachine(BaseMachine):
         return super().execute_command(command)
 
     @contextmanager
-    def get_fo(self, remote_path):
+    def open_file(self, remote_path):
         with self.change_directory(self._get_base_dir()):
-            with super().get_fo(remote_path) as fo:
+            with super().open_file(remote_path) as fo:
                 yield fo
 
 
@@ -45,6 +45,7 @@ class VirtualenvBaseMachineSettings(BaseSettings):
 class VirtualenvBaseMachine(BaseMachine):
     settings_class = VirtualenvBaseMachineSettings
     executor_class = DirectoryBaseMachine
+    executor_class_forward = ['ident']
 
     def exists(self):
         return self.executor.exists() and self.executor.exists_directory('env')

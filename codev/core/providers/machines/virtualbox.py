@@ -4,6 +4,7 @@ from crypt import crypt
 from base64 import b64encode
 from time import sleep
 
+from codev.core.providers.executors.ssh import SSHExecutor
 from codev.core.settings import BaseSettings
 from codev.core.machines import BaseMachine, Machine
 from codev.core.executor import Executor
@@ -49,10 +50,8 @@ class VirtualboxBaseMachine(BaseMachine):
     settings_class = VirtualboxBaseMachineSettings
 
     @property
-    def executor(self):
-        return Executor(
-            'ssh', settings_data={'hostname': self._ip, 'username': 'root'}
-        )
+    def effective_executor(self):
+        return SSHExecutor(settings_data={'hostname': self._ip, 'username': 'root'})
 
     def exists(self):
         return '"{vm_name}"'.format(vm_name=self.vm_name) in self.executor.execute('VBoxManage list vms').split()
@@ -158,14 +157,14 @@ class VirtualboxBaseMachine(BaseMachine):
         with self.executor.change_directory(base_directory):
 
             # download SHA256SUMS and gpg
-            self.executor.execute('wget {release_base_url}SHA256SUMS -o /dev/null'.format(release_base_url=release_base_url))
+            self.executor.execute('wget {release_base_url}SHA256SUMS -O SHA256SUMS -o /dev/null'.format(release_base_url=release_base_url))
 
-            with self.executor.get_fo('SHA256SUMS') as fo:
+            with self.executor.open_file('SHA256SUMS') as fo:
                 iso_file, iso_checksum = parse_sums_file(fo)
 
             iso_file_path = path.join(base_directory, iso_file)
             if not self.executor.exists_file(iso_file_path):
-                self.executor.execute('wget {release_base_url}SHA256SUMS.gpg -o /dev/null'.format(release_base_url=release_base_url))
+                self.executor.execute('wget {release_base_url}SHA256SUMS.gpg -O SHA256SUMS.gpg -o /dev/null'.format(release_base_url=release_base_url))
 
                 #FIXME test it
                 self.executor.execute('gpg --keyserver hkp://keyserver.ubuntu.com --recv-keys "8439 38DF 228D 22F7 B374 2BC0 D94A A3F0 EFE2 1092" "C598 6B4F 1257 FFA8 6632 CBA7 4618 1433 FBB7 5451"')
@@ -173,7 +172,7 @@ class VirtualboxBaseMachine(BaseMachine):
                 self.executor.execute('gpg --verify SHA256SUMS.gpg SHA256SUMS')
 
                 self.executor.execute(
-                    'wget {release_base_url}{iso_file} -o /dev/null'.format(
+                    'wget {release_base_url}{iso_file} -O {iso_file} -o /dev/null'.format(
                         release_base_url=release_base_url,
                         iso_file=iso_file
                     )

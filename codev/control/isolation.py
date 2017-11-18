@@ -81,7 +81,7 @@ class PrivilegedIsolation(Isolation):
         self.execute('mkdir -p {directory}'.format(directory=self.source_directory))
         with self.change_directory(self.source_directory):
             source.install(self)
-            with self.get_fo('.codev') as codev_file:
+            with self.open_file('.codev') as codev_file:
                 codev = Codev.from_yaml(codev_file, configuration_name=self.configuration_name, configuration_option=self.configuration_option)
 
         self._install_codev(codev.version)

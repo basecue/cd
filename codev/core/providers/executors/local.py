@@ -4,7 +4,6 @@ from subprocess import Popen, PIPE, check_call
 
 from os import fdopen, remove
 from os.path import expanduser
-from logging import getLogger
 
 from tempfile import mkstemp
 from time import sleep
@@ -15,13 +14,7 @@ from codev.core.executor import Executor, CommandError
 class LocalExecutor(Executor):
     provider_name = 'local'
 
-    def __init__(self, *args, **kwargs):
-        self.logger = getLogger(__name__)
-        super().__init__(*args, **kwargs)
-
     def execute_command(self, command):
-        self.logger.debug("Execute command: '%s'" % command)
-
         outtempfd, outtemppath = mkstemp()
         errtempfd, errtemppath = mkstemp()
 
@@ -66,9 +59,8 @@ class LocalExecutor(Executor):
         check_call(['cp', source, target])
 
     @contextmanager
-    def get_fo(self, remote_path):
+    def open_file(self, remote_path):
         remote_path = expanduser(remote_path)
-        self.logger.debug("Get file: '{remote_path}'".format(remote_path=remote_path))
         with open(remote_path) as fo:
             yield fo
 

@@ -30,7 +30,6 @@ class Ident(object):
 
 class HasIdent(object):
     def __init__(self, *args, ident=None, **kwargs):
-        assert isinstance(ident, Ident)
         self.ident = ident
         super().__init__(*args, **kwargs)
 

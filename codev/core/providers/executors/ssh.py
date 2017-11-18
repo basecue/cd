@@ -1,4 +1,4 @@
-from codev.core import Command
+from codev.core.executor import Command
 from .local import LocalExecutor
 from codev.core.settings import BaseSettings
 from tempfile import NamedTemporaryFile
@@ -22,7 +22,7 @@ class SSHExecutorSettings(BaseSettings):
     #     return self.data.get('password', None)
 
 
-class SSHexecutor(LocalExecutor):
+class SSHExecutor(LocalExecutor):
     provider_name = 'ssh'
     settings_class = SSHExecutorSettings
 
@@ -37,18 +37,17 @@ class SSHexecutor(LocalExecutor):
         super().execute_command(command)
 
     def send_file(self, source, target):
-        command = Command(
-            'scp -p {port} {source} {username}@{hostname}:{target}'.format(
-                username=self.settings.username,
-                hostname=self.settings.hostname,
-                port=self.settings.port,
-                source=source,
-                target=target
-            )
-        )
+        command = Command('scp -p {port} {source} {username}@{hostname}:{target}'.format(
+            username=self.settings.username,
+            hostname=self.settings.hostname,
+            port=self.settings.port,
+            source=source,
+            target=target
+        ))
+
         super().execute_command(command)
 
-    def get_fo(self, remote_path):
+    def open_file(self, remote_path):
         with NamedTemporaryFile() as fo:
             command = Command(
                 'scp -p {port} {username}@{hostname}:{remote_path} {target} '.format(

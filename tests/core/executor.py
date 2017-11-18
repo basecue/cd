@@ -1,7 +1,7 @@
-from codev.core.executor import BaseExecutor, ProxyExecutor
+from codev.core.executor import BareExecutor, ProxyExecutor
 
 
-class TestExecutor(BaseExecutor):
+class TestExecutor(BareExecutor):
 
     def execute_command(self, command):
         return str(command)

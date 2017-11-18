@@ -4,7 +4,7 @@ from .executor import ProxyExecutor
 from .provider import Provider
 
 
-class BaseMachine(ProxyExecutor, HasSettings, HasIdent):
+class BaseMachine(HasSettings, ProxyExecutor, HasIdent):
     # def __init__(self, *args, ident=None, group=None, groups=None, **kwargs):
     #     self.group = group
     #     self.groups = groups
