@@ -1,12 +1,12 @@
 from collections import OrderedDict
-
 from os import path
 
-from codev.core.configuration import Configuration
-from codev.core.settings import HasSettings, BaseSettings
 import yaml
 
 from codev import __version__
+from codev.core.configuration import Configuration
+from codev.core.settings import HasSettings, BaseSettings
+from codev.core.utils import Status
 
 """
 YAML OrderedDict mapping
@@ -73,3 +73,16 @@ class Codev(HasSettings):
     # def save_to_file(self, filepath):
     #     with open(filepath, 'w+') as file:
     #         yaml.dump(self.settings.data, file)
+
+    @property
+    def status(self):
+        """
+        Info about runner
+
+        :return: runner status
+        :rtype: dict
+        """
+        return Status(
+            project=self.settings.project,
+            configuration=self.configuration.status,
+        )

@@ -31,7 +31,6 @@ class CodevPerform(Codev):
         self.executor = LocalExecutor()
         self.infrastructure = self.configuration.get_infrastructure(self.executor)
 
-
     def run(self, input_vars):
         """
         Run runner
@@ -82,10 +81,8 @@ class CodevPerform(Codev):
         :return: runner status
         :rtype: dict
         """
-        status = dict(
-            project=self.project_name,
-            configuration=self.configuration_name,
-            configuration_option=self.configuration_option,
+        status = super().status
+        status.update(
             infrastructure=self.infrastructure.status
         )
         return status

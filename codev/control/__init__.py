@@ -3,7 +3,7 @@ from logging import getLogger
 from codev.control.configuration import ConfigurationControl
 from codev.core import Codev
 from codev.core.debug import DebugSettings
-from codev.core.utils import Ident, status
+from codev.core.utils import Ident
 from .isolation import Isolation
 from .log import logging_config
 from .providers import *
@@ -97,7 +97,6 @@ class CodevControl(Codev):
     #         return False
 
     @property
-    @status
     def status(self):
         """
         Info about installation
@@ -105,10 +104,10 @@ class CodevControl(Codev):
         :return: installation status
         :rtype: dict
         """
-        return dict(
-            project=self.settings.project,
-            configuration=self.configuration.status,
+        status = super().status
+        status.update(
             source=self.source.status,
             next_source=self.next_source.status if self.next_source else '',
             isolation=self.isolation.status
         )
+        return status

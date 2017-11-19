@@ -1,11 +1,8 @@
+from codev.core.utils import Status
 from codev.core.settings import BaseSettings, ConfigurationScriptsSettings, HasSettings
-from codev.core.utils import status
 
 
 class ConfigurationSettings(BaseSettings):
-    # def __init__(self, data, default_sources):
-    #     super().__init__(data)
-    #     self.default_sources = default_sources
 
     @property
     def scripts(self):
@@ -64,9 +61,8 @@ class Configuration(HasSettings):
         }
 
     @property
-    @status
     def status(self):
-        return dict(
+        return Status(
             name=self.name,
             option=self.option
         )

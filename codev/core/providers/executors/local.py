@@ -1,20 +1,23 @@
 from contextlib import contextmanager
+from logging import getLogger
 from multiprocessing.pool import ThreadPool
-from subprocess import Popen, PIPE, check_call
-
 from os import fdopen, remove
 from os.path import expanduser
-
+from subprocess import Popen, PIPE, check_call
 from tempfile import mkstemp
 from time import sleep
 
 from codev.core.executor import Executor, CommandError
+
+logger = getLogger(__name__)
 
 
 class LocalExecutor(Executor):
     provider_name = 'local'
 
     def execute_command(self, command):
+        logger.debug("Execute command: '{command}'".format(command=command))
+
         outtempfd, outtemppath = mkstemp()
         errtempfd, errtemppath = mkstemp()
 
@@ -33,7 +36,7 @@ class LocalExecutor(Executor):
             output_reader = OutputReader(
                 outfileread,
                 errfileread,
-                logger=command.logger
+                logger=command.output_logger
             )
 
             # wait for exit code

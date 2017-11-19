@@ -14,6 +14,16 @@ logger = getLogger(__name__)
 command_logger = getLogger('command')
 debug_logger = getLogger('debug')
 
+# FIXME
+"""
+protocol:
+
+call: codev-source {source_name}:{source_option} -- {source_settings_data}
+return: .codev
+
+codev-perform run {configuration_name}:{configuration_option} --force
+"""
+
 
 class Isolation(Provider, BaseMachine):
 
@@ -52,7 +62,7 @@ class Isolation(Provider, BaseMachine):
                     configuration_name=self.configuration_name,
                     configuration_option=self.configuration_option,
                     perform_debug=perform_debug
-                ), logger=command_logger, writein=dumps(input_vars)
+                ), output_logger=command_logger, writein=dumps(input_vars)
             )
         except CommandError as e:
             command_logger.error(e.error)

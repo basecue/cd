@@ -1,5 +1,5 @@
 from codev.core.settings import HasSettings
-from codev.core.utils import status
+from codev.core.utils import Status
 from .provider import Provider
 
 
@@ -19,9 +19,8 @@ class Source(Provider, HasSettings):
             raise ValueError()
 
     @property
-    @status
     def status(self):
-        return dict(
+        return Status(
             name=self.provider_name,
             option=self.option
         )

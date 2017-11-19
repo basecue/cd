@@ -1,6 +1,3 @@
-from functools import wraps
-
-
 def parse_options(inp):
     parsed = inp.split(':', 1)
     name = parsed[0]
@@ -37,15 +34,3 @@ class HasIdent(object):
 class Status(dict):
     def __getattr__(self, item):
         return self[item]
-
-
-def status(method):
-    cls_name = '_'.join(method.__qualname__.split('.'))
-    cls = type(cls_name, (Status,), {})
-
-    @wraps(method)
-    def wrapper(*args, **kwargs):
-        return cls(method(*args, **kwargs))
-
-    return wrapper
-

@@ -28,9 +28,9 @@ class Command(object):
         else:
             return super().__new__(cls)
 
-    def __init__(self, command_str, logger=None, writein=None):
+    def __init__(self, command_str, output_logger=None, writein=None):
         self.command_str = command_str
-        self.logger = logger
+        self.output_logger = output_logger
         self.writein = writein
 
     def __str__(self):
@@ -44,7 +44,7 @@ class Command(object):
         )
 
     def _copy(self, command_or_str):
-        return self.__class__(command_or_str, logger=self.logger, writein=self.writein)
+        return self.__class__(command_or_str, output_logger=self.output_logger, writein=self.writein)
 
     def change_directory(self, directory):
         return self._copy('cd {directory} && {command_str}'.format(
@@ -70,15 +70,15 @@ class BareExecutor(object):
     def send_file(self, source, target):
         raise NotImplementedError()
 
-    def check_execute(self, command_str, logger=None, writein=None):
+    def check_execute(self, command_str, output_logger=None, writein=None):
         try:
-            self.execute(command_str, logger=logger, writein=writein)
+            self.execute(command_str, output_logger=output_logger, writein=writein)
             return True
         except CommandError:
             return False
 
-    def execute(self, command_str, logger=None, writein=None):
-        command = Command(command_str, logger=logger, writein=writein)
+    def execute(self, command_str, output_logger=None, writein=None):
+        command = Command(command_str, output_logger=output_logger, writein=writein)
 
         command = self.process_command(command)
 

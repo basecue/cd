@@ -1,8 +1,12 @@
+from logging import getLogger
+
 from codev.core import HasSettings
 from codev.core.executor import HasExecutor
 from codev.core.machines import Machine
 from codev.core.settings import ProviderSettings, BaseSettings
 from codev.core.utils import Ident
+
+logger = getLogger(__name__)
 
 
 class MachinesSettings(ProviderSettings):
@@ -42,12 +46,19 @@ class Infrastructure(HasSettings, HasExecutor):
     #     raise KeyError(ident)
 
     def create(self):
+        logger.info('Creating infrastructure...')
         for machine in self.machines:
             machine.start_or_create()
 
     @property
     def machines(self):
         for machines_name, machines_settings in self.settings.machines:
+            logger.debug(
+                'Creating machines {machines_name}: {machines_settings}'.format(
+                    machines_name=machines_name,
+                    machines_settings=machines_settings
+                )
+            )
             for i in range(machines_settings.number):
                 yield Machine(
                     machines_settings.provider,
