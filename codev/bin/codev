@@ -1,41 +1,24 @@
-#!/home/beer/projects/baseclue/codev/env/bin/python
+#!/usr/bin/env python
 
-"""
-Use cases
-
-codev init --template=[template]
-    -- create new project
-
-codev install [environment] [configuration] [version]
-    -- install project
-
-codev start [environment] [configuration] [version]
-    -- start installed project
-
-codev stop [environment] [configuration] [version]
-    -- stop installed project
-
-codev run [script] [environment] [configuration] [version]
-"""
+import select
+import sys
+from json import loads
 
 import click
 
-from codev.cli import command, main
-from json import loads
-import sys
-import select
+from codev.control.cli import command, main
 
 
 @command(
-    help='Deploy project.',
-    confirmation="Deploy project '{project}' to environment '{environment}' in configuration '{configuration}' at source '{source_transition}'?"
+    help='Perform task.',
+    confirmation="Perform task '{configuration_with_option}' of project '{project}' from source '{source_transition}'?"
 )
-def deploy(installation):
+def perform(codev_control):
     """
     Deploy project
 
-    :param installation:
-    :type installation: codev.installation.Installation
+    :param codev_control:
+    :type codev_control: codev.CodevControl
     :return:
     :rtype: bool
     """
@@ -43,51 +26,51 @@ def deploy(installation):
         load_vars = loads(sys.stdin.read())
     else:
         load_vars = {}
-    return installation.deploy(load_vars)
+    return codev_control.perform(load_vars)
 
 
-@command(help='Execute command in project context in isolation.')
-@click.argument('command', nargs=-1)
-def execute(installation, command):
-    """
-    :param installation:
-    :type installation: codev.installation.Installation
-    :param command:
-    :type command: str
-    :return:
-    :rtype: bool
-    """
-
-    if select.select([sys.stdin,], [], [], 0.0)[0]:
-        arguments = loads(sys.stdin.read())
-    else:
-        arguments = {}
-    return installation.execute(' '.join(command), arguments)
+# @command(help='Execute command in project context in isolation.')
+# @click.argument('command', nargs=-1)
+# def execute(codev_control, command):
+#     """
+#     :param codev_control:
+#     :type codev_control: codev.CodevControl
+#     :param command:
+#     :type command: str
+#     :return:
+#     :rtype: bool
+#     """
+#
+#     if select.select([sys.stdin,], [], [], 0.0)[0]:
+#         arguments = loads(sys.stdin.read())
+#     else:
+#         arguments = {}
+#     return codev_control.execute(' '.join(command), arguments)
 
 
 @command(
     help='Destroy isolation.',
-    confirmation="Destroy isolation of project '{project}' in environment '{environment}' in configuration '{configuration}' at source '{source_transition}'?"
+    confirmation="Destroy isolation of project '{project}' with configuration '{configuration}' from source '{source_transition}'?"
 )
-def destroy(installation):
+def destroy(codev_control):
     """
-    :param installation:
-    :type installation: codev.installation.Installation
+    :param codev_control:
+    :type codev_control: codev.CodevControl
     :return:
     :rtype: bool
     """
-    return installation.destroy()
+    return codev_control.destroy()
 
 
 @command(help='Show info about the installation.')
-def status(installation):
+def status(codev_control):
     """
-    :param installation:
-    :type installation: codev.installation.Installation
+    :param codev_control:
+    :type codev_control: codev.CodevControl
     :return:
     :rtype: bool
     """
-    status = installation.status
+    status = codev_control.status
     from pprint import pformat
     click.echo(pformat(status))
     # formatter = click.HelpFormatter(indent_increment=4)
