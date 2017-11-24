@@ -169,7 +169,7 @@ class LXDMachine(LXDBaseMachine):
             abs_base_dir = '$HOME/.local/codev'
             return '{abs_base_dir}/{container_name}/share'.format(
                 abs_base_dir=abs_base_dir,
-                container_name=self.container_name
+                container_name=self._container_name
             )
         return self.__share_directory
 
@@ -195,7 +195,7 @@ class LXDMachine(LXDBaseMachine):
     @property
     def ip(self):
         output = self.executor.execute('lxc info {container_name}'.format(
-            container_name=self.container_name,
+            container_name=self._container_name,
         ))
         for line in output.splitlines():
             r = re.match('^\s+eth0:\s+inet\s+([0-9\.]+)\s+\w+$', line)
@@ -211,7 +211,7 @@ class LXDMachine(LXDBaseMachine):
             for i in range(3):
                 self.__gateway = self.executor.execute(
                     'lxc exec {container_name} -- ip route | grep default | cut -d " " -f 3'.format(
-                        container_name=self.container_name
+                        container_name=self._container_name
                     )
                 )
                 if self.__gateway:
@@ -222,7 +222,7 @@ class LXDMachine(LXDBaseMachine):
 
     @contextmanager
     def open_file(self, remote_path):
-        tempfile = '/tmp/codev.{container_name}.tempfile'.format(container_name=self.container_name)
+        tempfile = '/tmp/codev.{container_name}.tempfile'.format(container_name=self._container_name)
         remote_path = self._sanitize_path(remote_path)
         self.executor.execute(
             'lxc file pull {container_name}/{remote_path} {tempfile}'.format(
@@ -243,7 +243,7 @@ class LXDMachine(LXDBaseMachine):
         self.executor.execute(
             'lxc file push --uid=0 --gid=0 {source} {container_name}/{target}'.format(
                 source=source,
-                container_name=self.container_name,
+                container_name=self._container_name,
                 target=target
             )
         )
@@ -260,7 +260,7 @@ class LXDMachine(LXDBaseMachine):
         with self.executor.change_directory(self.working_dir):
             return self.executor.execute_wrapper(
                 'lxc exec {env} {container_name} -- {{command}}'.format(
-                    container_name=self.container_name,
+                    container_name=self._container_name,
                     env=' '.join('--env {var}={value}'.format(var=var, value=value) for var, value in env.items())
                 ),
                 command,

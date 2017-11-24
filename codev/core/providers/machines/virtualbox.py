@@ -101,7 +101,7 @@ class VirtualboxBaseMachine(BaseMachine):
         iface_ip = '192.168.77.100'
         dhcp_ip = '192.168.77.100'
         netmask = '255.255.255.0'
-        lower_ip = '192.168.77.100'
+        lower_ip = '192.168.77.101'
         upper_ip = '192.168.77.200'
         iface = self._create_vbox_iface(iface_ip, dhcp_ip, netmask, lower_ip, upper_ip)
         self._create_vm(
@@ -354,7 +354,7 @@ class VirtualboxBaseMachine(BaseMachine):
             )
         )
 
-        hdd_dir = '.share/codev/virtualbox'
+        hdd_dir = '~/.share/codev/virtualbox'
         medium = '{hdd_dir}/{ident}.vdi'.format(
             ident=self.ident.as_file(),
             hdd_dir=hdd_dir

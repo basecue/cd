@@ -3,9 +3,12 @@ from logging import getLogger
 
 from codev.core import Codev
 from codev.core.debug import DebugSettings
-from codev.core.executor import CommandError
+from codev.core.executor import CommandError, Executor
 from codev.core.machines import BaseMachine
 from codev.core.provider import Provider
+from codev.core.settings import ListDictSettings, ProviderSettings, BaseSettings, HasSettings
+from codev.core.source import Source
+from codev.core.utils import Ident, Status
 from .log import logging_config
 
 # from codev.core.isolator import Isolator
@@ -26,25 +29,28 @@ codev-perform run {configuration_name}:{configuration_option} --force
 
 
 class Isolation(Provider, BaseMachine):
-
-    def __init__(self, *args, configuration_name, configuration_option, **kwargs):
+    def __init__(self, *args, source, next_source, configuration_name, configuration_option, **kwargs):
         self.configuration_name = configuration_name
         self.configuration_option = configuration_option
+        self.source = source
+        self.next_source = next_source
         super().__init__(*args, **kwargs)
 
-    def install_codev(self, source):
-        pass
+    @property
+    def current_source(self):
+        if not self.exists() or not self.next_source:
+            return self.source
+        else:
+            return self.next_source
 
-    def perform(self, codev, input_vars):
+    def _codev_source(self):
+        self.current_source.install(self)
+        with self.open_file('.codev') as codev_file:
+            codev = Codev.from_yaml(codev_file, configuration_name=self.configuration_name, configuration_option=self.configuration_option)
 
-        # FIXME
-        # version = self.executor.execute('pip3 show codev | grep ^Version | cut -d " " -f 2')
-        # logger.info("Run 'codev {version}' in isolation.".format(version=version))
+        return codev
 
-        load_vars = {**codev.configuration.loaded_vars, **input_vars}
-
-        load_vars.update(DebugSettings.settings.load_vars)
-
+    def _codev_perform(self, load_vars):
         if DebugSettings.perform_settings:
             perform_debug = ' '.join(
                 (
@@ -62,7 +68,7 @@ class Isolation(Provider, BaseMachine):
                     configuration_name=self.configuration_name,
                     configuration_option=self.configuration_option,
                     perform_debug=perform_debug
-                ), output_logger=command_logger, writein=dumps(input_vars)
+                ), output_logger=command_logger, writein=dumps(load_vars)
             )
         except CommandError as e:
             command_logger.error(e.error)
@@ -76,28 +82,133 @@ class Isolation(Provider, BaseMachine):
             # self.connect()
             # FIXME
 
+    def _codev_install(self, version):
+        pass
+
+    def perform(self, input_vars):
+        codev = self._codev_source()
+
+        self._codev_install(codev.version)
+
+        load_vars = {**codev.configuration.loaded_vars, **input_vars}
+        load_vars.update(DebugSettings.settings.load_vars)
+
+        self._codev_perform(load_vars)
+
+        # FIXME
+        # version = self.executor.execute('pip3 show codev | grep ^Version | cut -d " " -f 2')
+        # logger.info("Run 'codev {version}' in isolation.".format(version=version))
+
     @property
     def status(self):
+        return Status(
+            exists=self.exists(),
+            source=self.source.status,
+            next_source=self.next_source.status
+        )
 
-        return ''  # FIXME
+
+class IsolationScriptsSettings(BaseSettings):
+    @property
+    def oncreate(self):
+        return ListDictSettings(self.data.get('oncreate', []))
+
+    @property
+    def onenter(self):
+        return ListDictSettings(self.data.get('onenter', []))
+
+
+class IsolationProviderSettings(ProviderSettings):
+
+    @property
+    def executor(self):
+        return ProviderSettings(self.data.get('executor', {}))
+
+    @property
+    def connectivity(self):
+        return ListDictSettings(self.data.get('connectivity', {}))
+
+    @property
+    def scripts(self):
+        return IsolationScriptsSettings(self.data.get('scripts', {}))
+
+    @property
+    def sources(self):
+        return ListDictSettings(
+            self.data.get('sources', [])
+        )
+
+
+class IsolationProvider(HasSettings):
+    settings_class = IsolationProviderSettings
+
+    def __init__(
+        self,
+        *args,
+        project_name,
+        configuration_name,
+        configuration_option,
+        source_name,
+        source_option,
+        next_source_name,
+        next_source_option,
+        **kwargs
+    ):
+
+        self.configuration_name = configuration_name
+        self.configuration_option = configuration_option
+
+        self.source_name = source_name
+        self.source_option = source_option
+        self.next_source_name = next_source_name
+        self.next_source_option = next_source_option
+
+        self.ident = Ident(
+            project_name,
+            configuration_name,
+            configuration_option,
+            source_name,
+            source_option,
+            next_source_name,
+            next_source_option,
+        )
+
+        super().__init__(*args, **kwargs)
+
+    def isolation(self):
+        executor_provider = self.settings.executor.provider
+        executor_settings_data = self.settings.executor.settings_data
+
+        executor = Executor(
+            executor_provider,
+            settings_data=executor_settings_data
+        )
+
+        return Isolation(
+            self.settings.provider,
+            executor=executor,
+            settings_data=self.settings.settings_data,
+            ident=self.ident,
+            configuration_name=self.configuration_name,
+            configuration_option=self.configuration_option,
+            source=self._get_source(self.source_name, self.source_option),
+            next_source=self._get_source(self.next_source_name, self.next_source_option)
+        )
+
+    def _get_source(self, source_name, source_option):
+        try:
+            return Source.get(source_name, self.settings.sources, source_option)
+        except ValueError:
+            raise ValueError(
+                "Source '{source_name}' is not allowed source.".format(
+                    source_name=source_name,
+                )
+            )
 
 
 class PrivilegedIsolation(Isolation):
 
-    source_directory = 'repository'
-
-    def install_codev(self, source):
-        self.execute('rm -rf {directory}'.format(directory=self.source_directory))
-        self.execute('mkdir -p {directory}'.format(directory=self.source_directory))
-        with self.change_directory(self.source_directory):
-            source.install(self)
-            with self.open_file('.codev') as codev_file:
-                codev = Codev.from_yaml(codev_file, configuration_name=self.configuration_name, configuration_option=self.configuration_option)
-
-        self._install_codev(codev.version)
-        return codev
-
-    def _install_codev(self, version):
+    def _codev_install(self, version):
 
         self.execute('pip3 install setuptools')
 
@@ -118,11 +229,6 @@ class PrivilegedIsolation(Isolation):
 
             self.send_file(distfile, remote_distfile)
             self.execute('pip3 install --upgrade {distfile}'.format(distfile=remote_distfile))
-
-    def perform(self, source, input_vars):
-        with self.change_directory(self.source_directory):
-            super().perform(source, input_vars)
-
 
 
 

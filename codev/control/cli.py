@@ -15,8 +15,8 @@ def source_transition(codev_control_status):
     :return:
     """
     # TODO deploy vs destroy (different highlighted source in transition)
-    next_source_available = bool(codev_control_status.next_source)
-    isolation_exists = bool(codev_control_status.isolation)
+    next_source_available = bool(codev_control_status.isolation.next_source)
+    isolation_exists = codev_control_status.isolation.exists
 
     color_options = dict(
         color_source=color.GREEN,
@@ -37,14 +37,14 @@ def source_transition(codev_control_status):
         ))
 
         transition = ' -> {color_next_source}{next_source}:{next_source.option}{color_reset}'.format(
-            **codev_control_status, **color_options
+            **codev_control_status.isolation, **color_options
         )
     else:
         transition = ''
 
     return '{color_source}{source.name}:{source.option}{color_reset}{transition}'.format(
         transition=transition,
-        **codev_control_status, **color_options
+        **codev_control_status.isolation, **color_options
     )
 
 

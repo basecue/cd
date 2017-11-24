@@ -24,6 +24,10 @@ class AnsibleTaskSettings(BaseSettings):
         return self.data.get('version', None)
 
     @property
+    def python_version(self):
+        return str(self.data.get('python', '2'))
+
+    @property
     def extra_vars(self):
         return self.data.get('extra_vars', {})
 
@@ -60,7 +64,7 @@ class AnsibleTask(Task):
         super().__init__(*args, **kwargs)
         self.virtualenv = VirtualenvBaseMachine(
             executor=self.executor,
-            settings_data=dict(python='2'),
+            settings_data=dict(python=self.settings.python_version),
             ident=Ident('codevansible'))
 
     def prepare(self):

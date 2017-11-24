@@ -46,6 +46,7 @@ class CodevSettings(BaseSettings):
 class Codev(HasSettings):
     settings_class = CodevSettings
     configuration_class = Configuration
+    configuration_kwargs = ()
 
     def __init__(self, *args, configuration_name='', configuration_option='', **kwargs):
         super().__init__(*args, **kwargs)

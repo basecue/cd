@@ -33,13 +33,7 @@ class DirectoryBaseMachine(BaseMachine):
 class VirtualenvBaseMachineSettings(BaseSettings):
     @property
     def python_version(self):
-        python_version = self.data.get('python', None)
-        if not python_version:
-            return 3
-        elif python_version == '2' or python_version.startswith('2.'):
-            return python_version
-        else:
-            raise SettingsError('Unsupported python version for virtualenv isolation.')
+        return str(self.data.get('python', None))
 
 
 class VirtualenvBaseMachine(BaseMachine):

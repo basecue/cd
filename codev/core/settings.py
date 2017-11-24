@@ -110,26 +110,6 @@ class TaskSettings(ProviderSettings):
         return TaskScriptsSettings(self.data.get('scripts', {}))
 
 
-class IsolationScriptsSettings(BaseSettings):
-    @property
-    def oncreate(self):
-        return ListDictSettings(self.data.get('oncreate', []))
-
-    @property
-    def onenter(self):
-        return ListDictSettings(self.data.get('onenter', []))
-
-
-class IsolationSettings(ProviderSettings):
-
-    @property
-    def connectivity(self):
-        return ListDictSettings(self.data.get('connectivity', {}))
-
-    @property
-    def scripts(self):
-        return IsolationScriptsSettings(self.data.get('scripts', {}))
-
 
 class ConfigurationScriptsSettings(BaseSettings):
     @property
