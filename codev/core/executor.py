@@ -15,9 +15,7 @@ class CommandError(Exception):
         self.output = output
 
         super().__init__(
-            "Command '{command}' failed with exit code '{exit_code}' with error:\n{error}".format(
-                command=command, exit_code=exit_code, error=error
-            )
+            f"Command '{command}' failed with exit code '{exit_code}' with error:\n{error}"
         )
 
 
@@ -47,10 +45,7 @@ class Command(object):
         return self.__class__(command_or_str, output_logger=self.output_logger, writein=self.writein)
 
     def change_directory(self, directory):
-        return self._copy('cd {directory} && {command_str}'.format(
-            directory=directory,
-            command_str=self.command_str
-        ))
+        return self._copy(f'cd {directory} && {self.command_str}')
 
     def wrap(self, command_str):
         return self._copy(
@@ -141,23 +136,19 @@ class BaseProxyExecutor(BareProxyExecutor):
 
     def exists_directory(self, directory):
         return self.check_execute(
-            '[ -d {directory} ]'.format(
-                directory=directory
-            )
+            f'[ -d {directory} ]'
         )
 
     def exists_file(self, filepath):
         return self.check_execute(
-            '[ -f {filepath} ]'.format(
-                filepath=filepath
-            )
+            f'[ -f {filepath} ]'
         )
 
     def create_directory(self, directory):
-        self.execute('mkdir -p {directory}'.format(directory=directory))
+        self.execute(f'mkdir -p {directory}')
 
     def delete_path(self, _path):
-        self.execute('rm -rf {path}'.format(path=_path))
+        self.execute(f'rm -rf {_path}')
 
     @contextmanager
     def change_directory(self, directory):
@@ -226,9 +217,7 @@ class BackgroundExecutor(ProxyExecutor):
             #         ip=ip, remote_port=remote_port, local_port=local_port
             #     )
 
-            self.__isolation_directory = '/tmp/.codev/{ident}'.format(
-                ident=self.ident
-            )
+            self.__isolation_directory = f'/tmp/.codev/{self.ident}'
 
         return self.__isolation_directory
 

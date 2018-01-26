@@ -64,7 +64,7 @@ class LXDBaseMachine(BaseMachine):
         elif state == 'Stopped':
             return False
         else:
-            raise ValueError('Bad state: {}'.format(state))
+            raise ValueError(f'Bad state: {state}')
 
     def _wait_for_start(self):
         while not self.is_started():
@@ -75,42 +75,30 @@ class LXDBaseMachine(BaseMachine):
         release = self.settings.release
 
         self.executor.execute(
-            'lxc launch images:{distribution}/{release} {container_name}'.format(
-                container_name=self._container_name,
-                distribution=distribution,
-                release=release
-            )
+            f'lxc launch images:{distribution}/{release} {self._container_name}'
         )
 
         self._wait_for_start()
 
     def destroy(self):
-        self.executor.execute('lxc delete {container_name} --force'.format(
-            container_name=self._container_name,
-        ))
+        self.executor.execute(f'lxc delete {self._container_name} --force')
 
         # # TODO share
         # self.executor.execute('rm -rf {share_directory}'.format(share_directory=self.share_directory))
 
     def start(self):
-        self.executor.execute('lxc start {container_name}'.format(
-            container_name=self._container_name,
-        ))
+        self.executor.execute(f'lxc start {self._container_name}')
 
         self._wait_for_start()
 
         return True
 
     def stop(self):
-        self.executor.execute('lxc stop {container_name}'.format(
-            container_name=self._container_name,
-        ))
+        self.executor.execute(f'lxc stop {self._container_name}')
 
     @property
     def _ip(self):
-        output = self.executor.execute('lxc info {container_name}'.format(
-            container_name=self._container_name,
-        ))
+        output = self.executor.execute(f'lxc info {self._container_name}')
         for line in output.splitlines():
             r = re.match('^\s+eth0:\s+inet\s+([0-9\.]+)\s+\w+$', line)
             if r:

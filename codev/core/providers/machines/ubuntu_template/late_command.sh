@@ -1,5 +1,3 @@
-#!/usr/bin/env bash
-
 in-target echo "{username} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 in-target mkdir /root/.ssh
 in-target cat > /root/.ssh/authorized_keys << EOF_id_rsa_pub

@@ -54,20 +54,20 @@ class VirtualboxBaseMachine(BaseMachine):
         return SSHExecutor(settings_data={'hostname': self._ip, 'username': 'root'})
 
     def exists(self):
-        return '"{vm_name}"'.format(vm_name=self.vm_name) in self.executor.execute('VBoxManage list vms').split()
+        return f'"{self.vm_name}"' in self.executor.execute('VBoxManage list vms').split()
 
     def is_started(self):
         output = self.executor.execute("VBoxManage list runningvms")
-        return bool(re.search('^\"{vm_name}\"\s+.*'.format(vm_name=self.vm_name), output, re.MULTILINE))
+        return bool(re.search(f'^\"{self.vm_name}\"\s+.*', output, re.MULTILINE))
 
     def start(self):
-        self.executor.execute('VBoxManage startvm "{vm_name}" --type headless'.format(vm_name=self.vm_name))
+        self.executor.execute(f'VBoxManage startvm "{self.vm_name}" --type headless')
 
     def create(self):
         distribution = self.settings.distribution
         release = self.settings.release
         if distribution != 'ubuntu':
-            raise RuntimeError("Distribution '{distribution}' is not supported".format(distribution=distribution))
+            raise RuntimeError(f"Distribution '{distribution}' is not supported")
         if release in ('wily', 'xenial'):
             device_1 = 'enp0s3'
             device_2 = 'enp0s8'
@@ -75,7 +75,7 @@ class VirtualboxBaseMachine(BaseMachine):
             device_1 = 'eth0'
             device_2 = 'eth1'
         else:
-            raise RuntimeError("Release '{release}' is not supported".format(release=release))
+            raise RuntimeError(f"Release '{release}' is not supported")
 
         release_iso = self._download_ubuntu_iso(release)
 
@@ -155,34 +155,29 @@ class VirtualboxBaseMachine(BaseMachine):
         }
 
         release_number = release_to_number[release]
-        base_directory = '~/.cache/codev/{release_number}/'.format(release_number=release_number)
-        release_base_url = 'http://releases.ubuntu.com/{release_number}/'.format(release_number=release_number)
-        iso_file_pattern = '\w+\s+\*(ubuntu-[\d.]+-{subtype}-{arch}.iso)'.format(subtype=subtype, arch=arch)
+        base_directory = f'~/.cache/codev/{release_number}/'
+        release_base_url = f'http://releases.ubuntu.com/{release_number}/'
+        iso_file_pattern = f'\w+\s+\*(ubuntu-[\d.]+-{subtype}-{arch}.iso)'
 
         self.executor.create_directory(base_directory)
         with self.executor.change_directory(base_directory):
 
             # download SHA256SUMS and gpg
-            self.executor.execute('wget {release_base_url}SHA256SUMS -O SHA256SUMS -o /dev/null'.format(release_base_url=release_base_url))
+            self.executor.execute(f'wget {release_base_url}SHA256SUMS -O SHA256SUMS -o /dev/null')
 
             with self.executor.open_file('SHA256SUMS') as fo:
                 iso_file, iso_checksum = parse_sums_file(fo)
 
             iso_file_path = path.join(base_directory, iso_file)
             if not self.executor.exists_file(iso_file_path):
-                self.executor.execute('wget {release_base_url}SHA256SUMS.gpg -O SHA256SUMS.gpg -o /dev/null'.format(release_base_url=release_base_url))
+                self.executor.execute(f'wget {release_base_url}SHA256SUMS.gpg -O SHA256SUMS.gpg -o /dev/null')
 
                 #FIXME test it
                 self.executor.execute('gpg --keyserver hkp://keyserver.ubuntu.com --recv-keys "8439 38DF 228D 22F7 B374 2BC0 D94A A3F0 EFE2 1092" "C598 6B4F 1257 FFA8 6632 CBA7 4618 1433 FBB7 5451"')
                 self.executor.execute('gpg --list-keys --with-fingerprint 0xFBB75451 0xEFE21092')
                 self.executor.execute('gpg --verify SHA256SUMS.gpg SHA256SUMS')
 
-                self.executor.execute(
-                    'wget {release_base_url}{iso_file} -O {iso_file} -o /dev/null'.format(
-                        release_base_url=release_base_url,
-                        iso_file=iso_file
-                    )
-                )
+                self.executor.execute(f'wget {release_base_url}{iso_file} -O {iso_file} -o /dev/null')
 
                 self.executor.execute('sha256sum -c', writein=iso_checksum)
 
@@ -190,27 +185,17 @@ class VirtualboxBaseMachine(BaseMachine):
 
     def _extract_iso(self, source_iso, target_dir):
         actual_directory = '/'
-        for line in self.executor.execute('isoinfo -R -l -i {source_iso}'.format(source_iso=source_iso)).splitlines():
+        for line in self.executor.execute(f'isoinfo -R -l -i {source_iso}').splitlines():
             r = re.match('^Directory\slisting\sof\s(.*)$', line)
             if r:
                 actual_directory = r.group(1)
-                self.executor.create_directory(
-                    '{target_dir}{actual_directory}'.format(
-                        target_dir=target_dir,
-                        actual_directory=actual_directory
-                    )
-                )
+                self.executor.create_directory(f'{target_dir}{actual_directory}')
             else:
                 r = re.match('^-.*\]\s+(.*)', line)
                 if r:
                     filename = r.group(1)
                     self.executor.execute(
-                        'isoinfo -R -i {source_iso} -x {actual_directory}{filename} > {target_dir}{actual_directory}{filename}'.format(
-                            target_dir=target_dir,
-                            actual_directory=actual_directory,
-                            source_iso=source_iso,
-                            filename=filename
-                        )
+                        f'isoinfo -R -i {source_iso} -x {actual_directory}{filename} > {target_dir}{actual_directory}{filename}'
                     )
                     continue
 
@@ -220,12 +205,7 @@ class VirtualboxBaseMachine(BaseMachine):
                     target = r.group(2)
 
                     self.executor.execute(
-                        'cd {target_dir}{actual_directory} && ln -s {target} {symlink}'.format(
-                            target_dir=target_dir,
-                            actual_directory=actual_directory,
-                            target=target,
-                            symlink=symlink
-                        )
+                        f'cd {target_dir}{actual_directory} && ln -s {target} {symlink}'
                     )
 
     def _prepare_ubuntu_iso(
@@ -239,7 +219,7 @@ class VirtualboxBaseMachine(BaseMachine):
         # http://serverfault.com/questions/378529/linux-kickstart-scipts
         sandbox = '/tmp/ks_iso'
         dir_path = path.dirname(__file__)
-        template_path = '{dir_path}/ubuntu_template'.format(dir_path=dir_path)
+        template_path = f'{dir_path}/ubuntu_template'
 
         if not DebugSettings.preserve_cache or not self.executor.exists_directory(sandbox):
             # cleanup
@@ -252,39 +232,27 @@ class VirtualboxBaseMachine(BaseMachine):
             self._extract_iso(source_iso, sandbox)
 
         # copy late_command template to target iso dir
-        with open(
-                '{sandbox}/late_command.sh'.format(
-                    sandbox=sandbox
-                ),
-                'w+'
-        ) as late_command:
-            for line in open('{template_path}/late_command.sh'.format(template_path=template_path)):
+        with open(f'{sandbox}/late_command.sh', 'w+') as late_command:
+            for line in open(f'{template_path}/late_command.sh'):
                 late_command.write(
                     line.format(
                         username=username,
                         ssh_authorized_keys='\n'.join(ssh_authorized_keys),
                         fstab='\n'.join([
-                            "in-target echo \"{share_name} `getent passwd \\\"{username}\\\" | cut -d: -f6`/{share_name} vboxsf rw,uid=`id {username} -u`,gid=`id {username} -u` 0 0\" >> /etc/fstab".format(
-                                share_name=share_name, username=username
-                            )
+                            f"in-target echo \"{share_name} `getent passwd \\\"{username}\\\" | cut -d: -f6`/{share_name} vboxsf rw,uid=`id {username} -u`,gid=`id {username} -u` 0 0\" >> /etc/fstab"
                             for share_name, share_directory in shares.items()
                         ])
                     )
                 )
-        self.executor.execute('chmod +x {template_path}/late_command.sh'.format(template_path=template_path))
+        self.executor.execute(f'chmod +x {template_path}/late_command.sh')
 
-        with open(
-                '{sandbox}/preseed.cfg'.format(
-                    sandbox=sandbox
-                ),
-                'w+'
-        ) as file_seed:
+        with open(f'{sandbox}/preseed.cfg', 'w+') as file_seed:
             encrypted_password = crypt(
                 password, '$6${salt}'.format(
                     salt=b64encode(urandom(6)).decode()
                 )
             )
-            for line in open('{template_path}/preseed.cfg'.format(template_path=template_path)):
+            for line in open(f'{template_path}/preseed.cfg'):
                 file_seed.write(
                     line.format(
                         fstype='ext4',
@@ -301,16 +269,10 @@ class VirtualboxBaseMachine(BaseMachine):
                 )
 
         for filepath in ('isolinux.cfg', 'langlist', 'txt.cfg'):
-            self.executor.send_file(
-                '{template_path}/isolinux/{filepath}'.format(template_path=template_path, filepath=filepath),
-                '{sandbox}/isolinux/{filepath}'.format(sandbox=sandbox, filepath=filepath)
-            )
+            self.executor.send_file(f'{template_path}/isolinux/{filepath}', f'{sandbox}/isolinux/{filepath}')
 
         self.executor.execute(
-            'mkisofs -D -r -V "ubuntu" -cache-inodes -J -l -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -o {target_iso} {sandbox}'.format(
-                target_iso=target_iso,
-                sandbox=sandbox
-            )
+            f'mkisofs -D -r -V "ubuntu" -cache-inodes -J -l -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -o {target_iso} {sandbox}'
         )
 
         if not DebugSettings.preserve_cache:
@@ -343,13 +305,7 @@ class VirtualboxBaseMachine(BaseMachine):
                 iface = r.group(1)
                 self.executor.execute('VBoxManage hostonlyif ipconfig {iface} --ip {ip}'.format(iface=iface, ip=ip))
                 self.executor.execute(
-                    'VBoxManage dhcpserver add --ifname {iface} --ip {dhcp_ip} --netmask {netmask} --lowerip {lower_ip} --upperip {upper_ip} --enable'.format(
-                        iface=iface,
-                        dhcp_ip=dhcp_ip,
-                        netmask=netmask,
-                        lower_ip=lower_ip,
-                        upper_ip=upper_ip
-                    )
+                    f'VBoxManage dhcpserver add --ifname {iface} --ip {dhcp_ip} --netmask {netmask} --lowerip {lower_ip} --upperip {upper_ip} --enable'
                 )
 
         if not iface:
@@ -359,18 +315,12 @@ class VirtualboxBaseMachine(BaseMachine):
     def _create_vm(self, ostype, hdd, memory, share, hostonly_iface):
         # create VM
         self.executor.execute(
-            'VBoxManage createvm --name "{vm_name}" --ostype "{ostype}" --register'.format(
-                vm_name=self.vm_name, ostype=ostype
-            )
+            f'VBoxManage createvm --name "{self.vm_name}" --ostype "{ostype}" --register'
         )
 
         # setup VM + ifaces
         self.executor.execute(
-            'VBoxManage modifyvm "{vm_name}" --memory {memory} --acpi on --vram 16 --boot1 dvd --nic1 nat --nictype1 Am79C973 --nic2 hostonly --nictype2 Am79C970A --hostonlyadapter2 {hostonly_iface}'.format(
-                vm_name=self.vm_name,
-                memory=memory,
-                hostonly_iface=hostonly_iface
-            )
+            f'VBoxManage modifyvm "{self.vm_name}" --memory {memory} --acpi on --vram 16 --boot1 dvd --nic1 nat --nictype1 Am79C973 --nic2 hostonly --nictype2 Am79C970A --hostonlyadapter2 {hostonly_iface}'
         )
 
         hdd_dir = '~/.share/codev/virtualbox'
@@ -380,42 +330,31 @@ class VirtualboxBaseMachine(BaseMachine):
         )
         # create storage
         self.executor.execute(
-            'VBoxManage createhd --filename {medium} --size {hdd}'.format(
-                medium=medium, hdd=hdd
-            )
+            f'VBoxManage createhd --filename {medium} --size {hdd}'
         )
         # if error appears, delete {name}.vdi and "runvboxmanage closemedium disk {name}.vdi"
 
         # create SATA
-        self.executor.execute('VBoxManage storagectl "{vm_name}" --name "SATA" --add sata --portcount 1'.format(vm_name=self.vm_name))
+        self.executor.execute(f'VBoxManage storagectl "{self.vm_name}" --name "SATA" --add sata --portcount 1')
 
         # create IDE
-        self.executor.execute('VBoxManage storagectl "{vm_name}" --name "IDE" --add ide'.format(vm_name=self.vm_name))
+        self.executor.execute(f'VBoxManage storagectl "{self.vm_name}" --name "IDE" --add ide')
 
         # attach storage to SATA
         self.executor.execute(
-            'VBoxManage storageattach "{vm_name}" --storagectl "SATA" --port 0 --device 0 --type hdd --medium {medium}'.format(
-                vm_name=self.vm_name,
-                medium=medium
-            )
+            f'VBoxManage storageattach "{self.vm_name}" --storagectl "SATA" --port 0 --device 0 --type hdd --medium {medium}'
         )
 
         #create shared points
         for share_name, share_directory in share.items():
             self.executor.execute(
-                'VBoxManage sharedfolder add "{vm_name}" --name "{share_name}" --hostpath "{share_directory}"'.format(
-                    vm_name=self.vm_name,
-                    share_name=share_name,
-                    share_directory=share_directory
-                )
+                f'VBoxManage sharedfolder add "{self.vm_name}" --name "{share_name}" --hostpath "{share_directory}"'
             )
 
     def _install_vm(self, install_iso):
         # attach install iso
         self.executor.execute(
-            'VBoxManage storageattach "{vm_name}" --storagectl "IDE" --port 1 --device 0 --type dvddrive --medium {iso}'.format(
-                vm_name=self.vm_name, iso=install_iso
-            )
+            f'VBoxManage storageattach "{self.vm_name}" --storagectl "IDE" --port 1 --device 0 --type dvddrive --medium {install_iso}'
         )
 
         # install
@@ -424,18 +363,14 @@ class VirtualboxBaseMachine(BaseMachine):
     def _remove_vm_dvd(self):
         # remove install iso
         self.executor.execute(
-            'VBoxManage storageattach "{vm_name}" --storagectl "IDE" --port 1 --device 0 --type dvddrive --medium none'.format(
-                vm_name=self.vm_name
-            )
+            f'VBoxManage storageattach "{self.vm_name}" --storagectl "IDE" --port 1 --device 0 --type dvddrive --medium none'
         )
 
     @property
     def _ip(self):
         for i in range(20):
             value_ip = self.executor.execute(
-                'VBoxManage guestproperty get "{vm_name}" "/VirtualBox/GuestInfo/Net/1/V4/IP"'.format(
-                    vm_name=self.vm_name
-                )
+                f'VBoxManage guestproperty get "{self.vm_name}" "/VirtualBox/GuestInfo/Net/1/V4/IP"'
             )
             if value_ip == 'No value set!':
                 sleep(3)
