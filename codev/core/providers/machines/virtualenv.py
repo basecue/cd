@@ -51,12 +51,13 @@ class VirtualenvBaseMachine(BaseMachine):
         self.executor.execute('virtualenv -p python{python_version} env'.format(
             python_version=python_version
         ))
+        # FIXME pip install -U pip
 
     def is_started(self):
         return True
 
     def destroy(self):
-        self.executor.execute('rm -rf env')
+        self.executor.delete_path('env')
 
     def execute_command(self, command):
         command = command.wrap(

@@ -28,6 +28,10 @@ class DebugSettings(BaseSettings):
     def load_vars(self):
         return json.loads(self.data.get('load_vars', '{}'))
 
+    @property
+    def preserve_cache(self):
+        return literal_eval(self.data.get('preserve_cache', 'False'))
+
 
 DebugSettings.settings = DebugSettings()
 DebugSettings.perform_settings = DebugSettings()

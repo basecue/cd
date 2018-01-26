@@ -156,6 +156,9 @@ class BaseProxyExecutor(BareProxyExecutor):
     def create_directory(self, directory):
         self.execute('mkdir -p {directory}'.format(directory=directory))
 
+    def delete_path(self, _path):
+        self.execute('rm -rf {path}'.format(path=_path))
+
     @contextmanager
     def change_directory(self, directory):
         assert directory
@@ -184,7 +187,7 @@ class Executor(Provider, HasSettings, BareExecutor):
 
 """
 background runner
-"""
+# """
 
 from collections import namedtuple
 from time import sleep
@@ -204,7 +207,7 @@ TEMP_FILE = 'codev.temp'
 from time import time
 
 
-class BackgroundExecutor(Executor):
+class BackgroundExecutor(ProxyExecutor):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -230,10 +233,10 @@ class BackgroundExecutor(Executor):
         return self.__isolation_directory
 
     def _create_isolation(self):
-        self.executor.execute('mkdir -p %s' % self._isolation_directory)
+        self.executor.create_directory(self._isolation_directory)
 
         output_file, error_file, exitcode_file, command_file, pid_file, temp_file = map(
-            lambda f: '%s/%s' % (self._isolation_directory, f),
+            lambda f: '{}/{}'.format(self._isolation_directory, f),
             [OUTPUT_FILE, ERROR_FILE, EXITCODE_FILE, COMMAND_FILE, PID_FILE, TEMP_FILE]
         )
 
@@ -253,10 +256,7 @@ class BackgroundExecutor(Executor):
         return self._isolation_cache
 
     def _clean(self):
-        self.executor.execute('rm -rf %s' % self._isolation_directory)
-
-    def _file_exists(self, filepath):
-        return self.executor.check_execute('[ -f %s ]' % filepath)
+        self.executor.delete_path(self._isolation_directory)
 
     def _bg_check(self, pid):
         return self.executor.check_execute('ps -p %s -o pid=' % pid)
@@ -308,8 +308,8 @@ class BackgroundExecutor(Executor):
         self.logger.debug('Command: {command} wait: {wait}'.format(command=command, wait=wait))
         isolation = self._isolation
 
-        if self._file_exists(isolation.exitcode_file) and self._cat_file(isolation.exitcode_file) == '':
-            if self._file_exists(isolation.pid_file):
+        if self.executor.exists_file(isolation.exitcode_file) and self._cat_file(isolation.exitcode_file) == '':
+            if self.executor.exists_file(isolation.pid_file):
                 pid = self._cat_file(isolation.pid_file)
                 if pid and self._bg_check(pid):
                     raise CommandError('Another process is running.')

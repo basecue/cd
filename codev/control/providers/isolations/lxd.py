@@ -1,10 +1,10 @@
 from codev.core.installer import Installer
-from codev.core.providers.machines.lxd import LXDBaseMachine, LXDMachineSettings
+from codev.core.providers.machines.lxd import LXDBaseMachine, LXDBaseMachineSettings
 
 from codev.control.isolation import PrivilegedIsolation
 
 
-class LXDIsolationSettings(LXDMachineSettings):
+class LXDIsolationSettings(LXDBaseMachineSettings):
     @property
     def distribution(self):
         return self.data.get('distribution', 'ubuntu')

@@ -1,20 +1,20 @@
 import re
-from os import urandom, path
-from crypt import crypt
 from base64 import b64encode
+from crypt import crypt
+from os import urandom, path
 from time import sleep
 
+from codev.core.debug import DebugSettings
+from codev.core.machines import BaseMachine, Machine
 from codev.core.providers.executors.ssh import SSHExecutor
 from codev.core.settings import BaseSettings
-from codev.core.machines import BaseMachine, Machine
-from codev.core.executor import Executor
-
 
 """
 requirements: wget, isoinfo, mkisofs
 archlinux: wget, cdrkit | cdrtools
 ubuntu: TODO
 """
+
 
 class VirtualboxBaseMachineSettings(BaseSettings):
     @property
@@ -92,10 +92,16 @@ class VirtualboxBaseMachine(BaseMachine):
         ssh_key = self.executor.execute('ssh-add -L')
 
         self._prepare_ubuntu_iso(
-            release_iso, vm_iso,
-            self.settings.username, self.settings.password, self.ident.as_hostname(),
-            device_1=device_1, device_2=device_2,
-            packages=packages, ssh_authorized_keys=[ssh_key]
+            release_iso,
+            vm_iso,
+            self.settings.username,
+            self.settings.password,
+            self.ident.as_hostname(),
+            device_1=device_1,
+            device_2=device_2,
+            packages=packages,
+            ssh_authorized_keys=[ssh_key],
+            shares=self.settings.share
         )
 
         iface_ip = '192.168.77.100'
@@ -225,7 +231,7 @@ class VirtualboxBaseMachine(BaseMachine):
     def _prepare_ubuntu_iso(
         self, source_iso, target_iso, username, password, hostname,
         ip='', gateway='', nameserver='', device_1='enp0s3', device_2='enp0s8',
-        packages=None, ssh_authorized_keys=None
+        packages=None, ssh_authorized_keys=None, shares={}
     ):
 
         if packages is None:
@@ -234,35 +240,54 @@ class VirtualboxBaseMachine(BaseMachine):
         sandbox = '/tmp/ks_iso'
         dir_path = path.dirname(__file__)
         template_path = '{dir_path}/ubuntu_template'.format(dir_path=dir_path)
-        # cleanup
-        self.executor.execute(
-            'rm -rf {sandbox}'.format(
-                sandbox=sandbox
-            )
-        )
 
-        # make a sandbox
-        self.executor.create_directory(sandbox)
+        if not DebugSettings.preserve_cache or not self.executor.exists_directory(sandbox):
+            # cleanup
+            self.executor.delete_path(sandbox)
 
-        # 7z neextrahuje symlinky a dlouhe soubory, mount potrebuje root prava
-        self._extract_iso(source_iso, sandbox)
+            # make a sandbox
+            self.executor.create_directory(sandbox)
 
-        # copy kickstart templates to target iso dir
+            # 7z neextrahuje symlinky a dlouhe soubory, mount potrebuje root prava
+            self._extract_iso(source_iso, sandbox)
+
+        # copy late_command template to target iso dir
         with open(
-                '{sandbox}/ks.cfg'.format(
+                '{sandbox}/late_command.sh'.format(
                     sandbox=sandbox
                 ),
                 'w+'
-        ) as file_ks:
+        ) as late_command:
+            for line in open('{template_path}/late_command.sh'.format(template_path=template_path)):
+                late_command.write(
+                    line.format(
+                        username=username,
+                        ssh_authorized_keys='\n'.join(ssh_authorized_keys),
+                        fstab='\n'.join([
+                            "in-target echo \"{share_name} `getent passwd \\\"{username}\\\" | cut -d: -f6`/{share_name} vboxsf rw,uid=`id {username} -u`,gid=`id {username} -u` 0 0\" >> /etc/fstab".format(
+                                share_name=share_name, username=username
+                            )
+                            for share_name, share_directory in shares.items()
+                        ])
+                    )
+                )
+        self.executor.execute('chmod +x {template_path}/late_command.sh'.format(template_path=template_path))
+
+        with open(
+                '{sandbox}/preseed.cfg'.format(
+                    sandbox=sandbox
+                ),
+                'w+'
+        ) as file_seed:
             encrypted_password = crypt(
                 password, '$6${salt}'.format(
                     salt=b64encode(urandom(6)).decode()
                 )
             )
-            for line in open('{template_path}/ks.cfg'.format(template_path=template_path)):
-                file_ks.write(
+            for line in open('{template_path}/preseed.cfg'.format(template_path=template_path)):
+                file_seed.write(
                     line.format(
-                        fstype='btrfs',
+                        fstype='ext4',
                         username=username,
                         encrypted_password=encrypted_password,
                         ip=ip,
@@ -270,10 +295,7 @@ class VirtualboxBaseMachine(BaseMachine):
                         nameserver=nameserver,
                         device_1=device_1,
                         device_2=device_2,
-                        packages='\n'.join(packages),
-                        post_nochroot='',
-                        post='echo "{username} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers'.format(username=username),
-                        ssh_authorized_keys='\n'.join(ssh_authorized_keys),
+                        packages=' '.join(packages),
                         hostname=hostname
                     )
                 )
@@ -291,12 +313,9 @@ class VirtualboxBaseMachine(BaseMachine):
             )
         )
 
-        # cleanup
-        self.executor.execute(
-            'rm -rf {sandbox}'.format(
-                sandbox=sandbox
-            )
-        )
+        if not DebugSettings.preserve_cache:
+            # cleanup
+            self.executor.delete_path(sandbox)
 
     def _create_vbox_iface(self, ip, dhcp_ip, netmask, lower_ip, upper_ip):
         """

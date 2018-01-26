@@ -110,7 +110,6 @@ class TaskSettings(ProviderSettings):
         return TaskScriptsSettings(self.data.get('scripts', {}))
 
 
-
 class ConfigurationScriptsSettings(BaseSettings):
     @property
     def onstart(self):
