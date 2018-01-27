@@ -239,7 +239,7 @@ class VirtualboxBaseMachine(BaseMachine):
                         username=username,
                         ssh_authorized_keys='\n'.join(ssh_authorized_keys),
                         fstab='\n'.join([
-                            f"in-target echo \"{share_name} `getent passwd \\\"{username}\\\" | cut -d: -f6`/{share_name} vboxsf rw,uid=`id {username} -u`,gid=`id {username} -u` 0 0\" >> /etc/fstab"
+                            f"echo \"{share_name} `getent passwd \\\"{username}\\\" | cut -d: -f6`/{share_name} vboxsf rw,uid=`id {username} -u`,gid=`id {username} -u` 0 0\" >> /etc/fstab"
                             for share_name, share_directory in shares.items()
                         ])
                     )
@@ -329,6 +329,10 @@ class VirtualboxBaseMachine(BaseMachine):
             hdd_dir=hdd_dir
         )
         # create storage
+
+        if self.executor.exists_file(medium):
+            self.executor.delete_path(medium)
+
         self.executor.execute(
             f'VBoxManage createhd --filename {medium} --size {hdd}'
         )
