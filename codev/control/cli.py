@@ -2,7 +2,9 @@ import click
 from colorama import Fore as color, Style as style
 from functools import wraps
 
-from codev.core.cli import configuration_with_option, nice_exception, path_option, bool_exit_enable, main
+from codev import __version__
+
+from codev.core.cli import configuration_with_option, nice_exception, path_option, bool_exit_enable
 from codev.core.utils import parse_options
 from codev.core.debug import DebugSettings
 
@@ -159,3 +161,13 @@ def command(confirmation=None, bool_exit=True, **kwargs):
         func = main.command(**kwargs)(func)
         return func
     return decorator
+
+
+@click.group(invoke_without_command=True)
+@click.option('--version', is_flag=True,  help="Show version number and exit.")
+@click.pass_context
+def main(ctx, version):
+    if version:
+        click.echo(__version__)
+    elif not ctx.invoked_subcommand:
+        click.echo(ctx.get_help())

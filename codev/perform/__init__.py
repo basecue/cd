@@ -31,7 +31,7 @@ class CodevPerform(Codev):
         self.executor = LocalExecutor()
         self.infrastructure = self.configuration.get_infrastructure(self.executor)
 
-    def run(self, input_vars):
+    def perform(self, input_vars):
         """
         Run runner
 

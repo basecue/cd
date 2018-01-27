@@ -28,7 +28,7 @@ setup(
     url="http://www.basecue.com/codev/",
     packages=find_packages(exclude=['tests']),
     include_package_data=True,
-    scripts=['codev/bin/codev', 'codev/bin/codev-perform'],
+    scripts=['codev/control/bin/codev', 'codev/perform/bin/codev-perform', 'codev/perform/bin/codev-status'],
     classifiers=[
         'Development Status :: 4 - Beta',
         'Environment :: Console',

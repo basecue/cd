@@ -50,11 +50,11 @@ class Isolation(Provider, BaseMachine):
 
         return codev
 
-    def _codev_perform(self, load_vars):
+    def _call_codev(self, subcommand, load_vars=None):
         if DebugSettings.perform_settings:
             perform_debug = ' '.join(
                 (
-                    '--debug {key} {value}'.format(key=key, value=value)
+                    f'--debug {key} {value}'
                     for key, value in DebugSettings.perform_settings.data.items()
                 )
             )
@@ -62,14 +62,17 @@ class Isolation(Provider, BaseMachine):
             perform_debug = ''
 
         logging_config(control_perform=True)
+
+        return self.execute(
+            f'codev-{subcommand} {self.configuration_name}:{self.configuration_option} {perform_debug}',
+            output_logger=command_logger,
+            writein=dumps(load_vars or {})
+        )
+
+    def _codev_perform(self, load_vars):
+
         try:
-            self.execute(
-                'codev-perform run {configuration_name}:{configuration_option} --force {perform_debug}'.format(
-                    configuration_name=self.configuration_name,
-                    configuration_option=self.configuration_option,
-                    perform_debug=perform_debug
-                ), output_logger=command_logger, writein=dumps(load_vars)
-            )
+            self._call_codev('perform', load_vars=load_vars)
         except CommandError as e:
             command_logger.error(e.error)
             logger.error("Installation failed.")
@@ -101,11 +104,17 @@ class Isolation(Provider, BaseMachine):
 
     @property
     def status(self):
-        return Status(
-            exists=self.exists(),
+
+        status = Status(
             source=self.source.status,
             next_source=self.next_source.status
         )
+
+        if self.exists():
+            status.update(
+                status=self._call_codev('status') # TODO
+            )
+        return status
 
 
 class IsolationScriptsSettings(BaseSettings):

@@ -15,3 +15,8 @@ chown {username}:{username} -R `getent passwd "{username}" | cut -d: -f6`/.ssh
 
 echo "vboxsf" >> /etc/modules
 {fstab}
+
+echo >> /etc/network/interfaces << EOF_interfaces
+auto {device_2}
+iface {device_2} inet dhcp
+EOF_interfaces

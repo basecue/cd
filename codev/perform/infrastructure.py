@@ -85,8 +85,5 @@ class Infrastructure(HasSettings, HasExecutor):
     #
     @property
     def status(self):
-        return ''
-        # return {
-        #     group: [dict(ident=machine.ident, ip=machine.ip) for machine in machines]
-        #     for group, machines in self.main_groups.items()
-        # }
+        return [dict(ident=machine.ident, ip=machine.ip) for machine in self.machines]
+

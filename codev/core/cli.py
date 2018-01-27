@@ -1,11 +1,9 @@
+import sys
 from functools import wraps
 from logging import getLogger
 from os import chdir
-import sys
 
 import click
-
-from codev import __version__
 
 from .debug import DebugSettings
 
@@ -54,13 +52,3 @@ def bool_exit_enable(func):
             sys.exit(1)
 
     return bool_exit
-
-
-@click.group(invoke_without_command=True)
-@click.option('--version', is_flag=True,  help="Show version number and exit.")
-@click.pass_context
-def main(ctx, version):
-    if version:
-        click.echo(__version__)
-    elif not ctx.invoked_subcommand:
-        click.echo(ctx.get_help())

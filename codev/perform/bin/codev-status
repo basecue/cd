@@ -1,0 +1,25 @@
+#!/usr/bin/env python
+import click
+
+from codev.perform.cli import command
+
+
+@command(
+    help='Run configuration.',
+)
+def status(codev_perform):
+    """
+    Deploy project
+
+    :param codev_perform:
+    :type codev_perform: codev.CodevPerform
+    :return:
+    :rtype: bool
+    """
+    status = codev_perform.status
+    from pprint import pformat
+    click.echo(pformat(status))
+
+
+if __name__ == "__main__":
+    status()

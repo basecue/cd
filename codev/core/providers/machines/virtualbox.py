@@ -241,7 +241,8 @@ class VirtualboxBaseMachine(BaseMachine):
                         fstab='\n'.join([
                             f"echo \"{share_name} `getent passwd \\\"{username}\\\" | cut -d: -f6`/{share_name} vboxsf rw,uid=`id {username} -u`,gid=`id {username} -u` 0 0\" >> /etc/fstab"
                             for share_name, share_directory in shares.items()
-                        ])
+                        ]),
+                        device_2=device_2
                     )
                 )
         self.executor.execute(f'chmod +x {template_path}/late_command.sh')
@@ -262,7 +263,6 @@ class VirtualboxBaseMachine(BaseMachine):
                         gateway=gateway,
                         nameserver=nameserver,
                         device_1=device_1,
-                        device_2=device_2,
                         packages=' '.join(packages),
                         hostname=hostname
                     )

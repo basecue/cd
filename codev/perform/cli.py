@@ -1,38 +1,14 @@
 import click
 from functools import wraps
 
-from codev.core.cli import configuration_with_option, nice_exception, path_option, bool_exit_enable, main
+from codev import __version__
+
+from codev.core.cli import configuration_with_option, nice_exception, path_option, bool_exit_enable
 
 from codev.core.utils import parse_options
 from codev.core.debug import DebugSettings
 
 from . import CodevPerform
-
-
-def confirmation_message(message):
-    def decorator(f):
-        @wraps(f)
-        def confirmation_wrapper(codev_perform, force, **kwargs):
-            if not force:
-                if not click.confirm(
-                    message.format(
-                        configuration_with_option=configuration_with_option(
-                            codev_perform.status.configuration.name, codev_perform.status.configuration.option
-                        ),
-                        **codev_perform.status,
-                    )
-                ):
-                    raise click.Abort()
-            return f(codev_perform, **kwargs)
-
-        return click.option(
-            '-f',
-            '--force',
-            is_flag=True,
-            help='Force to run the command. Avoid the confirmation.'
-        )(confirmation_wrapper)
-
-    return decorator
 
 
 def codev_perform_options(func):
@@ -73,16 +49,32 @@ def debug_option(func):
     )(debug_wrapper)
 
 
-def command(confirmation=None, bool_exit=True, **kwargs):
+def version_option(func):
+    @wraps(func)
+    def version_wrapper(version, **kwargs):
+        if version:
+            click.echo(__version__)
+
+        return func(**kwargs)
+
+    return click.option(
+        '--version',
+        is_flag=True,
+        help="Show version number and exit."
+    )(version_wrapper)
+
+
+def command(bool_exit=True, **kwargs):
     def decorator(func):
-        if confirmation:
-            func = confirmation_message(confirmation)(func)
         func = codev_perform_options(func)
         func = nice_exception(func)
         func = path_option(func)
         func = debug_option(func)
+        func = version_option(func)
         if bool_exit:
             func = bool_exit_enable(func)
-        func = main.command(**kwargs)(func)
+        func = click.command()(func)
         return func
     return decorator
+
+
