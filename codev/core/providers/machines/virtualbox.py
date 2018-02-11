@@ -68,14 +68,22 @@ class VirtualboxBaseMachine(BaseMachine):
         release = self.settings.release
         if distribution != 'ubuntu':
             raise RuntimeError(f"Distribution '{distribution}' is not supported")
-        if release in ('wily', 'xenial'):
-            device_1 = 'enp0s3'
-            device_2 = 'enp0s8'
-        elif release in ('trusty', 'utopic'):
-            device_1 = 'eth0'
-            device_2 = 'eth1'
-        else:
-            raise RuntimeError(f"Release '{release}' is not supported")
+
+        # TODO
+        # # https://major.io/2015/08/21/understanding-systemds-predictable-network-device-names/
+        #
+        # # ls /sys/class/net
+        # # from lspci
+        # if release in ('wily', 'xenial'):
+        #     device_1 = 'enp0s3'
+        #     device_2 = 'enp0s8'
+        # elif release in ('trusty', 'utopic'):
+        #     device_1 = 'eth0'
+        #     device_2 = 'eth1'
+        # else:
+        #     raise RuntimeError(f"Release '{release}' is not supported")
+        device_1 = 'enp0s3'
+        device_2 = 'enp0s8'
 
         release_iso = self._download_ubuntu_iso(release)
 
@@ -123,12 +131,9 @@ class VirtualboxBaseMachine(BaseMachine):
         while self.is_started():
             sleep(1)
 
-        try:
-            self._remove_vm_dvd()
-        except:
-            pass
-        else:
-            self.executor.execute('rm {vm_iso}'.format(vm_iso=vm_iso))
+        self._remove_vm_dvd()
+
+        self.executor.execute('rm {vm_iso}'.format(vm_iso=vm_iso))
 
         self.start()
 
@@ -137,7 +142,15 @@ class VirtualboxBaseMachine(BaseMachine):
         return self.ident.as_file()
 
     def _download_ubuntu_iso(self, release, subtype='server', arch='amd64'):
-        # FIXME generalize
+        """
+
+        :param release: It can be version number (17.10) or name (artful)
+            because urls http://releases.ubuntu.com/17.10/ and http://releases.ubuntu.com/artful/
+            are both valid and have the same content.
+        :param subtype:
+        :param arch:
+        :return:
+        """
 
         def parse_sums_file(fo):
             for iso_checksum in fo:
@@ -148,15 +161,8 @@ class VirtualboxBaseMachine(BaseMachine):
 
             raise Exception() #FIXME
 
-        release_to_number = {
-            'trusty': '14.04',
-            'wily': '15.10',
-            'xenial': '16.04'
-        }
-
-        release_number = release_to_number[release]
-        base_directory = f'~/.cache/codev/{release_number}/'
-        release_base_url = f'http://releases.ubuntu.com/{release_number}/'
+        base_directory = f'~/.cache/codev/{release}/'
+        release_base_url = f'http://releases.ubuntu.com/{release}/'
         iso_file_pattern = f'\w+\s+\*(ubuntu-[\d.]+-{subtype}-{arch}.iso)'
 
         self.executor.create_directory(base_directory)
@@ -366,9 +372,10 @@ class VirtualboxBaseMachine(BaseMachine):
 
     def _remove_vm_dvd(self):
         # remove install iso
-        self.executor.execute(
-            f'VBoxManage storageattach "{self.vm_name}" --storagectl "IDE" --port 1 --device 0 --type dvddrive --medium none'
-        )
+        while not self.executor.check_execute(
+                f'VBoxManage storageattach "{self.vm_name}" --storagectl "IDE" --port 1 --device 0 --type dvddrive --medium none'
+        ):
+            sleep(1)
 
     @property
     def _ip(self):

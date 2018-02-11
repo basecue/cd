@@ -9,10 +9,13 @@ class Source(Provider, HasSettings):
         raise NotImplementedError()
 
     @classmethod
-    def get(cls, name, sources, option):
+    def get(cls, name, sources, option, default=True):
+        # TODO refactorize
         if not name:
-            name = list(sources.keys())[0]
-
+            if default:
+                name = list(sources.keys())[0]
+            else:
+                return None
         try:
             return cls(name, settings_data=sources[name], option=option)
         except KeyError:

@@ -43,6 +43,8 @@ class CodevControl(Codev):
         :return: True if deployment is successfully realized
         :rtype: bool
         """
+        if not self.isolation.exists():
+            self.isolation.create()
 
         return self.isolation.perform(input_vars)
 

@@ -34,10 +34,13 @@ class Command(object):
     def __str__(self):
         return self.command_str
 
+    def escape(self):
+        return self._copy(self.command_str.replace('\\', '\\\\').replace('$', '\$').replace('"', '\\"'))
+
     def include(self):
         return self._copy(
-            'bash -c "{command_str}"'.format(
-                command_str=self.command_str.replace('\\', '\\\\').replace('$', '\$').replace('"', '\\"')
+            'bash -c "{command}"'.format(
+                command=self.escape()
             )
         )
 
@@ -54,6 +57,12 @@ class Command(object):
             )
         )
 
+    def wrap_escape(self, command_str):
+        return self._copy(
+            command_str.format(
+                command=self.include().escape()
+            )
+        )
 
 class BareExecutor(object):
     def execute_command(self, command):

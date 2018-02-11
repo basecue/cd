@@ -38,7 +38,7 @@ class Isolation(Provider, BaseMachine):
 
     @property
     def current_source(self):
-        if not self.exists() or not self.next_source:
+        if not self.next_source or not self.exists():
             return self.source
         else:
             return self.next_source
@@ -201,12 +201,13 @@ class IsolationProvider(HasSettings):
             configuration_name=self.configuration_name,
             configuration_option=self.configuration_option,
             source=self._get_source(self.source_name, self.source_option),
-            next_source=self._get_source(self.next_source_name, self.next_source_option)
+            next_source=self._get_source(self.next_source_name, self.next_source_option, default=False)
         )
 
-    def _get_source(self, source_name, source_option):
+    def _get_source(self, source_name, source_option, default=True):
+        # TODO refactor
         try:
-            return Source.get(source_name, self.settings.sources, source_option)
+            return Source.get(source_name, self.settings.sources, source_option, default=default)
         except ValueError:
             raise ValueError(
                 "Source '{source_name}' is not allowed source.".format(

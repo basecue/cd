@@ -16,7 +16,18 @@ chown {username}:{username} -R `getent passwd "{username}" | cut -d: -f6`/.ssh
 echo "vboxsf" >> /etc/modules
 {fstab}
 
-echo >> /etc/network/interfaces << EOF_interfaces
+# ubuntu < 17.10
+tee >> /etc/network/interfaces << EOF_interfaces
 auto {device_2}
 iface {device_2} inet dhcp
 EOF_interfaces
+
+# ubuntu >= 17.10
+tee > /etc/netplan/{device_2}.yaml << EOF_netplan
+network:
+ version: 2
+ renderer: networkd
+ ethernets:
+   {device_2}:
+     dhcp4: yes
+EOF_netplan

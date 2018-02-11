@@ -13,9 +13,7 @@ class DirectoryBaseMachine(BaseMachine):
         return self.executor.exists_directory(self._get_base_dir())
 
     def create(self):
-        self.executor.execute(
-            'mkdir -p {}'.format(self._get_base_dir())
-        )
+        self.executor.create_directory(self._get_base_dir())
 
     def execute_command(self, command):
         command = command.change_directory(
@@ -33,7 +31,7 @@ class DirectoryBaseMachine(BaseMachine):
 class VirtualenvBaseMachineSettings(BaseSettings):
     @property
     def python_version(self):
-        return str(self.data.get('python', None))
+        return str(self.data.get('python', 3))
 
 
 class VirtualenvBaseMachine(BaseMachine):
@@ -48,9 +46,7 @@ class VirtualenvBaseMachine(BaseMachine):
         self.executor.create()
 
         python_version = self.settings.python_version
-        self.executor.execute('virtualenv -p python{python_version} env'.format(
-            python_version=python_version
-        ))
+        self.executor.execute(f'virtualenv -p python{python_version} env')
         # FIXME pip install -U pip
 
     def is_started(self):

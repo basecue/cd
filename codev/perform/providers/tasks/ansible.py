@@ -69,9 +69,13 @@ class AnsibleTask(Task):
 
     def prepare(self):
         # TODO requirements - python-dev, python-virtualenv
+        # Installer(executor=self.executor).install_packages(
+        #     'python-virtualenv', 'python-dev', 'python3-venv', 'sshpass',  # for ansible task
+        # )
+
         self.virtualenv.create()
-        self.virtualenv.execute('pip install --upgrade setuptools==34.0.2')
-        self.virtualenv.execute('pip install --upgrade pycrypto==2.6.1 cffi==1.9.1 markupsafe==0.23 PyYAML==3.12 cffi==1.9.1 cryptography==1.7.1 paramiko==2.1.1 Jinja2==2.9.4 httplib2==0.9.2 six==1.10.0 ecdsa==0.11')
+        #self.virtualenv.execute('pip install --upgrade setuptools==34.0.2')
+        #self.virtualenv.execute('pip install --upgrade pycrypto==2.6.1 cffi==1.9.1 markupsafe==0.23 PyYAML==3.12 cffi==1.9.1 cryptography==1.7.1 paramiko==2.1.1 Jinja2==2.9.4 httplib2==0.9.2 six==1.10.0 ecdsa==0.11')
 
         version_add = ''
         if self.settings.version:

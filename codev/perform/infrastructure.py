@@ -53,12 +53,6 @@ class Infrastructure(HasSettings, HasExecutor):
     @property
     def machines(self):
         for machines_name, machines_settings in self.settings.machines:
-            logger.debug(
-                'Creating machines {machines_name}: {machines_settings}'.format(
-                    machines_name=machines_name,
-                    machines_settings=machines_settings
-                )
-            )
             for i in range(machines_settings.number):
                 yield Machine(
                     machines_settings.provider,

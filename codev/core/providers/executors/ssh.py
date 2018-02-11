@@ -27,8 +27,8 @@ class SSHExecutor(LocalExecutor):
     settings_class = SSHExecutorSettings
 
     def execute_command(self, command):
-        command = command.wrap(
-            'ssh -A {username}@{hostname} -p {port} -- {{command}}'.format(
+        command = command.wrap_escape(
+            'ssh -A {username}@{hostname} -p {port} -- "{{command}}"'.format(
                 username=self.settings.username,
                 hostname=self.settings.hostname,
                 port=self.settings.port
