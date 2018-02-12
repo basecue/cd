@@ -2,7 +2,9 @@ from logging import getLogger
 
 from codev.core import Codev
 from codev.core.debug import DebugSettings
+from codev.core.executor import BaseProxyExecutor
 from codev.core.providers.executors.local import LocalExecutor
+from codev.core.source import Source
 from codev.perform.configuration import ConfigurationPerform
 from codev.perform.task import Task
 from .log import logging_config
@@ -28,7 +30,7 @@ class CodevPerform(Codev):
 
         super().__init__(*args, **kwargs)
 
-        self.executor = LocalExecutor()
+        self.executor = BaseProxyExecutor(executor=LocalExecutor())
         self.infrastructure = self.configuration.get_infrastructure(self.executor)
 
     def perform(self, input_vars):
@@ -46,12 +48,21 @@ class CodevPerform(Codev):
         for task_name, task_settings in self.configuration.settings.tasks.items():
             task = Task(task_settings.provider, executor=self.executor, settings_data=task_settings.settings_data)
 
-            name = " '{}'".format(task_name) if task_name else ''
-            logger.info("Preparing task{name}...".format(name=name))
-            task.prepare()
+            # support for different source of ansible configuration # TODO generalize and move out
+            if task_settings.source.provider:
+                source_directory = '/tmp/ansiblesource'
+                with self.executor.change_directory(source_directory):
+                    source = Source(task_settings.source.provider, settings_data=task_settings.source.settings_data)
+                    source.install(self.executor)
+            else:
+                source_directory = self.executor.execute('pwd')
 
-            logger.info("Running task{name}...".format(name=name))
-            task.run(self.infrastructure, input_vars)
+            # name = " '{}'".format(task_name) if task_name else ''
+            # logger.info("Preparing task{name}...".format(name=name))
+            # task.prepare()
+
+            logger.info(f"Running task '{task_name}'...")
+            task.run(self.infrastructure, input_vars, source_directory)
 
 
     # def execute(self, script, arguments=None):

@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 echo "{username} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 mkdir /root/.ssh
 cat > /root/.ssh/authorized_keys << EOF_id_rsa_pub

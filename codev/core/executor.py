@@ -64,6 +64,14 @@ class Command(object):
             )
         )
 
+    # def light_wrap_escape(self, command_str):
+    #     return self._copy(
+    #         command_str.format(
+    #             command=self.escape()
+    #         )
+    #     )
+
+
 class BareExecutor(object):
     def execute_command(self, command):
         raise NotImplementedError()

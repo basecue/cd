@@ -4,7 +4,6 @@ import json
 import os.path
 from logging import getLogger
 
-from codev.core.source import Source
 from codev.core.providers.machines import VirtualenvBaseMachine
 from codev.core.installer import Installer
 from codev.core.settings import BaseSettings, ProviderSettings
@@ -51,10 +50,6 @@ class AnsibleTaskSettings(BaseSettings):
     def vault_password(self):
         return self.data.get('vault_password', None)
 
-    @property
-    def source(self):
-        return ProviderSettings(self.data.get('source', {}))
-
 
 class AnsibleTask(Task):
     provider_name = 'ansible'
@@ -65,9 +60,10 @@ class AnsibleTask(Task):
         self.virtualenv = VirtualenvBaseMachine(
             executor=self.executor,
             settings_data=dict(python=self.settings.python_version),
-            ident=Ident('codevansible'))
+            ident=Ident('codevansible')
+        )
 
-    def prepare(self):
+    def run(self, infrastructure, input_vars, source_directory=''):
         # TODO requirements - python-dev, python-virtualenv
         # Installer(executor=self.executor).install_packages(
         #     'python-virtualenv', 'python-dev', 'python3-venv', 'sshpass',  # for ansible task
@@ -80,12 +76,11 @@ class AnsibleTask(Task):
         version_add = ''
         if self.settings.version:
             version_add = '==%s' % self.settings.version
-        self.virtualenv.execute('pip install --upgrade ansible{version_add}'.format(version_add=version_add))
+        self.virtualenv.execute(f'pip install --upgrade ansible{version_add}')
 
         for module in self.settings.modules:
-            self.virtualenv.execute('pip install --upgrade {module}'.format(module=module))
+            self.virtualenv.execute(f'pip install --upgrade {module}')
 
-    def run(self, infrastructure, input_vars):
         inventory = configparser.ConfigParser(allow_no_value=True, delimiters=('',))
 
         # creating inventory
@@ -126,15 +121,13 @@ class AnsibleTask(Task):
             with open(extra_vars_file, 'w+') as extra_vars_fo:
                 extra_vars_fo.write(json.dumps(self.settings.extra_vars))
 
-            extra_vars = ' --extra-vars "@{extra_vars_file}"'.format(
-                extra_vars_file=extra_vars_file
-            )
+            extra_vars = f' --extra-vars "@{extra_vars_file}"'
         else:
             extra_vars = ''
 
         # custom ssh config with proper hostnames
         env_vars_dict = dict(
-            ANSIBLE_SSH_ARGS='-F {ssh_config}'
+            ANSIBLE_SSH_ARGS=f'-F {ssh_config}'
         )
 
         env_vars_dict.update(self.settings.env_vars)
@@ -158,34 +151,27 @@ class AnsibleTask(Task):
         else:
             vault_password_file = ''
 
-        # support for different source of ansible configuration
-        if self.settings.source.provider:
-            source_directory = '/tmp/ansiblesource'
-            with self.executor.change_directory(source_directory):
-                source = Source(self.settings.source.provider, settings_data=self.settings.source.settings_data)
-                source.install(self.executor)
-        else:
-            source_directory = ''
-
         directory = os.path.join(source_directory, self.settings.directory)
         with self.virtualenv.change_directory(directory):
             requirements = self.settings.requirements
             if requirements:
-                self.virtualenv.execute('ansible-galaxy install -r {requirements}'.format(requirements=requirements))
+                self.virtualenv.execute(f'ansible-galaxy install -r {requirements}')
 
             if self.virtualenv.exists_file('hosts'):
-                self.virtualenv.execute('cp hosts {inventory}'.format(inventory=inventory_directory))
+                self.virtualenv.execute(f'cp hosts {inventory_directory}')
 
-            machine_idents = [machine.ident for machine in infrastructure.machines]
+            machine_hostnames = [machine.ident.as_hostname() for machine in infrastructure.machines]
 
-            self.virtualenv.execute('{env_vars}ansible-playbook -v -i {inventory} {playbook} --limit={limit} {extra_vars}{vault_password_file}'.format(
-                inventory=inventory_directory,
-                playbook=self.settings.playbook,
-                limit=','.join(machine_idents),
-                extra_vars=extra_vars,
-                env_vars=env_vars,
-                vault_password_file=vault_password_file
-
-            ), writein=writein)
+            self.virtualenv.execute(
+                '{env_vars}ansible-playbook -v -i {inventory} {playbook} --limit={limit} {extra_vars}{vault_password_file}'.format(
+                    inventory=inventory_directory,
+                    playbook=self.settings.playbook,
+                    limit=','.join(machine_hostnames),
+                    extra_vars=extra_vars,
+                    env_vars=env_vars,
+                    vault_password_file=vault_password_file
+                ),
+                writein=writein
+            )
 
         return True

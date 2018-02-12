@@ -62,13 +62,13 @@ class Infrastructure(HasSettings, HasExecutor):
                     groups=machines_settings.groups
                 )
 
-    # @property
-    # def groups(self):
-    #     groups = {}
-    #     for machine in self.machines:
-    #         for group in machine.groups:
-    #             groups.setdefault(group, []).append(machine)
-    #     return groups
+    @property
+    def groups(self):
+        groups = {}
+        for machine in self.machines:
+            for group in machine.groups:
+                groups.setdefault(group, []).append(machine)
+        return groups
 
     # @property
     # def main_groups(self):

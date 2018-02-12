@@ -1,6 +1,7 @@
 from codev.core.configuration import ConfigurationSettings, Configuration
-from codev.core.settings import DictSettings, TaskSettings
+from codev.core.settings import DictSettings
 from codev.perform.infrastructure import Infrastructure
+from codev.perform.task import TaskSettings
 
 
 class ConfigurationPerformSettings(ConfigurationSettings):

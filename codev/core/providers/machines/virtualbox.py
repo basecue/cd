@@ -8,6 +8,7 @@ from codev.core.debug import DebugSettings
 from codev.core.machines import BaseMachine, Machine
 from codev.core.providers.executors.ssh import SSHExecutor
 from codev.core.settings import BaseSettings
+from codev.core.utils import grouper
 
 """
 requirements: wget, isoinfo, mkisofs
@@ -379,21 +380,33 @@ class VirtualboxBaseMachine(BaseMachine):
 
     @property
     def _ip(self):
+        line = self.executor.execute(f'VBoxManage showvminfo "{self.vm_name}" --machinereadable | grep macaddress2')
+        # macaddress2="080027A94AEC"
+
+        r = re.match('^macaddress2="([0-9A-F]{12})"$', line)
+
+        if r:
+            macaddress_compact = r.group(1)
+        else:
+            raise AssertionError(line)
+
+        macaddress = ':'.join([''.join(group) for group in grouper(macaddress_compact.lower(), 2)])
+
         for i in range(20):
-            value_ip = self.executor.execute(
-                f'VBoxManage guestproperty get "{self.vm_name}" "/VirtualBox/GuestInfo/Net/1/V4/IP"'
-            )
-            if value_ip == 'No value set!':
+            line = self.executor.execute(f'arp -a | grep {macaddress}')
+            # ? (192.168.77.101) at 08:00:27:a9:4a:ec [ether] on vboxnet1
+            if not line:
                 sleep(3)
                 continue
+
+            ip_in_brackets = line.split()[1]
+            r = re.match('^\((.*)\)$', ip_in_brackets)
+            if r:
+                return r.group(1)
             else:
-                return value_ip.split()[1]
+                continue
+
         return None
-        # raise Exception(
-        #     "Guest additions are not installed for virtualbox machine '{ident}'.".format(
-        #         ident=self.ident
-        #     )
-        # )
 
 
 class VirtualboxMachine(Machine, VirtualboxBaseMachine):

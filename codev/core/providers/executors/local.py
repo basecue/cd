@@ -10,6 +10,7 @@ from time import sleep
 from codev.core.executor import Executor, CommandError
 
 logger = getLogger(__name__)
+command_output_logger = getLogger('command_output')
 
 
 class LocalExecutor(Executor):
@@ -36,7 +37,7 @@ class LocalExecutor(Executor):
             output_reader = OutputReader(
                 outfileread,
                 errfileread,
-                logger=command.output_logger
+                output_logger=command.output_logger
             )
 
             # wait for exit code
@@ -71,7 +72,7 @@ class LocalExecutor(Executor):
 class OutputReader(object):
     thread_pool = ThreadPool(processes=2)
 
-    def __init__(self, stdout, stderr, logger=None):
+    def __init__(self, stdout, stderr, output_logger=None):
         self._stdout_output = []
         self._stderr_output = []
 
@@ -80,7 +81,7 @@ class OutputReader(object):
         self._stdout_reader = self.thread_pool.apply_async(
             self._reader,
             args=(stdout,),
-            kwds=dict(logger=logger)
+            kwds=dict(output_logger=output_logger)
         )
 
         self._stderr_reader = self.thread_pool.apply_async(
@@ -88,7 +89,7 @@ class OutputReader(object):
             args=(stderr,)
         )
 
-    def _reader(self, output, logger=None):
+    def _reader(self, output, output_logger=None):
         output_lines = []
         while True:
             try:
@@ -109,8 +110,9 @@ class OutputReader(object):
             for line in lines:
                 output_line = line.decode('utf-8').rstrip('\n')
                 output_lines.append(output_line)
-                if logger:
-                    logger.debug(output_line)
+                if output_logger:
+                    output_logger.info(output_line)
+                command_output_logger.debug(output_line)
 
         return '\n'.join(output_lines)
 

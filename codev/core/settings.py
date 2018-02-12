@@ -104,12 +104,6 @@ class TaskScriptsSettings(BaseSettings):
         return ListDictSettings(self.data.get('onerror', []))
 
 
-class TaskSettings(ProviderSettings):
-    @property
-    def scripts(self):
-        return TaskScriptsSettings(self.data.get('scripts', {}))
-
-
 class ConfigurationScriptsSettings(BaseSettings):
     @property
     def onstart(self):

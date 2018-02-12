@@ -78,12 +78,14 @@ class Isolation(Provider, BaseMachine):
             logger.error("Installation failed.")
             return False
         else:
+            logger.info("Setting up connectivity.")
+            # self.connect() TODO
             logger.info("Installation has been successfully completed.")
             return True
-        finally:
-            logger.info("Setting up connectivity.")
-            # self.connect()
-            # FIXME
+        # finally:
+        #     logger.info("Setting up connectivity.")
+        #     # self.connect()
+        #     # FIXME
 
     def _codev_install(self, version):
         pass
