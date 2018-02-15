@@ -33,3 +33,6 @@ network:
    {device_2}:
      dhcp4: yes
 EOF_netplan
+
+# fix for guest additions
+systemctl enable virtualbox-guest-utils.service

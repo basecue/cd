@@ -5,6 +5,7 @@ from os import urandom, path
 from time import sleep
 
 from codev.core.debug import DebugSettings
+from codev.core.executor import CommandError
 from codev.core.machines import BaseMachine, Machine
 from codev.core.providers.executors.ssh import SSHExecutor
 from codev.core.settings import BaseSettings
@@ -46,9 +47,19 @@ class VirtualboxBaseMachineSettings(BaseSettings):
     def share(self):
         return self.data.get('share', {})
 
+    @property
+    def iface_lower_ip(self):
+        return '192.168.77.101'
+
+    @property
+    def iface_upper_ip(self):
+        return '192.168.77.200'
+
 
 class VirtualboxBaseMachine(BaseMachine):
     settings_class = VirtualboxBaseMachineSettings
+
+
 
     @property
     def effective_executor(self):
@@ -116,9 +127,8 @@ class VirtualboxBaseMachine(BaseMachine):
         iface_ip = '192.168.77.100'
         dhcp_ip = '192.168.77.100'
         netmask = '255.255.255.0'
-        lower_ip = '192.168.77.101'
-        upper_ip = '192.168.77.200'
-        iface = self._create_vbox_iface(iface_ip, dhcp_ip, netmask, lower_ip, upper_ip)
+
+        iface = self._create_vbox_iface(iface_ip, dhcp_ip, netmask, self.settings.iface_lower_ip, self.settings.iface_upper_ip)
         self._create_vm(
             ostype='Ubuntu_64',
             memory=self.settings.memory,
@@ -380,32 +390,17 @@ class VirtualboxBaseMachine(BaseMachine):
 
     @property
     def _ip(self):
-        line = self.executor.execute(f'VBoxManage showvminfo "{self.vm_name}" --machinereadable | grep macaddress2')
-        # macaddress2="080027A94AEC"
-
-        r = re.match('^macaddress2="([0-9A-F]{12})"$', line)
-
-        if r:
-            macaddress_compact = r.group(1)
-        else:
-            raise AssertionError(line)
-
-        macaddress = ':'.join([''.join(group) for group in grouper(macaddress_compact.lower(), 2)])
-
         for i in range(20):
-            line = self.executor.execute(f'arp -a | grep {macaddress}')
-            # ? (192.168.77.101) at 08:00:27:a9:4a:ec [ether] on vboxnet1
-            if not line:
+            value_ip = self.executor.execute(
+                f'VBoxManage guestproperty get "{self.vm_name}" "/VirtualBox/GuestInfo/Net/1/V4/IP"'
+            )
+            if value_ip == 'No value set!':
                 sleep(3)
                 continue
-
-            ip_in_brackets = line.split()[1]
-            r = re.match('^\((.*)\)$', ip_in_brackets)
-            if r:
-                return r.group(1)
             else:
-                continue
-
+                return value_ip.split()[1]
+        
+        # TODO raise exception?
         return None
 
 
