@@ -399,7 +399,7 @@ class VirtualboxBaseMachine(BaseMachine):
                 continue
             else:
                 return value_ip.split()[1]
-        
+
         # TODO raise exception?
         return None
 
