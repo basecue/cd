@@ -1,3 +1,5 @@
+from typing import Optional
+
 from .executor import HasExecutor, CommandError
 
 DISTRIBUTION_ISSUES = {
@@ -13,12 +15,12 @@ class InstallerError(Exception):
 
 
 class Installer(HasExecutor):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.__cache_packages = False
-        self.__distribution = None
+        self.__distribution: Optional[str] = None
 
-    def install_packages(self, *packages):
+    def install_packages(self, *packages: str) -> None:
         # TODO make this os independent
         not_installed_packages = [package for package in packages if not self._is_package_installed(package)]
         if not_installed_packages:
@@ -42,7 +44,7 @@ class Installer(HasExecutor):
                     )
                 )
 
-    def _distribution(self):
+    def _distribution(self) -> str:
         if not self.__distribution:
             issue = self.executor.execute('cat /etc/issue')
             for distribution, issue_start in DISTRIBUTION_ISSUES.items():
@@ -53,13 +55,13 @@ class Installer(HasExecutor):
                 raise InstallerError('Unknown distribution')
         return self.__distribution
 
-    def _cache_packages(self):
+    def _cache_packages(self) -> None:
         if not self.__cache_packages:
             if self._distribution() in ('debian', 'ubuntu'):
                 self.executor.execute('apt-get update')
         self.__cache_packages = True
 
-    def _is_package_installed(self, package):
+    def _is_package_installed(self, package: str) -> bool:
         # http://www.cyberciti.biz/faq/find-out-if-package-is-installed-in-linux/
         # TODO make this os independent
         try:

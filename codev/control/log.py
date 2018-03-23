@@ -6,7 +6,7 @@ from colorama import Fore as color
 from codev.core.log import LOGLEVELS, error_filter, info_filter, debug_filter
 
 
-def logging_config(loglevel=None, control_perform=False):
+def logging_config(loglevel=None, control_perform: bool=False):
     """
     :param loglevel:
     :param control_command:

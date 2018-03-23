@@ -1,9 +1,9 @@
-from codev.core.executor import BareExecutor, ProxyExecutor
+from codev.core.executor import BareExecutor, ProxyExecutor, Command
 
 
 class TestExecutor(BareExecutor):
 
-    def execute_command(self, command):
+    def execute_command(self, command: Command) -> str:
         return str(command)
 
 
@@ -173,7 +173,6 @@ class TestAdvancedInheritance(BaseTestExecutor):
 
         class TestSecondInheritedProxyExecutor(ProxyExecutor):
             executor_class = TestInheritedProxyExecutor
-
 
         cls.test_proxy_executor = TestProxyExecutor(executor=cls.test_executor)
         cls.test_inherited_proxy_executor = TestSecondInheritedProxyExecutor(executor=cls.test_executor)

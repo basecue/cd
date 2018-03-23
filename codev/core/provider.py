@@ -1,12 +1,17 @@
+from typing import TypeVar, Dict, Any
+
+
+ProviderType = TypeVar('ProviderType', bound='Provider')
+
 
 class ProviderMetaClass(type):
-    def __new__(mcs, name, bases, attrs):
+    def __new__(mcs, name: str, bases, attrs: Dict[str, Any]) -> ProviderType:
 
         if name == 'Provider':
             return type.__new__(mcs, name, bases, attrs)
 
         if Provider in bases:
-            cls = type.__new__(mcs, name, bases, attrs)
+            cls: ProviderType = type.__new__(mcs, name, bases, attrs)
             cls.providers = {}
             cls.provider_class = cls
             if cls.provider_name is not None:
@@ -22,7 +27,7 @@ class ProviderMetaClass(type):
             else:
                 raise ImportError("It is unable to determine provider class for class '{name}'.".format(name=name))
 
-            cls = type.__new__(mcs, name, bases, attrs)
+            cls: ProviderType = type.__new__(mcs, name, bases, attrs)
 
             if 'provider_name' in attrs:
                 if not isinstance(attrs['provider_name'], str):
@@ -31,7 +36,7 @@ class ProviderMetaClass(type):
 
             return cls
 
-    def __call__(cls, *args, **kwargs):
+    def __call__(cls, *args, **kwargs) -> ProviderType:
         if cls == cls.provider_class:
             args_list = list(args)
             provider_name = args_list.pop(0)
@@ -50,12 +55,13 @@ class ProviderMetaClass(type):
             return super().__call__(*args, **kwargs)
 
 
+
 class Provider(object, metaclass=ProviderMetaClass):
-    provider_name = None
-    provider_class = None
+    provider_name: str = None
+    provider_class: ProviderType = None
 
     @classmethod
-    def register_provider(cls, provider_name, provider_cls):
+    def register_provider(cls, provider_name: str, provider_cls: ProviderType) -> None:
         if provider_name in cls.provider_class.providers:
             # TODO better exception
             raise ImportError(

@@ -1,3 +1,5 @@
+from typing import IO, Tuple
+
 from contextlib import contextmanager
 from logging import getLogger
 from multiprocessing.pool import ThreadPool
@@ -7,7 +9,8 @@ from subprocess import Popen, PIPE, check_call
 from tempfile import mkstemp
 from time import sleep
 
-from codev.core.executor import Executor, CommandError
+
+from codev.core.executor import Executor, CommandError, Command
 
 logger = getLogger(__name__)
 command_output_logger = getLogger('command_output')
@@ -16,8 +19,8 @@ command_output_logger = getLogger('command_output')
 class LocalExecutor(Executor):
     provider_name = 'local'
 
-    def execute_command(self, command):
-        logger.debug("Execute command: '{command}'".format(command=command))
+    def execute_command(self, command: Command) -> str:
+        logger.debug(f"Execute command: '{command}'")
 
         outtempfd, outtemppath = mkstemp()
         errtempfd, errtemppath = mkstemp()
@@ -56,14 +59,14 @@ class LocalExecutor(Executor):
             raise CommandError(command, exit_code, error, output)
         return output
 
-    def send_file(self, source, target):
+    def send_file(self, source: str, target: str) -> None:
         if source == target:
             return
 
         check_call(['cp', source, target])
 
     @contextmanager
-    def open_file(self, remote_path):
+    def open_file(self, remote_path: str) -> IO:
         remote_path = expanduser(remote_path)
         with open(remote_path) as fo:
             yield fo
@@ -89,7 +92,7 @@ class OutputReader(object):
             args=(stderr,)
         )
 
-    def _reader(self, output, output_logger=None):
+    def _reader(self, output, output_logger=None) -> str:
         output_lines = []
         while True:
             try:
@@ -116,7 +119,7 @@ class OutputReader(object):
 
         return '\n'.join(output_lines)
 
-    def output(self):
+    def output(self) -> Tuple[str, str]:
         self.terminated = True
         return self._stdout_reader.get(), self._stderr_reader.get()
 

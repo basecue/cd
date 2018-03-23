@@ -1,3 +1,5 @@
+from typing import Dict, TextIO, Optional, Iterable, Tuple
+
 import re
 from base64 import b64encode
 from crypt import crypt
@@ -5,11 +7,9 @@ from os import urandom, path
 from time import sleep
 
 from codev.core.debug import DebugSettings
-from codev.core.executor import CommandError
 from codev.core.machines import BaseMachine, Machine
 from codev.core.providers.executors.ssh import SSHExecutor
 from codev.core.settings import BaseSettings
-from codev.core.utils import grouper
 
 """
 requirements: wget, isoinfo, mkisofs
@@ -20,62 +20,66 @@ ubuntu: TODO
 
 class VirtualboxBaseMachineSettings(BaseSettings):
     @property
-    def distribution(self):
+    def distribution(self) -> str:
         return self.data['distribution']
 
     @property
-    def release(self):
+    def release(self) -> str:
         return self.data['release']
 
     @property
-    def username(self):
+    def username(self) -> str:
         return self.data.get('username')
 
     @property
-    def password(self):
+    def password(self) -> str:
         return self.data.get('password')
 
     @property
-    def memory(self):
+    def memory(self) -> int:
         return self.data.get('memory', 20000)
 
     @property
-    def hdd(self):
+    def hdd(self) -> int:
         return self.data.get('hdd', 1024)
 
     @property
-    def share(self):
+    def share(self) -> Dict[str, str]:
         return self.data.get('share', {})
 
     @property
-    def iface_lower_ip(self):
+    def iface_lower_ip(self) -> str:
         return '192.168.77.101'
 
     @property
-    def iface_upper_ip(self):
+    def iface_upper_ip(self) -> str:
         return '192.168.77.200'
 
 
 class VirtualboxBaseMachine(BaseMachine):
     settings_class = VirtualboxBaseMachineSettings
 
-
-
     @property
-    def effective_executor(self):
-        return SSHExecutor(settings_data={'hostname': self._ip, 'username': 'root'})
+    def effective_executor(self) -> SSHExecutor:
+        return SSHExecutor(
+            settings_data={
+                'hostname': self._ip,
+                'username': 'root',
+                'options': {'StrictHostKeyChecking': 'no', 'UserKnownHostsFile': '/dev/null'}
+            }
+        )
 
-    def exists(self):
+    def exists(self) -> bool:
         return f'"{self.vm_name}"' in self.executor.execute('VBoxManage list vms').split()
 
-    def is_started(self):
+    def is_started(self) -> bool:
         output = self.executor.execute("VBoxManage list runningvms")
         return bool(re.search(f'^\"{self.vm_name}\"\s+.*', output, re.MULTILINE))
 
-    def start(self):
+    def start(self) -> None:
         self.executor.execute(f'VBoxManage startvm "{self.vm_name}" --type headless')
 
-    def create(self):
+    def create(self) -> None:
         distribution = self.settings.distribution
         release = self.settings.release
         if distribution != 'ubuntu':
@@ -128,7 +132,9 @@ class VirtualboxBaseMachine(BaseMachine):
         dhcp_ip = '192.168.77.100'
         netmask = '255.255.255.0'
 
-        iface = self._create_vbox_iface(iface_ip, dhcp_ip, netmask, self.settings.iface_lower_ip, self.settings.iface_upper_ip)
+        iface = self._create_vbox_iface(
+            iface_ip, dhcp_ip, netmask, self.settings.iface_lower_ip, self.settings.iface_upper_ip
+        )
         self._create_vm(
             ostype='Ubuntu_64',
             memory=self.settings.memory,
@@ -149,10 +155,10 @@ class VirtualboxBaseMachine(BaseMachine):
         self.start()
 
     @property
-    def vm_name(self):
+    def vm_name(self) -> str:
         return self.ident.as_file()
 
-    def _download_ubuntu_iso(self, release, subtype='server', arch='amd64'):
+    def _download_ubuntu_iso(self, release: str, subtype='server', arch='amd64') -> str:
         """
 
         :param release: It can be version number (17.10) or name (artful)
@@ -163,14 +169,14 @@ class VirtualboxBaseMachine(BaseMachine):
         :return:
         """
 
-        def parse_sums_file(fo):
+        def parse_sums_file(fo: TextIO) -> Tuple[str, str]:
             for iso_checksum in fo:
                 r = re.match(iso_file_pattern, iso_checksum)
                 if r:
                     iso_file = r.group(1)
                     return iso_file, iso_checksum
 
-            raise Exception() #FIXME
+            raise Exception()  # FIXME
 
         base_directory = f'~/.cache/codev/{release}/'
         release_base_url = f'http://releases.ubuntu.com/{release}/'
@@ -189,8 +195,9 @@ class VirtualboxBaseMachine(BaseMachine):
             if not self.executor.exists_file(iso_file_path):
                 self.executor.execute(f'wget {release_base_url}SHA256SUMS.gpg -O SHA256SUMS.gpg -o /dev/null')
 
-                #FIXME test it
-                self.executor.execute('gpg --keyserver hkp://keyserver.ubuntu.com --recv-keys "8439 38DF 228D 22F7 B374 2BC0 D94A A3F0 EFE2 1092" "C598 6B4F 1257 FFA8 6632 CBA7 4618 1433 FBB7 5451"')
+                # FIXME test it
+                self.executor.execute(
+                    'gpg --keyserver hkp://keyserver.ubuntu.com --recv-keys "8439 38DF 228D 22F7 B374 2BC0 D94A A3F0 EFE2 1092" "C598 6B4F 1257 FFA8 6632 CBA7 4618 1433 FBB7 5451"')
                 self.executor.execute('gpg --list-keys --with-fingerprint 0xFBB75451 0xEFE21092')
                 self.executor.execute('gpg --verify SHA256SUMS.gpg SHA256SUMS')
 
@@ -200,7 +207,7 @@ class VirtualboxBaseMachine(BaseMachine):
 
         return iso_file_path
 
-    def _extract_iso(self, source_iso, target_dir):
+    def _extract_iso(self, source_iso: str, target_dir: str) -> None:
         actual_directory = '/'
         for line in self.executor.execute(f'isoinfo -R -l -i {source_iso}').splitlines():
             r = re.match('^Directory\slisting\sof\s(.*)$', line)
@@ -226,15 +233,27 @@ class VirtualboxBaseMachine(BaseMachine):
                     )
 
     def _prepare_ubuntu_iso(
-        self, source_iso, target_iso, username, password, hostname,
-        ip='', gateway='', nameserver='', device_1='enp0s3', device_2='enp0s8',
-        packages=None, ssh_authorized_keys=None, shares={}
-    ):
+            self,
+            source_iso: str,
+            target_iso: str,
+            username: str,
+            password: str,
+            hostname: str,
+            ip='',
+            gateway='',
+            nameserver='',
+            device_1='enp0s3',
+            device_2='enp0s8',
+            packages: Iterable[str] = None,
+            ssh_authorized_keys: Iterable[str] = None,
+            shares: Dict[str, str] = None
+    ) -> None:
 
-        if packages is None:
-            packages = []
-        # http://serverfault.com/questions/378529/linux-kickstart-scipts
-        sandbox = '/tmp/ks_iso'
+        packages = packages or []
+        ssh_authorized_keys = ssh_authorized_keys or []
+        shares = shares or {}
+
+        sandbox = '/tmp/codev_iso'
         dir_path = path.dirname(__file__)
         template_path = f'{dir_path}/ubuntu_template'
 
@@ -296,7 +315,7 @@ class VirtualboxBaseMachine(BaseMachine):
             # cleanup
             self.executor.delete_path(sandbox)
 
-    def _create_vbox_iface(self, ip, dhcp_ip, netmask, lower_ip, upper_ip):
+    def _create_vbox_iface(self, ip: str, dhcp_ip: str, netmask: str, lower_ip: str, upper_ip: str) -> str:
         """
         Create hostonly network interface
 
@@ -329,7 +348,7 @@ class VirtualboxBaseMachine(BaseMachine):
             raise RuntimeError('Error during creating virtualbox network host-only interface.')
         return iface
 
-    def _create_vm(self, ostype, hdd, memory, share, hostonly_iface):
+    def _create_vm(self, ostype: str, hdd: int, memory: int, share: Dict[str, str], hostonly_iface: str) -> None:
         # create VM
         self.executor.execute(
             f'VBoxManage createvm --name "{self.vm_name}" --ostype "{ostype}" --register'
@@ -366,13 +385,13 @@ class VirtualboxBaseMachine(BaseMachine):
             f'VBoxManage storageattach "{self.vm_name}" --storagectl "SATA" --port 0 --device 0 --type hdd --medium {medium}'
         )
 
-        #create shared points
+        # create shared points
         for share_name, share_directory in share.items():
             self.executor.execute(
                 f'VBoxManage sharedfolder add "{self.vm_name}" --name "{share_name}" --hostpath "{share_directory}"'
             )
 
-    def _install_vm(self, install_iso):
+    def _install_vm(self, install_iso: str) -> None:
         # attach install iso
         self.executor.execute(
             f'VBoxManage storageattach "{self.vm_name}" --storagectl "IDE" --port 1 --device 0 --type dvddrive --medium {install_iso}'
@@ -381,7 +400,7 @@ class VirtualboxBaseMachine(BaseMachine):
         # install
         self.start()
 
-    def _remove_vm_dvd(self):
+    def _remove_vm_dvd(self) -> None:
         # remove install iso
         while not self.executor.check_execute(
                 f'VBoxManage storageattach "{self.vm_name}" --storagectl "IDE" --port 1 --device 0 --type dvddrive --medium none'
@@ -389,7 +408,7 @@ class VirtualboxBaseMachine(BaseMachine):
             sleep(1)
 
     @property
-    def _ip(self):
+    def _ip(self) -> Optional[str]:
         for i in range(20):
             value_ip = self.executor.execute(
                 f'VBoxManage guestproperty get "{self.vm_name}" "/VirtualBox/GuestInfo/Net/1/V4/IP"'
@@ -408,5 +427,5 @@ class VirtualboxMachine(Machine, VirtualboxBaseMachine):
     provider_name = 'virtualbox'
 
     @property
-    def ip(self):
+    def ip(self) -> Optional[str]:
         return self._ip

@@ -1,3 +1,5 @@
+from typing import Dict, Any, Optional
+
 from json import dumps
 from logging import getLogger
 
@@ -29,7 +31,7 @@ codev-perform run {configuration_name}:{configuration_option} --force
 
 
 class Isolation(Provider, BaseMachine):
-    def __init__(self, *args, source, next_source, configuration_name, configuration_option, **kwargs):
+    def __init__(self, *args, source: Source, next_source: Source, configuration_name: str, configuration_option: str, **kwargs) -> None:
         self.configuration_name = configuration_name
         self.configuration_option = configuration_option
         self.source = source
@@ -37,20 +39,18 @@ class Isolation(Provider, BaseMachine):
         super().__init__(*args, **kwargs)
 
     @property
-    def current_source(self):
+    def current_source(self) -> Source:
         if not self.next_source or not self.exists():
             return self.source
         else:
             return self.next_source
 
-    def _codev_source(self):
+    def _codev_source(self) -> Codev:
         self.current_source.install(self)
         with self.open_file('.codev') as codev_file:
-            codev = Codev.from_yaml(codev_file, configuration_name=self.configuration_name, configuration_option=self.configuration_option)
+            return Codev.from_yaml(codev_file, configuration_name=self.configuration_name, configuration_option=self.configuration_option)
 
-        return codev
-
-    def _call_codev(self, subcommand, load_vars=None):
+    def _call_codev(self, subcommand: str, load_vars: Optional[Dict[str, Any]]=None) -> str:
         if DebugSettings.perform_settings:
             perform_debug = ' '.join(
                 (
@@ -69,7 +69,7 @@ class Isolation(Provider, BaseMachine):
             writein=dumps(load_vars or {})
         )
 
-    def _codev_perform(self, load_vars):
+    def _codev_perform(self, load_vars: Dict[str, Any]) -> bool:
 
         try:
             self._call_codev('perform', load_vars=load_vars)
@@ -87,10 +87,10 @@ class Isolation(Provider, BaseMachine):
         #     # self.connect()
         #     # FIXME
 
-    def _codev_install(self, version):
+    def _codev_install(self, version: str) -> None:
         pass
 
-    def perform(self, input_vars):
+    def perform(self, input_vars: Dict[str, Any]) -> None:
         codev = self._codev_source()
 
         self._codev_install(codev.version)
@@ -105,7 +105,7 @@ class Isolation(Provider, BaseMachine):
         # logger.info("Run 'codev {version}' in isolation.".format(version=version))
 
     @property
-    def status(self):
+    def status(self) -> Status:
 
         status = Status(
             source=self.source.status,
@@ -156,15 +156,15 @@ class IsolationProvider(HasSettings):
     def __init__(
         self,
         *args,
-        project_name,
-        configuration_name,
-        configuration_option,
-        source_name,
-        source_option,
-        next_source_name,
-        next_source_option,
+        project_name: str,
+        configuration_name: str,
+        configuration_option: str,
+        source_name: str,
+        source_option: str,
+        next_source_name: str,
+        next_source_option: str,
         **kwargs
-    ):
+    ) -> None:
 
         self.configuration_name = configuration_name
         self.configuration_option = configuration_option
@@ -186,7 +186,7 @@ class IsolationProvider(HasSettings):
 
         super().__init__(*args, **kwargs)
 
-    def isolation(self):
+    def isolation(self) -> Isolation:
         executor_provider = self.settings.executor.provider
         executor_settings_data = self.settings.executor.settings_data
 
@@ -206,7 +206,7 @@ class IsolationProvider(HasSettings):
             next_source=self._get_source(self.next_source_name, self.next_source_option, default=False)
         )
 
-    def _get_source(self, source_name, source_option, default=True):
+    def _get_source(self, source_name: str, source_option: str, default: bool=True) -> Source:
         # TODO refactor
         try:
             return Source.get(source_name, self.settings.sources, source_option, default=default)
@@ -220,7 +220,7 @@ class IsolationProvider(HasSettings):
 
 class PrivilegedIsolation(Isolation):
 
-    def _codev_install(self, version):
+    def _codev_install(self, version: str) -> None:
 
         self.execute('pip3 install setuptools')
 

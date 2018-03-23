@@ -1,3 +1,5 @@
+from typing import Iterable
+
 from codev.core.settings import HasSettings
 from codev.core.utils import HasIdent
 from .executor import ProxyExecutor
@@ -5,25 +7,25 @@ from .provider import Provider
 
 
 class BaseMachine(HasSettings, ProxyExecutor, HasIdent):
-    def exists(self):
+    def exists(self) -> bool:
         raise NotImplementedError()
 
-    def create(self):
+    def create(self) -> None:
         raise NotImplementedError()
 
-    def destroy(self):
+    def destroy(self) -> None:
         raise NotImplementedError()
 
-    def is_started(self):
+    def is_started(self) -> bool:
         raise NotImplementedError()
 
-    def start(self):
+    def start(self) -> None:
         raise NotImplementedError()
 
-    def stop(self):
+    def stop(self) -> None:
         raise NotImplementedError()
 
-    def start_or_create(self):
+    def start_or_create(self) -> None:
         if not self.exists():
             self.create()
 
@@ -35,6 +37,6 @@ class Machine(Provider, BaseMachine):
     # def clone(self):
     #     raise NotImplementedError()
 
-    def __init__(self, *args, groups=None, **kwargs):
+    def __init__(self, *args, groups: Iterable = None, **kwargs) -> None:
         self.groups = groups or []
         super().__init__(*args, **kwargs)

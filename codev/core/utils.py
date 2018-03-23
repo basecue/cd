@@ -1,7 +1,7 @@
-from itertools import zip_longest
+from typing import Tuple, TypeVar, Union, Optional
 
 
-def parse_options(inp):
+def parse_options(inp: str) -> Tuple[str, str]:
     parsed = inp.split(':', 1)
     name = parsed[0]
     options = parsed[1] if len(parsed) == 2 else ''
@@ -9,41 +9,34 @@ def parse_options(inp):
 
 
 class Ident(object):
-    def __init__(self, *args):
+    def __init__(self, *args) -> None:
         self._ident = args
 
-    def as_tuple(self):
+    def as_tuple(self) -> Tuple:
         return tuple(filter(None, self._ident))
 
-    def as_str_tuple(self):
+    def as_str_tuple(self) -> Tuple:
         return tuple(map(str, self.as_tuple()))
 
-    def as_file(self):
+    def as_file(self) -> str:
         return '_'.join(self.as_str_tuple()).replace('/', '-')
 
-    def as_hostname(self):
+    def as_hostname(self) -> str:
         return '-'.join(self.as_str_tuple()).replace('/', '-').replace('_', '-')
 
-    def __str__(self):
-        return self.as_tuple()
+    def __str__(self) -> str:
+        return str(self.as_tuple())
 
 
 class HasIdent(object):
-    def __init__(self, *args, ident=None, **kwargs):
+    def __init__(self, *args, ident: Optional[Ident] = None, **kwargs) -> None:
         self.ident = ident
         super().__init__(*args, **kwargs)
 
 
+StatusType = TypeVar('Status', bound='Status')
+
+
 class Status(dict):
-    def __getattr__(self, item):
+    def __getattr__(self, item: str) -> Union[StatusType, str]:
         return self[item]
-
-
-def grouper(iterable, n, fillvalue=None):
-    """
-    Collect data into fixed-length chunks or blocks
-    See https://docs.python.org/3.7/library/itertools.html#itertools-recipes
-    """
-    # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx"
-    args = [iter(iterable)] * n
-    return zip_longest(*args, fillvalue=fillvalue)

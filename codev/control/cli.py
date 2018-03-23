@@ -13,8 +13,6 @@ from . import CodevControl
 
 def source_transition(codev_control_status):
     """
-    :param installation_status:
-    :return:
     """
     # TODO deploy vs destroy (different highlighted source in transition)
     next_source_available = bool(codev_control_status.isolation.next_source)

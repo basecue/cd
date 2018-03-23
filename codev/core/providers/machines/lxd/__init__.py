@@ -93,7 +93,7 @@ class LXDBaseMachine(BaseMachine):
 
         return True
 
-    def stop(self):
+    def stop(self) -> None:
         self.executor.execute(f'lxc stop {self._container_name}')
 
     @property

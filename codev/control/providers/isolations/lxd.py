@@ -6,11 +6,11 @@ from codev.control.isolation import PrivilegedIsolation
 
 class LXDIsolationSettings(LXDBaseMachineSettings):
     @property
-    def distribution(self):
+    def distribution(self) -> str:
         return self.data.get('distribution', 'ubuntu')
 
     @property
-    def release(self):
+    def release(self) -> str:
         return self.data.get('release', 'xenial')
 
 
@@ -18,7 +18,7 @@ class LXDIsolation(LXDBaseMachine, PrivilegedIsolation):
     provider_name = 'lxd'
     settings_class = LXDIsolationSettings
 
-    def create(self):
+    def create(self) -> None:
         super().create()
         # TODO - providers requirements
         Installer(executor=self).install_packages(

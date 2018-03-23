@@ -1,3 +1,5 @@
+from typing import Iterator, Type, TypeVar, Union, IO, Optional
+
 from contextlib import contextmanager
 from os.path import expanduser
 
@@ -6,58 +8,48 @@ from os import path
 
 from codev.core.settings import HasSettings
 
-
-class CommandError(Exception):
-    def __init__(self, command, exit_code, error, output=None):
-        self.command = command
-        self.exit_code = exit_code
-        self.error = error
-        self.output = output
-
-        super().__init__(
-            f"Command '{command}' failed with exit code '{exit_code}' with error:\n{error}"
-        )
+CommandType = TypeVar('CommandType', bound='Command')
 
 
 class Command(object):
-    def __new__(cls, command_or_str, *args, **kwargs):
+    def __new__(cls, command_or_str: Union[CommandType, str], *args, **kwargs) -> CommandType:
         if isinstance(command_or_str, Command):
             return command_or_str
         else:
             return super().__new__(cls)
 
-    def __init__(self, command_str, output_logger=None, writein=None):
+    def __init__(self, command_str: str, output_logger=None, writein: Optional[str] = None) -> None:
         self.command_str = command_str
         self.output_logger = output_logger
         self.writein = writein
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.command_str
 
-    def escape(self):
+    def escape(self) -> CommandType:
         return self._copy(self.command_str.replace('\\', '\\\\').replace('$', '\$').replace('"', '\\"'))
 
-    def include(self):
+    def include(self) -> CommandType:
         return self._copy(
             'bash -c "{command}"'.format(
                 command=self.escape()
             )
         )
 
-    def _copy(self, command_or_str):
+    def _copy(self, command_or_str: Union[CommandType, str]) -> CommandType:
         return self.__class__(command_or_str, output_logger=self.output_logger, writein=self.writein)
 
-    def change_directory(self, directory):
+    def change_directory(self, directory: str) -> CommandType:
         return self._copy(f'cd {directory} && {self.command_str}')
 
-    def wrap(self, command_str):
+    def wrap(self, command_str: str) -> CommandType:
         return self._copy(
             command_str.format(
                 command=self.include()
             )
         )
 
-    def wrap_escape(self, command_str):
+    def wrap_escape(self, command_str: str) -> CommandType:
         return self._copy(
             command_str.format(
                 command=self.include().escape()
@@ -72,45 +64,57 @@ class Command(object):
     #     )
 
 
+class CommandError(Exception):
+    def __init__(self, command: Command, exit_code: int, error: str, output: Optional[str] = None) -> None:
+        self.command = command
+        self.exit_code = exit_code
+        self.error = error
+        self.output = output
+
+        super().__init__(
+            f"Command '{command}' failed with exit code '{exit_code}' with error:\n{error}"
+        )
+
+
 class BareExecutor(object):
-    def execute_command(self, command):
+    def execute_command(self, command: Command) -> str:
         raise NotImplementedError()
 
-    def open_file(self, remote_path):
+    def open_file(self, remote_path: str) -> IO:
         raise NotImplementedError()
 
-    def send_file(self, source, target):
+    def send_file(self, source: str, target: str) -> None:
         raise NotImplementedError()
 
-    def check_execute(self, command_str, output_logger=None, writein=None):
+    def check_execute(self, command_str: str, output_logger=None, writein: Optional[str] = None) -> bool:
         try:
             self.execute(command_str, output_logger=output_logger, writein=writein)
             return True
         except CommandError:
             return False
 
-    def execute(self, command_str, output_logger=None, writein=None):
+    def execute(self, command_str: str, output_logger=None, writein: Optional[str] = None) -> str:
         command = Command(command_str, output_logger=output_logger, writein=writein)
 
         command = self.process_command(command)
 
         return self.execute_command(command)
 
-    def process_command(self, command):
+    def process_command(self, command: Command) -> Command:
         return command
 
 
 class HasExecutor(object):
-    def __init__(self, *args, executor, **kwargs):
+    def __init__(self, *args, executor: BareExecutor, **kwargs):
         self.executor = executor
         super().__init__(*args, **kwargs)
 
 
 class BareProxyExecutor(HasExecutor, BareExecutor):
-    executor_class = None
+    executor_class: Type[BareExecutor] = None
     executor_class_forward = []
 
-    def __init__(self, executor, **kwargs):
+    def __init__(self, executor: BareExecutor, **kwargs) -> None:
         if self.executor_class:
             executor_kwargs = {key: kwargs.get(key) for key in self.executor_class_forward}
             executor = self.executor_class(executor=executor, **executor_kwargs)
@@ -118,20 +122,20 @@ class BareProxyExecutor(HasExecutor, BareExecutor):
         super().__init__(executor=executor, **kwargs)
 
     @property
-    def effective_executor(self):
+    def effective_executor(self) -> BareExecutor:
         return self.executor
 
-    def execute_command(self, command):
+    def execute_command(self, command: Command) -> str:
         return self.effective_executor.execute_command(command)
 
     @contextmanager
-    def open_file(self, remote_path):
+    def open_file(self, remote_path: str) -> IO:
         with self.effective_executor.open_file(remote_path) as fo:
             yield fo
 
-    def send_file(self, source, target):
+    def send_file(self, source: str, target: str) -> None:
         # logger.debug("Send file: '{source}' '{target}'".format(source=source, target=target))
-        return self.effective_executor.send_file(source, target)
+        self.effective_executor.send_file(source, target)
 
 
 class BaseProxyExecutor(BareProxyExecutor):
@@ -140,41 +144,41 @@ class BaseProxyExecutor(BareProxyExecutor):
         super().__init__(*args, **kwargs)
         self.directories = []
 
-    def send_file(self, source, target):
+    def send_file(self, source: str, target: str) -> None:
         # logger.debug("Send file: '{source}' '{target}'".format(source=source, target=target))
         expanduser_source = expanduser(source)
-        return super().send_file(expanduser_source, target)
+        super().send_file(expanduser_source, target)
 
     @contextmanager
-    def open_file(self, remote_path):
+    def open_file(self, remote_path: str) -> IO:
         remote_path = path.join(*[directory for directory in reversed(self.directories)], remote_path)
         with super().open_file(remote_path) as fo:
             yield fo
 
-    def exists_directory(self, directory):
+    def exists_directory(self, directory: str) -> bool:
         return self.check_execute(
             f'[ -d {directory} ]'
         )
 
-    def exists_file(self, filepath):
+    def exists_file(self, filepath: str) -> bool:
         return self.check_execute(
             f'[ -f {filepath} ]'
         )
 
-    def create_directory(self, directory):
+    def create_directory(self, directory: str) -> None:
         self.execute(f'mkdir -p {directory}')
 
-    def delete_path(self, _path):
+    def delete_path(self, _path: str) -> None:
         self.execute(f'rm -rf {_path}')
 
     @contextmanager
-    def change_directory(self, directory):
+    def change_directory(self, directory: str) -> None:
         assert directory
         self.directories.append(directory)
         yield
         self.directories.pop()
 
-    def process_command(self, command):
+    def process_command(self, command: Command) -> Command:
         for directory in reversed(self.directories):
             command = command.change_directory(directory)
         return command
@@ -187,11 +191,12 @@ class ProxyExecutor(BaseProxyExecutor):
 class Executor(Provider, HasSettings, BareExecutor):
     # def __init__(self, *args, **kwargs):
     #     super().__init__(*args, **kwargs)
-        # TODO move to future authentication module
-        # if not self.check_execute('ssh-add -L'):
-        #     raise CommandError("No SSH identities found, use the 'ssh-add'.")
+    # TODO move to future authentication module
+    # if not self.check_execute('ssh-add -L'):
+    #     raise CommandError("No SSH identities found, use the 'ssh-add'.")
 
     pass
+
 
 """
 background runner
@@ -310,7 +315,7 @@ class BackgroundExecutor(ProxyExecutor):
     def _get_bg_running_pid(self):
         return self._cat_file(self._isolation.pid_file)
 
-    def execute(self, command, logger=None, writein=None, wait=True):
+    def execute(self, command, logger=None, writein: Optional[str] = None, wait=True):
         self.logger.debug('Command: {command} wait: {wait}'.format(command=command, wait=wait))
         isolation = self._isolation
 
@@ -391,5 +396,3 @@ class BackgroundExecutor(ProxyExecutor):
 
     def kill(self):
         return self._control(self._bg_kill)
-
-

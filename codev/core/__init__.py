@@ -1,5 +1,6 @@
 from collections import OrderedDict
 from os import path
+from typing import TypeVar, Dict
 
 import yaml
 
@@ -12,35 +13,39 @@ from codev.core.utils import Status
 YAML OrderedDict mapping
 http://stackoverflow.com/questions/5121931/in-python-how-can-you-load-yaml-mappings-as-ordereddicts
 """
-_mapping_tag = yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG
-
-
-def dict_representer(dumper, data):
-    return dumper.represent_dict(data.items())
-
-
-def dict_constructor(loader, node):
-    return OrderedDict(loader.construct_pairs(node))
-
-
-yaml.add_representer(OrderedDict, dict_representer)
-yaml.add_constructor(_mapping_tag, dict_constructor)
+# FIXME
+# _mapping_tag = yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG
+#
+#
+# def dict_representer(dumper, data):
+#     return dumper.represent_dict(data.items())
+#
+#
+# def dict_constructor(loader, node):
+#     return OrderedDict(loader.construct_pairs(node))
+#
+#
+# yaml.add_representer(OrderedDict, dict_representer)
+# yaml.add_constructor(_mapping_tag, dict_constructor)
 """
 """
 
 
 class CodevSettings(BaseSettings):
     @property
-    def version(self):
+    def version(self) -> str:
         return self.data.get('version', __version__)
 
     @property
-    def project(self):
+    def project(self) -> str:
         return self.data.get('project', path.basename(path.abspath(path.curdir)))
 
     @property
-    def configurations(self):
+    def configurations(self) -> Dict:
         return self.data.get('configurations', {})
+
+
+CodevType = TypeVar('CodevType', bound='Codev')
 
 
 class Codev(HasSettings):
@@ -48,7 +53,7 @@ class Codev(HasSettings):
     configuration_class = Configuration
     configuration_kwargs = ()
 
-    def __init__(self, *args, configuration_name='', configuration_option='', **kwargs):
+    def __init__(self, *args, configuration_name='', configuration_option='', **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
         self.configuration = self.configuration_class.get(
@@ -58,17 +63,17 @@ class Codev(HasSettings):
         )
 
     @classmethod
-    def from_file(cls, filepath, *args, **kwargs):
+    def from_file(cls, filepath, *args, **kwargs) -> CodevType:
         with open(filepath) as file:
             return cls.from_yaml(file, *args, **kwargs)
 
     @classmethod
-    def from_yaml(cls, yamldata, *args, **kwargs):
+    def from_yaml(cls, yamldata, *args, **kwargs) -> CodevType:
         settings_data = yaml.load(yamldata)
         return cls(*args, settings_data=settings_data, **kwargs)
 
     @property
-    def version(self):
+    def version(self) -> str:
         return self.settings.version
 
     # def save_to_file(self, filepath):
@@ -76,7 +81,7 @@ class Codev(HasSettings):
     #         yaml.dump(self.settings.data, file)
 
     @property
-    def status(self):
+    def status(self) -> Status:
         """
         Info about runner
 
