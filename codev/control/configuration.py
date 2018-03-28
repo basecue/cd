@@ -26,7 +26,6 @@ class ConfigurationControl(Configuration):
             settings_data=self.settings.isolation,
             project_name=project_name,
             configuration_name=self.name,
-            configuration_option=self.option,
             source_name=source_name,
             source_option=source_option,
             next_source_name=next_source_name,

@@ -3,9 +3,8 @@ from functools import wraps
 
 from codev import __version__
 
-from codev.core.cli import configuration_with_option, nice_exception, path_option, bool_exit_enable
+from codev.core.cli import nice_exception, path_option, bool_exit_enable
 
-from codev.core.utils import parse_options
 from codev.core.debug import DebugSettings
 
 from . import CodevPerform
@@ -17,18 +16,15 @@ def codev_perform_options(func):
             configuration,
             **kwargs):
 
-        configuration_name, configuration_option = parse_options(configuration)
-
         codev_perform = CodevPerform.from_file(
             '.codev',
-            configuration_name=configuration_name,
-            configuration_option=configuration_option,
+            configuration_name=configuration,
         )
         return func(codev_perform, **kwargs)
 
     return click.argument(
         'configuration',
-        metavar='<configuration:option>',
+        metavar='<configuration>',
         required=True)(codev_perform_wrapper)
 
 

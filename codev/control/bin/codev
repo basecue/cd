@@ -5,22 +5,18 @@ import select
 import sys
 
 import click
+from codev.control import CodevControl
 
 from codev.control.cli import command, main
 
 
 @command(
     help='Perform task.',
-    confirmation="Perform task '{configuration_with_option}' of project '{project}' from source '{source_transition}'?"
+    confirmation="Perform '{configuration}' of project '{project}' from source '{source_transition}'?"
 )
-def perform(codev_control):
+def perform(codev_control: CodevControl) -> bool:
     """
     Deploy project
-
-    :param codev_control:
-    :type codev_control: codev.CodevControl
-    :return:
-    :rtype: bool
     """
     if select.select([sys.stdin,], [], [], 0.0)[0]:
         load_vars = json.loads(sys.stdin.read())
@@ -52,24 +48,12 @@ def perform(codev_control):
     help='Destroy isolation.',
     confirmation="Destroy isolation of project '{project}' with configuration '{configuration}' from source '{source_transition}'?"
 )
-def destroy(codev_control):
-    """
-    :param codev_control:
-    :type codev_control: codev.CodevControl
-    :return:
-    :rtype: bool
-    """
+def destroy(codev_control: CodevControl) -> bool:
     return codev_control.destroy()
 
 
 @command(help='Show info about the installation.')
-def status(codev_control):
-    """
-    :param codev_control:
-    :type codev_control: codev.CodevControl
-    :return:
-    :rtype: bool
-    """
+def status(codev_control: CodevControl) -> bool:
     status = codev_control.status
     from pprint import pformat
     click.echo(pformat(status))

@@ -4,7 +4,7 @@ from functools import wraps
 
 from codev import __version__
 
-from codev.core.cli import configuration_with_option, nice_exception, path_option, bool_exit_enable
+from codev.core.cli import nice_exception, path_option, bool_exit_enable
 from codev.core.utils import parse_options
 from codev.core.debug import DebugSettings
 
@@ -54,13 +54,11 @@ def confirmation_message(message):
         def confirmation_wrapper(codev_control, force, **kwargs):
             if not force:
                 if not click.confirm(
-                        message.format(
-                            source_transition=source_transition(codev_control.status),
-                            configuration_with_option=configuration_with_option(
-                                codev_control.status.configuration.name, codev_control.status.configuration.option
-                            ),
-                            **codev_control.status
-                        )
+                    message.format(
+                        source_transition=source_transition(codev_control.status),
+                        configuration=codev_control.status.configuration.name
+                    ),
+                    **codev_control.status
                 ):
                     raise click.Abort()
             return f(codev_control, **kwargs)
@@ -85,12 +83,10 @@ def codev_control_options(func):
 
         source_name, source_option = parse_options(source)
         next_source_name, next_source_option = parse_options(next_source)
-        configuration_name, configuration_option = parse_options(configuration)
 
         codev_control = CodevControl.from_file(
             '.codev',
-            configuration_name=configuration_name,
-            configuration_option=configuration_option,
+            configuration_name=configuration,
             source_name=source_name,
             source_option=source_option,
             next_source_name=next_source_name,
@@ -100,7 +96,7 @@ def codev_control_options(func):
 
     f = click.argument(
         'configuration',
-        metavar='<configuration:option>',
+        metavar='<cconfiguration>',
         required=True)(codev_control_wrapper)
 
     f = click.option(

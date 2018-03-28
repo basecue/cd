@@ -10,20 +10,6 @@ class ConfigurationSettings(BaseSettings):
     def scripts(self):
         return ConfigurationScriptsSettings(self.data.get('scripts', {}))
 
-    def parse_option(self, option: str) -> None:
-        if option:
-            try:
-                self.data.update(
-                    self.data['options'][option]
-                )
-            except KeyError:
-                raise ValueError(
-                    "Option '{option}' is not found in configuration.".format(
-                        option=option,
-                    ),
-                    option
-                )
-
     @property
     def load_vars(self) -> Dict[str, str]:
         return self.data.get('load_vars', {})
@@ -40,7 +26,7 @@ class Configuration(HasSettings):
         self.name = name
 
     @classmethod
-    def get(cls, name: str, configurations: Dict, option: str) -> ConfigurationType:
+    def get(cls, name: str, configurations: Dict) -> ConfigurationType:
         try:
             settings_data = configurations[name]
         except KeyError:
@@ -49,15 +35,7 @@ class Configuration(HasSettings):
                     name=name
                 )
             )
-        try:
-            return cls(name, settings_data=settings_data, option=option)
-        except ValueError as e:
-            raise ValueError(
-                "Option '{option}' is not found in configuration '{name}'.".format(
-                    option=option,
-                    name=name
-                )
-            )
+        return cls(name, settings_data=settings_data)
 
     @property
     def loaded_vars(self) -> Dict[str, str]:

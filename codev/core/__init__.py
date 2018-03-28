@@ -53,13 +53,12 @@ class Codev(HasSettings):
     configuration_class = Configuration
     configuration_kwargs = ()
 
-    def __init__(self, *args, configuration_name='', configuration_option='', **kwargs) -> None:
+    def __init__(self, *args, configuration_name='', **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
         self.configuration = self.configuration_class.get(
             configuration_name,
             self.settings.configurations,
-            configuration_option
         )
 
     @classmethod

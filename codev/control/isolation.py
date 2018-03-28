@@ -26,14 +26,13 @@ protocol:
 call: codev-source {source_name}:{source_option} -- {source_settings_data}
 return: .codev
 
-codev-perform run {configuration_name}:{configuration_option} --force
+codev-perform run {configuration_name} --force
 """
 
 
 class Isolation(Provider, BaseMachine):
-    def __init__(self, *args, source: Source, next_source: Source, configuration_name: str, configuration_option: str, **kwargs) -> None:
+    def __init__(self, *args, source: Source, next_source: Source, configuration_name: str, **kwargs) -> None:
         self.configuration_name = configuration_name
-        self.configuration_option = configuration_option
         self.source = source
         self.next_source = next_source
         super().__init__(*args, **kwargs)
@@ -48,7 +47,7 @@ class Isolation(Provider, BaseMachine):
     def _codev_source(self) -> Codev:
         self.current_source.install(self)
         with self.open_file('.codev') as codev_file:
-            return Codev.from_yaml(codev_file, configuration_name=self.configuration_name, configuration_option=self.configuration_option)
+            return Codev.from_yaml(codev_file, configuration_name=self.configuration_name)
 
     def _call_codev(self, subcommand: str, load_vars: Optional[Dict[str, Any]]=None) -> str:
         if DebugSettings.perform_settings:
@@ -64,7 +63,7 @@ class Isolation(Provider, BaseMachine):
         logging_config(control_perform=True)
 
         return self.execute(
-            f'codev-{subcommand} {self.configuration_name}:{self.configuration_option} {perform_debug}',
+            f'codev-{subcommand} {self.configuration_name} {perform_debug}',
             output_logger=command_logger,
             writein=dumps(load_vars or {})
         )
@@ -158,7 +157,6 @@ class IsolationProvider(HasSettings):
         *args,
         project_name: str,
         configuration_name: str,
-        configuration_option: str,
         source_name: str,
         source_option: str,
         next_source_name: str,
@@ -167,7 +165,6 @@ class IsolationProvider(HasSettings):
     ) -> None:
 
         self.configuration_name = configuration_name
-        self.configuration_option = configuration_option
 
         self.source_name = source_name
         self.source_option = source_option
@@ -177,7 +174,6 @@ class IsolationProvider(HasSettings):
         self.ident = Ident(
             project_name,
             configuration_name,
-            configuration_option,
             source_name,
             source_option,
             next_source_name,
@@ -201,7 +197,6 @@ class IsolationProvider(HasSettings):
             settings_data=self.settings.settings_data,
             ident=self.ident,
             configuration_name=self.configuration_name,
-            configuration_option=self.configuration_option,
             source=self._get_source(self.source_name, self.source_option),
             next_source=self._get_source(self.next_source_name, self.next_source_option, default=False)
         )

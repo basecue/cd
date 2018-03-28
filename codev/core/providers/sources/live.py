@@ -12,7 +12,7 @@ class LiveSource(ActualSource):
         elif options == '':
             self.bidirectional = False
         else:
-            raise ValueError("Live source provider does not support options '{options}'".format(options=options))
+            raise ValueError(f"Live source provider does not support options '{options}'")
         super().__init__(options, *args, **kwargs)
 
     def install(self, executor):

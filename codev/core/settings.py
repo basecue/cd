@@ -19,19 +19,11 @@ class BaseSettings(object):
 class HasSettings(object):
     settings_class: Type[BaseSettings] = None
 
-    def __init__(self, *args, settings_data=None, option=None, **kwargs):
+    def __init__(self, *args, settings_data=None, **kwargs):
         if self.settings_class:
             self.settings = self.settings_class(settings_data)
-
-            # TODO think about self.option = self.settings.parse_option(option)
-            self.option = option
-
-            if option is not None:
-                # FIXME
-                self.settings.parse_option(option)
         else:
             self.settings = None
-            self.option = option
 
         super().__init__(*args, **kwargs)
 

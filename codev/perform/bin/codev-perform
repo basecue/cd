@@ -4,21 +4,14 @@ import select
 import sys
 from json import loads
 
+from codev.perform import CodevPerform
 from codev.perform.cli import command
 
 
 @command(
     help='Run configuration.',
 )
-def perform(codev_perform):
-    """
-    Deploy project
-
-    :param codev_perform:
-    :type codev_perform: codev.CodevPerform
-    :return:
-    :rtype: bool
-    """
+def perform(codev_perform: CodevPerform) -> bool:
     if select.select([sys.stdin], [], [], 0.0)[0]:
         load_vars = loads(sys.stdin.read())
     else:

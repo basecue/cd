@@ -10,9 +10,6 @@ from .debug import DebugSettings
 logger = getLogger(__name__)
 
 
-def configuration_with_option(configuration, configuration_option):
-    return ':'.join(filter(bool, (configuration, configuration_option)))
-
 
 def nice_exception(func):
     @wraps(func)

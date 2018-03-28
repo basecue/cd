@@ -10,9 +10,9 @@ class ActualSource(Source):
 
     def install(self, executor: BareExecutor) -> None:
         filename = uuid1()
-        archive = shutil.make_archive('/tmp/{filename}'.format(filename=filename), 'gztar')
+        archive = shutil.make_archive(f'/tmp/{filename}', 'gztar')
 
-        remote_archive = '/tmp/{filename}.tar.gz'.format(filename=filename)
+        remote_archive = f'/tmp/{filename}.tar.gz'
 
         executor.send_file(archive, remote_archive)
 
@@ -20,8 +20,4 @@ class ActualSource(Source):
         # TODO requirements
         # executor.install_packages('gzip')
 
-        executor.execute(
-            'tar -xzf {archive}'.format(
-                archive=remote_archive
-            )
-        )
+        executor.execute(f'tar -xzf {remote_archive}')

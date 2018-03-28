@@ -5,17 +5,20 @@ from codev.core.settings import HasSettings
 from codev.core.utils import Status
 from .provider import Provider
 
-
 SourceType = TypeVar('SourceType', bound='Source')
 
 
 class Source(Provider, HasSettings):
 
+    def __init__(self, *args, option: str, **kwargs):
+        self.option = option
+        super().__init__(*args, **kwargs)
+
     def install(self, executor: BareExecutor) -> None:
         raise NotImplementedError()
 
     @classmethod
-    def get(cls, name: str, sources: Dict, option: str, default: bool=True) -> SourceType:
+    def get(cls, name: str, sources: Dict, option: str, default: bool = True) -> SourceType:
         # TODO refactorize
         if not name:
             if default:

@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 import click
 
+from codev.perform import CodevPerform
 from codev.perform.cli import command
 
 
 @command(
     help='Run configuration.',
 )
-def status(codev_perform):
+def status(codev_perform: CodevPerform) -> bool:
     """
     Deploy project
 

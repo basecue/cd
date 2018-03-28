@@ -1,46 +1,53 @@
+from typing import Optional, Tuple
+
+from codev.core.executor import BareExecutor
 from codev.core.settings import BaseSettings
 from codev.core.source import Source
 
 
 class GitSourceSettings(BaseSettings):
     @property
-    def url(self):
+    def url(self) -> Optional[str]:
         return self.data.get('url')
 
-    def remote(self):
+    @property
+    def remote(self) -> Optional[str]:
         return self.data.get('remote')
 
     @property
-    def version(self):
+    def version(self) -> Optional[str]:
         return self.data.get('version')
-
-    def parse_option(self, option):
-        if self.version and option != self.version:
-            raise Exception("Version '{option}' is not allowed for git source.".format(option=option))
 
 
 class GitSource(Source):
     provider_name = 'git'
     settings_class = GitSourceSettings
 
-    def parse_version(self, executor):
-        def find_branch(remote, branch):
-            branches = executor.execute('git branch -r').splitlines()
-            return '{remote}/{branch}'.format(remote=remote, branch=branch) in branches
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
-        def find_tag(tag):
+        if self.settings.version and self.option != self.settings.version:
+            raise Exception(f"Version '{self.option}' is not allowed for git source.")
+
+    def parse_version(self, executor: BareExecutor) -> Tuple[str, str, str, str]:
+        def find_branch(remote: str, branch: str) -> bool:
+            branches = executor.execute('git branch -r').splitlines()
+            return f'{remote}/{branch}' in branches
+
+        def find_tag(tag: str) -> bool:
             return tag in executor.execute('git tag').splitlines()
 
-        def find_commit(commit):
-            return executor.check_execute('git log -F {commit} -n 1 --pretty=oneline'.format(commit=commit))
+        def find_commit(commit: str) -> bool:
+            return executor.check_execute(f'git log -F {commit} -n 1 --pretty=oneline')
 
         version = self.option
 
         remotes = executor.execute('git remote').splitlines()
 
         if self.settings.remote:
-            if self.settings.remote not in remotes:
-                raise ValueError("Remote '{remote}' is not found.")
+            remote = self.settings.remote
+            if remote not in remotes:
+                raise ValueError(f"Remote '{remote}' is not found.")
         else:
             if 'origin' in remotes:
                 remote = 'origin'
@@ -48,15 +55,15 @@ class GitSource(Source):
                 remote = remotes[0]
 
         if self.settings.url:
-            self.repository_url = self.settings.url
+            repository_url = self.settings.url
         else:
-            self.repository_url = executor.execute('git remote get-url {remote}'.format(remote=remote))
+            repository_url = executor.execute(f'git remote get-url {remote}')
 
         branch, tag, commit = None, None, None
 
         if not version:
             branch = executor.execute(
-                'git branch -r --points-at {remote}/HEAD | grep -v HEAD'.format(remote=remote)
+                f'git branch -r --points-at {remote}/HEAD | grep -v HEAD'
             )
             commit = None
 
@@ -69,12 +76,12 @@ class GitSource(Source):
             elif find_commit(version):
                 commit = version
             else:
-                raise ValueError("Branch, tag or commit '{version}' not found.".format(version=version))
+                raise ValueError(f"Branch, tag or commit '{version}' not found.")
 
-        return branch, tag, commit
+        return repository_url, branch, tag, commit
 
-    def install(self, executor):
-        branch, tag, commit = self.parse_version(executor)
+    def install(self, executor: BareExecutor) -> None:
+        repository_url, branch, tag, commit = self.parse_version(executor)
 
         # TODO requirements
         # executor.install_packages('git')
@@ -91,21 +98,12 @@ class GitSource(Source):
         # clone repository
 
         if branch:
-            executor.execute('git clone {url} --branch {branch} --single-branch .'.format(
-                url=self.repository_url,
-                branch=branch
-            ))
+            executor.execute(f'git clone {repository_url} --branch {branch} --single-branch .')
         elif commit:
             executor.execute('git init .')
-            executor.execute('git remote add origin {url}'.format(url=self.repository_url))
-            executor.execute('git fetch origin {commit}'.format(commit=commit))
+            executor.execute(f'git remote add origin {repository_url}')
+            executor.execute(f'git fetch origin {commit}')
             executor.execute('git reset --hard FETCH_HEAD')
-        else:  # if self.tag
-            executor.execute('git clone {url} .'.format(
-                url=self.repository_url,
-            ))
-            executor.execute('git checkout {tag}'.format(
-                url=self.repository_url,
-                tag=tag
-            ))
-
+        else:  # if tag
+            executor.execute(f'git clone {repository_url} .')
+            executor.execute(f'git checkout {tag}')
