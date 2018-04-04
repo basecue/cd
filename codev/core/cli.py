@@ -10,7 +10,6 @@ from .debug import DebugSettings
 logger = getLogger(__name__)
 
 
-
 def nice_exception(func):
     @wraps(func)
     def nice_exception_wrapper(*args, **kwargs):
@@ -24,6 +23,7 @@ def nice_exception(func):
             # TODO log traceback to some logfile
             logger.error(e)
             return False
+
     return nice_exception_wrapper
 
 

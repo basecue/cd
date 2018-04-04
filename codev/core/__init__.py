@@ -1,7 +1,7 @@
-from collections import OrderedDict
-from os import path
 from typing import Dict, Any, IO
 
+from collections import OrderedDict
+import os.path
 import yaml
 
 from codev import __version__
@@ -38,7 +38,7 @@ class CodevSettings(BaseSettings):
 
     @property
     def project(self) -> str:
-        return self.data.get('project', path.basename(path.abspath(path.curdir)))
+        return self.data.get('project', os.path.basename(os.path.abspath(os.path.curdir)))
 
     @property
     def configurations(self) -> Dict:

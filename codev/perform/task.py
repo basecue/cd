@@ -1,10 +1,13 @@
-from logging import getLogger
+from typing import Dict
+
+import logging
 
 from codev.core.executor import HasExecutor
 from codev.core.provider import Provider
 from codev.core.settings import HasSettings, ProviderSettings
+from codev.perform.infrastructure import Infrastructure
 
-logger = getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class TaskSettings(ProviderSettings):
@@ -13,11 +16,11 @@ class TaskSettings(ProviderSettings):
     #     return TaskScriptsSettings(self.data.get('scripts', {}))
 
     @property
-    def source(self):
+    def source(self) -> ProviderSettings:
         return ProviderSettings(self.data.get('source', {}))
 
 
 class Task(Provider, HasSettings, HasExecutor):
 
-    def run(self, infrastructure, input_vars, source_directory):
+    def run(self, infrastructure: Infrastructure, input_vars: Dict[str, str], source_directory: str) -> bool:
         raise NotImplementedError()
