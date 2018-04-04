@@ -1,6 +1,6 @@
 from collections import OrderedDict
 from os import path
-from typing import TypeVar, Dict
+from typing import Dict, Any, IO
 
 import yaml
 
@@ -45,15 +45,12 @@ class CodevSettings(BaseSettings):
         return self.data.get('configurations', {})
 
 
-CodevType = TypeVar('CodevType', bound='Codev')
-
-
 class Codev(HasSettings):
     settings_class = CodevSettings
     configuration_class = Configuration
     configuration_kwargs = ()
 
-    def __init__(self, *args, configuration_name='', **kwargs) -> None:
+    def __init__(self, *args: Any, configuration_name: str = '', **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
         self.configuration = self.configuration_class.get(
@@ -62,12 +59,12 @@ class Codev(HasSettings):
         )
 
     @classmethod
-    def from_file(cls, filepath, *args, **kwargs) -> CodevType:
+    def from_file(cls, filepath: str, *args: Any, **kwargs: Any) -> 'Codev':
         with open(filepath) as file:
             return cls.from_yaml(file, *args, **kwargs)
 
     @classmethod
-    def from_yaml(cls, yamldata, *args, **kwargs) -> CodevType:
+    def from_yaml(cls, yamldata: IO, *args: Any, **kwargs: Any) -> 'Codev':
         settings_data = yaml.load(yamldata)
         return cls(*args, settings_data=settings_data, **kwargs)
 

@@ -1,18 +1,17 @@
-from typing import TypeVar, Dict, Any
-
+from typing import TypeVar, Dict, Any, Tuple, Type
 
 ProviderType = TypeVar('ProviderType', bound='Provider')
 
 
 class ProviderMetaClass(type):
-    def __new__(mcs, name: str, bases, attrs: Dict[str, Any]) -> ProviderType:
+    def __new__(mcs, name: str, bases: Tuple[Type], attrs: Dict[str, Any]) -> ProviderType:
 
         if name == 'Provider':
             return type.__new__(mcs, name, bases, attrs)
 
         if Provider in bases:
-            cls: ProviderType = type.__new__(mcs, name, bases, attrs)
-            cls.providers = {}
+            cls: ProviderType = type.__new__(mcs, name, bases, attrs)  # type: ignore
+            cls.providers = {}  # type ignore
             cls.provider_class = cls
             if cls.provider_name is not None:
                 raise ImportError(
@@ -31,12 +30,13 @@ class ProviderMetaClass(type):
 
             if 'provider_name' in attrs:
                 if not isinstance(attrs['provider_name'], str):
-                    raise TypeError("Attribute 'provider_name' has to be 'str' type in provider class '{name}'.".format(name=name))
+                    raise TypeError(
+                        "Attribute 'provider_name' has to be 'str' type in provider class '{name}'.".format(name=name))
                 cls.provider_class.register_provider(cls.provider_name, cls)
 
             return cls
 
-    def __call__(cls, *args, **kwargs) -> ProviderType:
+    def __call__(cls, *args: Any, **kwargs: Any) -> ProviderType:
         if cls == cls.provider_class:
             args_list = list(args)
             provider_name = args_list.pop(0)
@@ -55,13 +55,12 @@ class ProviderMetaClass(type):
             return super().__call__(*args, **kwargs)
 
 
-
 class Provider(object, metaclass=ProviderMetaClass):
     provider_name: str = None
     provider_class: ProviderType = None
 
     @classmethod
-    def register_provider(cls, provider_name: str, provider_cls: ProviderType) -> None:
+    def register_provider(cls, provider_name: str, provider_cls: 'Provider') -> None:
         if provider_name in cls.provider_class.providers:
             # TODO better exception
             raise ImportError(
@@ -73,5 +72,3 @@ class Provider(object, metaclass=ProviderMetaClass):
             )
         else:
             cls.provider_class.providers[provider_name] = provider_cls
-
-

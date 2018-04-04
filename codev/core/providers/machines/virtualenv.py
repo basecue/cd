@@ -1,5 +1,5 @@
 from contextlib import contextmanager
-from typing import IO
+from typing import IO, Iterator
 
 from codev.core.executor import Command
 from codev.core.machines import BaseMachine
@@ -24,7 +24,7 @@ class DirectoryBaseMachine(BaseMachine):
         return super().execute_command(command)
 
     @contextmanager
-    def open_file(self, remote_path: str) -> IO:
+    def open_file(self, remote_path: str) -> Iterator[IO]:
         with self.change_directory(self._get_base_dir()):
             with super().open_file(remote_path) as fo:
                 yield fo
@@ -39,7 +39,7 @@ class VirtualenvBaseMachineSettings(BaseSettings):
 class VirtualenvBaseMachine(BaseMachine):
     settings_class = VirtualenvBaseMachineSettings
     executor_class = DirectoryBaseMachine
-    executor_class_forward = ['ident']
+    executor_class_pass_kwargs = ['ident']
 
     def exists(self) -> bool:
         return self.executor.exists() and self.executor.exists_directory('env')

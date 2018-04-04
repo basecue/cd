@@ -1,4 +1,4 @@
-from typing import TypeVar, Dict
+from typing import TypeVar, Dict, Any
 
 from codev.core.utils import Status
 from codev.core.settings import BaseSettings, ConfigurationScriptsSettings, HasSettings
@@ -7,7 +7,7 @@ from codev.core.settings import BaseSettings, ConfigurationScriptsSettings, HasS
 class ConfigurationSettings(BaseSettings):
 
     @property
-    def scripts(self):
+    def scripts(self) -> ConfigurationScriptsSettings:
         return ConfigurationScriptsSettings(self.data.get('scripts', {}))
 
     @property
@@ -15,18 +15,15 @@ class ConfigurationSettings(BaseSettings):
         return self.data.get('load_vars', {})
 
 
-ConfigurationType = TypeVar('ConfigurationType', bound='ConfigurationType')
-
-
 class Configuration(HasSettings):
     settings_class = ConfigurationSettings
 
-    def __init__(self, name: str, *args, **kwargs) -> None:
+    def __init__(self, name: str, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.name = name
 
     @classmethod
-    def get(cls, name: str, configurations: Dict) -> ConfigurationType:
+    def get(cls, name: str, configurations: Dict) -> 'Configuration':
         try:
             settings_data = configurations[name]
         except KeyError:
@@ -46,6 +43,5 @@ class Configuration(HasSettings):
     @property
     def status(self) -> Status:
         return Status(
-            name=self.name,
-            option=self.option
+            name=self.name
         )

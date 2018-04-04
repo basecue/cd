@@ -4,6 +4,8 @@ import json
 import os.path
 from logging import getLogger
 
+from typing import Optional, Dict, List, Any
+
 from codev.core.providers.machines import VirtualenvBaseMachine
 from codev.core.installer import Installer
 from codev.core.settings import BaseSettings, ProviderSettings
@@ -15,47 +17,47 @@ logger = getLogger(__name__)
 
 class AnsibleTaskSettings(BaseSettings):
     @property
-    def playbook(self):
-        return self.data.get('playbook', None)
+    def playbook(self) -> Optional[str]:
+        return self.data.get('playbook')
 
     @property
-    def version(self):
-        return self.data.get('version', None)
+    def version(self) -> Optional[str]:
+        return self.data.get('version')
 
     @property
-    def python_version(self):
+    def python_version(self) -> str:
         return str(self.data.get('python', '2'))
 
     @property
-    def extra_vars(self):
+    def extra_vars(self) -> Dict[str, str]:
         return self.data.get('extra_vars', {})
 
     @property
-    def env_vars(self):
+    def env_vars(self) -> Dict[str, str]:
         return self.data.get('env_vars', {})
 
     @property
-    def requirements(self):
-        return self.data.get('requirements', None)
+    def requirements(self) -> Optional[str]:
+        return self.data.get('requirements')
 
     @property
-    def directory(self):
+    def directory(self) -> str:
         return self.data.get('directory', '')
 
     @property
-    def modules(self):
+    def modules(self) -> List[str]:
         return self.data.get('modules', [])
 
     @property
-    def vault_password(self):
-        return self.data.get('vault_password', None)
+    def vault_password(self) -> Optional[str]:
+        return self.data.get('vault_password')
 
 
 class AnsibleTask(Task):
     provider_name = 'ansible'
     settings_class = AnsibleTaskSettings
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.virtualenv = VirtualenvBaseMachine(
             executor=self.executor,
@@ -63,7 +65,7 @@ class AnsibleTask(Task):
             ident=Ident('codevansible')
         )
 
-    def run(self, infrastructure, input_vars, source_directory=''):
+    def run(self, infrastructure: Infrastructure, input_vars, source_directory='') -> bool:
         # TODO requirements - python-dev, python-virtualenv
         # Installer(executor=self.executor).install_packages(
         #     'python-virtualenv', 'python-dev', 'python3-venv', 'sshpass',  # for ansible task

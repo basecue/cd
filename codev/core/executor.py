@@ -1,24 +1,22 @@
-from typing import Iterator, Type, TypeVar, Union, IO, Optional
+from typing import Type, Union, IO, Optional, Any, List, Iterator
 
 from contextlib import contextmanager
-from os.path import expanduser
+import os.path
+from logging import Logger
 
 from codev.core.provider import Provider
-from os import path
 
 from codev.core.settings import HasSettings
 
-CommandType = TypeVar('CommandType', bound='Command')
-
 
 class Command(object):
-    def __new__(cls, command_or_str: Union[CommandType, str], *args, **kwargs) -> CommandType:
+    def __new__(cls, command_or_str: Union['Command', str], *args: Any, **kwargs: Any) -> 'Command':
         if isinstance(command_or_str, Command):
             return command_or_str
         else:
             return super().__new__(cls)
 
-    def __init__(self, command_str: str, output_logger=None, writein: Optional[str] = None) -> None:
+    def __init__(self, command_str: str, output_logger: Optional[Logger] = None, writein: Optional[str] = None) -> None:
         self.command_str = command_str
         self.output_logger = output_logger
         self.writein = writein
@@ -26,30 +24,30 @@ class Command(object):
     def __str__(self) -> str:
         return self.command_str
 
-    def escape(self) -> CommandType:
+    def escape(self) -> 'Command':
         return self._copy(self.command_str.replace('\\', '\\\\').replace('$', '\$').replace('"', '\\"'))
 
-    def include(self) -> CommandType:
+    def include(self) -> 'Command':
         return self._copy(
             'bash -c "{command}"'.format(
                 command=self.escape()
             )
         )
 
-    def _copy(self, command_or_str: Union[CommandType, str]) -> CommandType:
+    def _copy(self, command_or_str: Union['Command', str]) -> 'Command':
         return self.__class__(command_or_str, output_logger=self.output_logger, writein=self.writein)
 
-    def change_directory(self, directory: str) -> CommandType:
+    def change_directory(self, directory: str) -> 'Command':
         return self._copy(f'cd {directory} && {self.command_str}')
 
-    def wrap(self, command_str: str) -> CommandType:
+    def wrap(self, command_str: str) -> 'Command':
         return self._copy(
             command_str.format(
                 command=self.include()
             )
         )
 
-    def wrap_escape(self, command_str: str) -> CommandType:
+    def wrap_escape(self, command_str: str) -> 'Command':
         return self._copy(
             command_str.format(
                 command=self.include().escape()
@@ -80,20 +78,26 @@ class BareExecutor(object):
     def execute_command(self, command: Command) -> str:
         raise NotImplementedError()
 
-    def open_file(self, remote_path: str) -> IO:
+    @contextmanager
+    def open_file(self, remote_path: str) -> Iterator[IO]:
         raise NotImplementedError()
 
     def send_file(self, source: str, target: str) -> None:
         raise NotImplementedError()
 
-    def check_execute(self, command_str: str, output_logger=None, writein: Optional[str] = None) -> bool:
+    def check_execute(
+            self,
+            command_str: str,
+            output_logger: Optional[Logger] = None,
+            writein: Optional[str] = None
+    ) -> bool:
         try:
             self.execute(command_str, output_logger=output_logger, writein=writein)
             return True
         except CommandError:
             return False
 
-    def execute(self, command_str: str, output_logger=None, writein: Optional[str] = None) -> str:
+    def execute(self, command_str: str, output_logger: Optional[Logger] = None, writein: Optional[str] = None) -> str:
         command = Command(command_str, output_logger=output_logger, writein=writein)
 
         command = self.process_command(command)
@@ -105,18 +109,18 @@ class BareExecutor(object):
 
 
 class HasExecutor(object):
-    def __init__(self, *args, executor: BareExecutor, **kwargs):
+    def __init__(self, *args: Any, executor: BareExecutor, **kwargs: Any) -> None:
         self.executor = executor
         super().__init__(*args, **kwargs)
 
 
 class BareProxyExecutor(HasExecutor, BareExecutor):
-    executor_class: Type[BareExecutor] = None
-    executor_class_forward = []
+    executor_class: Type[HasExecutor] = None
+    executor_class_pass_kwargs: List[str] = []
 
-    def __init__(self, executor: BareExecutor, **kwargs) -> None:
+    def __init__(self, executor: BareExecutor, **kwargs: Any) -> None:
         if self.executor_class:
-            executor_kwargs = {key: kwargs.get(key) for key in self.executor_class_forward}
+            executor_kwargs = {key: kwargs.get(key) for key in self.executor_class_pass_kwargs}
             executor = self.executor_class(executor=executor, **executor_kwargs)
 
         super().__init__(executor=executor, **kwargs)
@@ -129,7 +133,7 @@ class BareProxyExecutor(HasExecutor, BareExecutor):
         return self.effective_executor.execute_command(command)
 
     @contextmanager
-    def open_file(self, remote_path: str) -> IO:
+    def open_file(self, remote_path: str) -> Iterator[IO]:
         with self.effective_executor.open_file(remote_path) as fo:
             yield fo
 
@@ -140,18 +144,18 @@ class BareProxyExecutor(HasExecutor, BareExecutor):
 
 class BaseProxyExecutor(BareProxyExecutor):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        self.directories = []
+        self.directories: List[str] = []
 
     def send_file(self, source: str, target: str) -> None:
         # logger.debug("Send file: '{source}' '{target}'".format(source=source, target=target))
-        expanduser_source = expanduser(source)
+        expanduser_source = os.path.expanduser(source)
         super().send_file(expanduser_source, target)
 
     @contextmanager
-    def open_file(self, remote_path: str) -> IO:
-        remote_path = path.join(*[directory for directory in reversed(self.directories)], remote_path)
+    def open_file(self, remote_path: str) -> Iterator[IO]:
+        remote_path = os.path.join(*[directory for directory in reversed(self.directories)], remote_path)
         with super().open_file(remote_path) as fo:
             yield fo
 
@@ -172,7 +176,7 @@ class BaseProxyExecutor(BareProxyExecutor):
         self.execute(f'rm -rf {_path}')
 
     @contextmanager
-    def change_directory(self, directory: str) -> None:
+    def change_directory(self, directory: str) -> Iterator[None]:
         assert directory
         self.directories.append(directory)
         yield
@@ -196,203 +200,3 @@ class Executor(Provider, HasSettings, BareExecutor):
     #     raise CommandError("No SSH identities found, use the 'ssh-add'.")
 
     pass
-
-
-"""
-background runner
-# """
-
-from collections import namedtuple
-from time import sleep
-from logging import getLogger
-
-Isolation = namedtuple(
-    'Isolation', ['output_file', 'error_file', 'exitcode_file', 'command_file', 'pid_file', 'temp_file']
-)
-
-OUTPUT_FILE = 'codev.out'
-ERROR_FILE = 'codev.err'
-EXITCODE_FILE = 'codev.exit'
-COMMAND_FILE = 'codev.command'
-PID_FILE = 'codev.pid'
-TEMP_FILE = 'codev.temp'
-
-from time import time
-
-
-class BackgroundExecutor(ProxyExecutor):
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._isolation_cache = None
-        self.__isolation_directory = None
-        self.logger = getLogger(__name__)
-        self.ident = kwargs.pop('ident', str(time()))
-
-    @property
-    def _isolation_directory(self):
-        if not self.__isolation_directory:
-            # if not self.ident:
-            #     ssh_info = self.executor.execute('echo $SSH_CLIENT')
-            #     ip, remote_port, local_port = ssh_info.split()
-            #     self.ident = 'control_{ip}_{remote_port}_{local_port}'.format(
-            #         ip=ip, remote_port=remote_port, local_port=local_port
-            #     )
-
-            self.__isolation_directory = f'/tmp/.codev/{self.ident}'
-
-        return self.__isolation_directory
-
-    def _create_isolation(self):
-        self.executor.create_directory(self._isolation_directory)
-
-        output_file, error_file, exitcode_file, command_file, pid_file, temp_file = map(
-            lambda f: '{}/{}'.format(self._isolation_directory, f),
-            [OUTPUT_FILE, ERROR_FILE, EXITCODE_FILE, COMMAND_FILE, PID_FILE, TEMP_FILE]
-        )
-
-        return Isolation(
-            command_file=command_file,
-            output_file=output_file,
-            error_file=error_file,
-            exitcode_file=exitcode_file,
-            pid_file=pid_file,
-            temp_file=temp_file
-        )
-
-    @property
-    def _isolation(self):
-        if not self._isolation_cache:
-            self._isolation_cache = self._create_isolation()
-        return self._isolation_cache
-
-    def _clean(self):
-        self.executor.delete_path(self._isolation_directory)
-
-    def _bg_check(self, pid):
-        return self.executor.check_execute('ps -p %s -o pid=' % pid)
-
-    def _bg_log(self, logger, skip_lines):
-        output = self.executor.execute('tail {output_file} -n+{skip_lines}'.format(
-            output_file=self._isolation.output_file,
-            skip_lines=skip_lines)
-        )
-        if not output:
-            return 0
-
-        output_lines = output.splitlines()
-
-        for line in output_lines:
-            (logger or self.output_logger).debug(line)
-        return len(output_lines)
-
-    def _bg_stop(self, pid):
-        return self._bg_signal(pid)
-
-    def _bg_kill(self, pid):
-        self._bg_signal(pid, 9)
-        self._clean()
-
-    def _bg_signal(self, pid, signal=None):
-        return self.executor.execute(
-            'pkill {signal}-P {pid}'.format(
-                pid=pid,
-                signal='-%s ' % signal if signal else ''
-            )
-        )
-
-    def _bg_wait(self, pid, logger=None):
-        skip_lines = 1
-        while self._bg_check(pid):
-            skip_lines += self._bg_log(logger, skip_lines)
-            sleep(0.25)
-
-        self._bg_log(logger, skip_lines)
-
-    def _cat_file(self, catfile):
-        return self.executor.execute('cat %s' % catfile)
-
-    def _get_bg_running_pid(self):
-        return self._cat_file(self._isolation.pid_file)
-
-    def execute(self, command, logger=None, writein: Optional[str] = None, wait=True):
-        self.logger.debug('Command: {command} wait: {wait}'.format(command=command, wait=wait))
-        isolation = self._isolation
-
-        if self.executor.exists_file(isolation.exitcode_file) and self._cat_file(isolation.exitcode_file) == '':
-            if self.executor.exists_file(isolation.pid_file):
-                pid = self._cat_file(isolation.pid_file)
-                if pid and self._bg_check(pid):
-                    raise CommandError('Another process is running.')
-
-        self.executor.execute('echo "" > {output_file} > {error_file} > {exitcode_file} > {pid_file}'.format(
-            **isolation._asdict()
-        ))
-
-        self.executor.execute(
-            'tee {command_file} > /dev/null && chmod +x {command_file}'.format(
-                **isolation._asdict()
-            ),
-            writein='{command}; echo $? > {exitcode_file}\n'.format(
-                command=command,
-                exitcode_file=isolation.exitcode_file
-            )
-        )
-
-        bg_command = 'bash -c "nohup {command_file} > {output_file} 2> {error_file} & echo \$! | tee {pid_file}"'.format(
-            **isolation._asdict()
-        )
-
-        # max lines against readline hang
-        pid = self.executor.execute(bg_command, writein=writein)
-
-        if not pid.isdigit():
-            raise ValueError('not a pid %s' % pid)
-
-        if not wait:
-            return self.ident
-
-        self._bg_wait(pid, logger=logger)
-
-        exit_code = int(self._cat_file(isolation.exitcode_file))
-
-        output = self._cat_file(isolation.output_file)
-
-        if exit_code:
-            err = self._cat_file(isolation.error_file)
-            self._clean()
-            raise CommandError(command, exit_code, err, output)
-
-        self._clean()
-        return output
-
-    def _control(self, method, *args, **kwargs):
-        """
-        :param method:
-        :param args:
-        :param kwargs:
-        :return:
-        """
-        self.logger.debug('control command: {method}'.format(method=method.__name__))
-        try:
-            pid = self._get_bg_running_pid()
-        except CommandError as e:
-            raise CommandError('No active process.')
-
-        if pid:
-            try:
-                method(pid, *args, **kwargs)
-                return True
-            except CommandError as e:
-                return False
-        else:
-            return False
-
-    def join(self, logger=None):
-        return self._control(self._bg_wait, logger=logger)
-
-    def stop(self):
-        return self._control(self._bg_stop)
-
-    def kill(self):
-        return self._control(self._bg_kill)

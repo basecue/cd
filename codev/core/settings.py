@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Type, Dict, Any
+from typing import Type, Dict, Any, Optional, TypeVar
 
 
 class SettingsError(Exception):
@@ -7,19 +7,19 @@ class SettingsError(Exception):
 
 
 class BaseSettings(object):
-    def __init__(self, data=None):
+    def __init__(self, data=None) -> None:
         if data is None:
             data = {}
         self.data = data
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return bool(self.data)
 
 
 class HasSettings(object):
     settings_class: Type[BaseSettings] = None
 
-    def __init__(self, *args, settings_data=None, **kwargs):
+    def __init__(self, *args: Any, settings_data=None, **kwargs: Any) -> None:
         if self.settings_class:
             self.settings = self.settings_class(settings_data)
         else:
@@ -42,7 +42,7 @@ class ProviderSettings(BaseSettings):
 
 
 class DictSettings(OrderedDict):
-    def __init__(self, cls, data, *args, **kwargs):
+    def __init__(self, cls: Type, data: Dict[str, Any], *args: Any, **kwargs: Any):
         super().__init__()
 
         for name, itemdata in data.items():

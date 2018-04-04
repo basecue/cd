@@ -1,4 +1,4 @@
-from typing import Tuple, TypeVar, Union, Optional
+from typing import Tuple, TypeVar, Union, Optional, Any
 
 
 def parse_options(inp: str) -> Tuple[str, str]:
@@ -9,7 +9,7 @@ def parse_options(inp: str) -> Tuple[str, str]:
 
 
 class Ident(object):
-    def __init__(self, *args) -> None:
+    def __init__(self, *args: Any) -> None:
         self._ident = args
 
     def as_tuple(self) -> Tuple:
@@ -29,12 +29,12 @@ class Ident(object):
 
 
 class HasIdent(object):
-    def __init__(self, *args, ident: Optional[Ident] = None, **kwargs) -> None:
+    def __init__(self, *args: Any, ident: Optional[Ident] = None, **kwargs: Any) -> None:
         self.ident = ident
         super().__init__(*args, **kwargs)
 
 
-StatusType = TypeVar('Status', bound='Status')
+StatusType = TypeVar('StatusType', bound='Status')
 
 
 class Status(dict):
