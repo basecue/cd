@@ -1,7 +1,8 @@
 from typing import Dict, Any
 
-from codev.control.isolation import IsolationProvider, Isolation
 from codev.core.configuration import ConfigurationSettings, Configuration
+
+from codev.control.isolation import IsolationProvider, Isolation
 
 
 class ConfigurationControlSettings(ConfigurationSettings):

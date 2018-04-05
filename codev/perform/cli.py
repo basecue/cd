@@ -1,17 +1,14 @@
 import click
-from functools import wraps
+import functools
 
 from codev import __version__
-
 from codev.core.cli import nice_exception, path_option, bool_exit_enable
-
 from codev.core.debug import DebugSettings
-
 from . import CodevPerform
 
 
 def codev_perform_options(func):
-    @wraps(func)
+    @functools.wraps(func)
     def codev_perform_wrapper(
             configuration,
             **kwargs):
@@ -29,7 +26,7 @@ def codev_perform_options(func):
 
 
 def debug_option(func):
-    @wraps(func)
+    @functools.wraps(func)
     def debug_wrapper(debug, **kwargs):
         if debug:
             DebugSettings.settings = DebugSettings(dict(debug))
@@ -46,7 +43,7 @@ def debug_option(func):
 
 
 def version_option(func):
-    @wraps(func)
+    @functools.wraps(func)
     def version_wrapper(version, **kwargs):
         if version:
             click.echo(__version__)

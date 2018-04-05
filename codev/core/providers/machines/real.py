@@ -1,8 +1,11 @@
 from codev.core.settings import BaseSettings
-from codev.core.machines import MachinesProvider, BaseMachine
+from codev.core.machines import Machine
 
 
-class RealMachine(BaseMachine):
+class RealMachine(Machine):
+    provider_name = 'real'
+    # settings_class = RealMachineSettings
+
     def exists(self):
         return True
 
@@ -31,20 +34,4 @@ class RealMachine(BaseMachine):
         # TODO this is workaround
         return self.ident
 
-
-class RealMachinesSettings(BaseSettings):
-    @property
-    def hosts(self):
-        return self.data['hosts']
-
-
-class RealMachinesProvider(MachinesProvider):
-    provider_name = 'real'
-    settings_class = RealMachinesSettings
-    machine_class = RealMachine
-
-    def idents(self):
-        # TODO this is workaround
-        for host in self.settings.hosts:
-            yield host
 

@@ -5,8 +5,8 @@ import select
 import sys
 
 import click
-from codev.control import CodevControl
 
+from codev.control import CodevControl
 from codev.control.cli import command, main
 
 

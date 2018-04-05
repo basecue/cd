@@ -1,25 +1,25 @@
+from typing import Optional
+
 import json
 import re
-from time import sleep
-from contextlib import contextmanager
-from logging import getLogger
-from os import path
+import logging
+import time
 
 from codev.core.installer import Installer
+from codev.core.machines import BaseMachine, Machine
 from codev.core.providers import SSHExecutor
 from codev.core.settings import BaseSettings
-from codev.core.machines import BaseMachine, Machine
 
-logger = getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class LXDBaseMachineSettings(BaseSettings):
     @property
-    def distribution(self):
+    def distribution(self) -> Optional[str]:
         return self.data.get('distribution')
 
     @property
-    def release(self):
+    def release(self) -> Optional[str]:
         return self.data.get('release')
 
 
@@ -68,7 +68,7 @@ class LXDBaseMachine(BaseMachine):
 
     def _wait_for_start(self):
         while not self.is_started():
-            sleep(0.5)
+            time.sleep(0.5)
 
     def create(self):
         distribution = self.settings.distribution

@@ -1,7 +1,7 @@
 from typing import Iterable
 
 from codev.core.settings import HasSettings
-from codev.core.utils import HasIdent
+from codev.core.utils import HasIdent, Status
 from .executor import ProxyExecutor
 from .provider import Provider
 
@@ -40,3 +40,9 @@ class Machine(Provider, BaseMachine):
     def __init__(self, *args, groups: Iterable = None, **kwargs) -> None:
         self.groups = groups or []
         super().__init__(*args, **kwargs)
+
+    def ip(self):
+        raise NotImplementedError
+
+    def status(self) -> Status:
+        return Status(ident=self.ident, ip=self.ip, groups=self.groups)

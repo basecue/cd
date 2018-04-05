@@ -1,26 +1,29 @@
-from typing import IO
+from typing import IO, Iterator, Optional, Dict
+
+import contextlib
+import tempfile
 
 from codev.core.executor import Command
-from .local import LocalExecutor
 from codev.core.settings import BaseSettings
-from tempfile import NamedTemporaryFile
+
+from .local import LocalExecutor
 
 
 class SSHExecutorSettings(BaseSettings):
     @property
-    def hostname(self):
+    def hostname(self) -> str:
         return self.data.get('hostname', 'localhost')
 
     @property
-    def port(self):
+    def port(self) -> int:
         return self.data.get('port', 22)
 
     @property
-    def username(self):
-        return self.data.get('username', None)
+    def username(self) -> Optional[str]:
+        return self.data.get('username')
 
     @property
-    def options(self):
+    def options(self) -> Dict[str, str]:
         return self.data.get('options', {})
 
     # @property
@@ -64,8 +67,9 @@ class SSHExecutor(LocalExecutor):
 
         super().execute_command(command)
 
-    def open_file(self, remote_path: str) -> IO:
-        with NamedTemporaryFile() as fo:
+    @contextlib.contextmanager
+    def open_file(self, remote_path: str) -> Iterator[IO]:
+        with tempfile.NamedTemporaryFile() as fo:
             command = Command(
                 '{scp_base} {username}@{hostname}:{remote_path} {target} '.format(
                     scp_base=self._scp_base(),

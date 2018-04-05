@@ -1,6 +1,8 @@
-from logging import getLogger
+from typing import Any, Dict
 
-from codev.core import Codev
+import logging
+
+from codev.core import Codev, Status
 from codev.core.debug import DebugSettings
 from codev.core.executor import BaseProxyExecutor
 from codev.core.providers.executors.local import LocalExecutor
@@ -10,8 +12,8 @@ from codev.perform.task import Task
 from .log import logging_config
 from .providers import *
 
-logger = getLogger(__name__)
-command_logger = getLogger('command')
+logger = logging.getLogger(__name__)
+command_logger = logging.getLogger('command')
 
 
 class CodevPerform(Codev):
@@ -23,9 +25,9 @@ class CodevPerform(Codev):
 
     def __init__(
             self,
-            *args,
-            **kwargs
-    ):
+            *args: Any,
+            **kwargs: Any
+    ) -> None:
         logging_config(DebugSettings.settings.loglevel)
 
         super().__init__(*args, **kwargs)
@@ -33,14 +35,7 @@ class CodevPerform(Codev):
         self.executor = BaseProxyExecutor(executor=LocalExecutor())
         self.infrastructure = self.configuration.get_infrastructure(self.executor)
 
-    def perform(self, input_vars):
-        """
-        Run runner
-
-        :return: True if runner is successfully realized
-        :rtype: bool
-        """
-
+    def perform(self, input_vars: Dict[str, str]) -> bool:
         input_vars.update(DebugSettings.settings.load_vars)
 
         self.infrastructure.create()
@@ -64,7 +59,6 @@ class CodevPerform(Codev):
             logger.info(f"Running task '{task_name}'...")
             task.run(self.infrastructure, input_vars, source_directory)
 
-
     # def execute(self, script, arguments=None):
     #     """
     #     Run script.
@@ -85,7 +79,7 @@ class CodevPerform(Codev):
     #         return True
 
     @property
-    def status(self):
+    def status(self) -> Status:
         """
         Info about runner
 

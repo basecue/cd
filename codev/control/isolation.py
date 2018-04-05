@@ -1,7 +1,7 @@
 from typing import Dict, Any, Optional
 
-from json import dumps
-from logging import getLogger
+import json
+import logging
 
 from codev.core import Codev
 from codev.core.debug import DebugSettings
@@ -11,13 +11,14 @@ from codev.core.provider import Provider
 from codev.core.settings import ListDictSettings, ProviderSettings, BaseSettings, HasSettings
 from codev.core.source import Source
 from codev.core.utils import Ident, Status
+
 from .log import logging_config
 
 # from codev.core.isolator import Isolator
 
-logger = getLogger(__name__)
-command_logger = getLogger('command')
-debug_logger = getLogger('debug')
+logger = logging.getLogger(__name__)
+command_logger = logging.getLogger('command')
+debug_logger = logging.getLogger('debug')
 
 # FIXME
 """
@@ -49,7 +50,7 @@ class Isolation(Provider, BaseMachine):
         with self.open_file('.codev') as codev_file:
             return Codev.from_yaml(codev_file, configuration_name=self.configuration_name)
 
-    def _call_codev(self, subcommand: str, load_vars: Optional[Dict[str, Any]]=None) -> str:
+    def _call_codev(self, subcommand: str, load_vars: Optional[Dict[str, Any]] = None) -> str:
         if DebugSettings.perform_settings:
             perform_debug = ' '.join(
                 (
@@ -65,7 +66,7 @@ class Isolation(Provider, BaseMachine):
         return self.execute(
             f'codev-{subcommand} {self.configuration_name} {perform_debug}',
             output_logger=command_logger,
-            writein=dumps(load_vars or {})
+            writein=json.dumps(load_vars or {})
         )
 
     def _codev_perform(self, load_vars: Dict[str, Any]) -> bool:
@@ -113,7 +114,7 @@ class Isolation(Provider, BaseMachine):
 
         if self.exists():
             status.update(
-                status=self._call_codev('status') # TODO
+                status=self._call_codev('status')  # TODO
             )
         return status
 
@@ -153,15 +154,15 @@ class IsolationProvider(HasSettings):
     settings_class = IsolationProviderSettings
 
     def __init__(
-        self,
-        *args,
-        project_name: str,
-        configuration_name: str,
-        source_name: str,
-        source_option: str,
-        next_source_name: str,
-        next_source_option: str,
-        **kwargs
+            self,
+            *args,
+            project_name: str,
+            configuration_name: str,
+            source_name: str,
+            source_option: str,
+            next_source_name: str,
+            next_source_option: str,
+            **kwargs
     ) -> None:
 
         self.configuration_name = configuration_name
@@ -201,7 +202,7 @@ class IsolationProvider(HasSettings):
             next_source=self._get_source(self.next_source_name, self.next_source_option, default=False)
         )
 
-    def _get_source(self, source_name: str, source_option: str, default: bool=True) -> Source:
+    def _get_source(self, source_name: str, source_option: str, default: bool = True) -> Source:
         # TODO refactor
         try:
             return Source.get(source_name, self.settings.sources, source_option, default=default)
@@ -236,8 +237,6 @@ class PrivilegedIsolation(Isolation):
 
             self.send_file(distfile, remote_distfile)
             self.execute('pip3 install --upgrade {distfile}'.format(distfile=remote_distfile))
-
-
 
 # class IsolationX(object):
 #     def __init__(self, isolation_settings, infrastructure_settings, source, next_source, executor, ident):
@@ -375,7 +374,7 @@ class PrivilegedIsolation(Isolation):
 #                     'codev-perform run {configuration} --force {perform_debug}'.format(
 #                         configuration=configuration,
 #                         perform_debug=perform_debug
-#                     ), logger=command_logger, writein=dumps(load_vars))
+#                     ), logger=command_logger, writein=json.dumps(load_vars))
 #         except CommandError as e:
 #             command_logger.error(e.error)
 #             logger.error("Installation failed.")

@@ -1,6 +1,7 @@
+import functools
+
 import click
 from colorama import Fore as color, Style as style
-from functools import wraps
 
 from codev import __version__
 
@@ -50,7 +51,7 @@ def source_transition(codev_control_status):
 
 def confirmation_message(message):
     def decorator(f):
-        @wraps(f)
+        @functools.wraps(f)
         def confirmation_wrapper(codev_control, force, **kwargs):
             if not force:
                 if not click.confirm(
@@ -74,7 +75,7 @@ def confirmation_message(message):
 
 
 def codev_control_options(func):
-    @wraps(func)
+    @functools.wraps(func)
     def codev_control_wrapper(
             configuration,
             source,
@@ -113,7 +114,7 @@ def codev_control_options(func):
 
 
 def debug_option(func):
-    @wraps(func)
+    @functools.wraps(func)
     def debug_wrapper(debug, debug_perform, **kwargs):
         if debug:
             DebugSettings.settings = DebugSettings(dict(debug))

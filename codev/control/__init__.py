@@ -1,10 +1,11 @@
-from typing import Dict
+from typing import Dict, Any
 
 import logging
 
-from codev.control.configuration import ConfigurationControl
 from codev.core import Codev, Status
 from codev.core.debug import DebugSettings
+
+from codev.control.configuration import ConfigurationControl
 from .isolation import Isolation
 from .log import logging_config
 from .providers import *
@@ -22,12 +23,12 @@ class CodevControl(Codev):
 
     def __init__(
             self,
-            *args,
+            *args: Any,
             source_name: str,
             source_option: str,
             next_source_name: str,
             next_source_option: str,
-            **kwargs
+            **kwargs: Any
     ) -> None:
         logging_config(DebugSettings.settings.loglevel)
 

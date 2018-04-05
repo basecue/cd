@@ -1,19 +1,18 @@
 from typing import IO, Tuple
 
-from contextlib import contextmanager
-from logging import getLogger
-from multiprocessing.pool import ThreadPool
-from os import fdopen, remove
-from os.path import expanduser
-from subprocess import Popen, PIPE, check_call
-from tempfile import mkstemp
-from time import sleep
-
+import contextlib
+import multiprocessing.pool
+import logging
+import os
+import os.path
+import subprocess
+import tempfile
+import time
 
 from codev.core.executor import Executor, CommandError, Command
 
-logger = getLogger(__name__)
-command_output_logger = getLogger('command_output')
+logger = logging.getLogger(__name__)
+command_output_logger = logging.getLogger('command_output')
 
 
 class LocalExecutor(Executor):
@@ -22,14 +21,14 @@ class LocalExecutor(Executor):
     def execute_command(self, command: Command) -> str:
         logger.debug(f"Execute command: '{command}'")
 
-        outtempfd, outtemppath = mkstemp()
-        errtempfd, errtemppath = mkstemp()
+        outtempfd, outtemppath = tempfile.mkstemp()
+        errtempfd, errtemppath = tempfile.mkstemp()
 
-        with fdopen(outtempfd, 'w+b') as outfile,\
-            open(outtemppath, 'r+b') as outfileread,\
-            fdopen(errtempfd, 'w+b') as errfile,\
-            open(errtemppath, 'r+b') as errfileread:
-            process = Popen(str(command), stdout=outfile, stderr=errfile, stdin=PIPE, shell=True)
+        with os.fdopen(outtempfd, 'w+b') as outfile, \
+                open(outtemppath, 'r+b') as outfileread, \
+                os.fdopen(errtempfd, 'w+b') as errfile, \
+                open(errtemppath, 'r+b') as errfileread:
+            process = subprocess.Popen(str(command), stdout=outfile, stderr=errfile, stdin=subprocess.PIPE, shell=True)
 
             if command.writein:
                 # write writein to stdin
@@ -52,8 +51,8 @@ class LocalExecutor(Executor):
 
             output, error = output_reader.output()
 
-        remove(outtemppath)
-        remove(errtemppath)
+        os.remove(outtemppath)
+        os.remove(errtemppath)
 
         if exit_code:
             raise CommandError(command, exit_code, error, output)
@@ -63,17 +62,17 @@ class LocalExecutor(Executor):
         if source == target:
             return
 
-        check_call(['cp', source, target])
+        subprocess.check_call(['cp', source, target])
 
-    @contextmanager
+    @contextlib.contextmanager
     def open_file(self, remote_path: str) -> IO:
-        remote_path = expanduser(remote_path)
+        remote_path = os.path.expanduser(remote_path)
         with open(remote_path) as fo:
             yield fo
 
 
 class OutputReader(object):
-    thread_pool = ThreadPool(processes=2)
+    thread_pool = multiprocessing.pool.ThreadPool(processes=2)
 
     def __init__(self, stdout, stderr, output_logger=None):
         self._stdout_output = []
@@ -107,7 +106,7 @@ class OutputReader(object):
                 if self.terminated:
                     break
 
-                sleep(0.1)
+                time.sleep(0.1)
                 continue
 
             for line in lines:
@@ -122,6 +121,3 @@ class OutputReader(object):
     def output(self) -> Tuple[str, str]:
         self.terminated = True
         return self._stdout_reader.get(), self._stderr_reader.get()
-
-
-
