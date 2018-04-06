@@ -1,3 +1,5 @@
+from typing import Union, Optional
+
 import logging
 import sys
 
@@ -6,7 +8,7 @@ from colorama import Fore as color
 from codev.core.log import LOGLEVELS, error_filter, info_filter, debug_filter
 
 
-def logging_config(loglevel: str = None, control_perform: bool = False) -> None:
+def logging_config(loglevel: Optional[Union[str, int]] = None, control_perform: Optional[bool] = False) -> None:
     """
     :param loglevel:
     :param control_command:

@@ -10,7 +10,7 @@ from codev.perform.task import TaskSettings
 class ConfigurationPerformSettings(ConfigurationSettings):
 
     @property
-    def tasks(self):
+    def tasks(self) -> DictSettings:
         return DictSettings(
             TaskSettings,
             self.data.get('tasks', {})

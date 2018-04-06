@@ -27,14 +27,14 @@ class LXDBaseMachine(BaseMachine):
     settings_class = LXDBaseMachineSettings
 
     @property
-    def effective_executor(self):
+    def effective_executor(self) -> SSHExecutor:
         return SSHExecutor(settings_data={'hostname': self._ip, 'username': 'root'})
 
     @property
-    def _container_name(self):
+    def _container_name(self) -> str:
         return self.ident.as_file()
 
-    def exists(self):
+    def exists(self) -> bool:
         output = self.executor.execute(
             'lxc list -cn --format=json ^{container_name}$'.format(
                 container_name=self._container_name
@@ -42,7 +42,7 @@ class LXDBaseMachine(BaseMachine):
         )
         return bool(json.loads(output))
 
-    def is_started(self):
+    def is_started(self) -> bool:
         output = self.executor.execute(
             'lxc info {container_name}'.format(
                 container_name=self._container_name
@@ -66,11 +66,11 @@ class LXDBaseMachine(BaseMachine):
         else:
             raise ValueError(f'Bad state: {state}')
 
-    def _wait_for_start(self):
+    def _wait_for_start(self) -> None:
         while not self.is_started():
             time.sleep(0.5)
 
-    def create(self):
+    def create(self) -> None:
         distribution = self.settings.distribution
         release = self.settings.release
 
@@ -80,24 +80,21 @@ class LXDBaseMachine(BaseMachine):
 
         self._wait_for_start()
 
-    def destroy(self):
+    def destroy(self) -> None:
         self.executor.execute(f'lxc delete {self._container_name} --force')
 
         # # TODO share
         # self.executor.execute('rm -rf {share_directory}'.format(share_directory=self.share_directory))
 
-    def start(self):
+    def start(self) -> None:
         self.executor.execute(f'lxc start {self._container_name}')
-
         self._wait_for_start()
-
-        return True
 
     def stop(self) -> None:
         self.executor.execute(f'lxc stop {self._container_name}')
 
     @property
-    def _ip(self):
+    def _ip(self) -> Optional[str]:
         output = self.executor.execute(f'lxc info {self._container_name}')
         for line in output.splitlines():
             r = re.match('^\s+eth0:\s+inet\s+([0-9\.]+)\s+\w+$', line)
@@ -110,7 +107,7 @@ class LXDBaseMachine(BaseMachine):
 class LXDMachine(Machine, LXDBaseMachine):
     provider_name = 'lxd'
 
-    def create(self):
+    def create(self) -> None:
         super(LXDMachine, self).create()
         Installer(executor=self).install_packages('openssh-server')
 

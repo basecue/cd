@@ -1,4 +1,4 @@
-from typing import Dict, TypeVar
+from typing import Dict, TypeVar, Any
 
 from codev.core.executor import BareExecutor
 from codev.core.settings import HasSettings
@@ -10,7 +10,7 @@ SourceType = TypeVar('SourceType', bound='Source')
 
 class Source(Provider, HasSettings):
 
-    def __init__(self, *args, option: str, **kwargs):
+    def __init__(self, *args: Any, option: str, **kwargs: Any) -> None:
         self.option = option
         super().__init__(*args, **kwargs)
 

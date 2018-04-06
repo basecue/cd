@@ -32,7 +32,7 @@ codev-perform run {configuration_name} --force
 
 
 class Isolation(Provider, BaseMachine):
-    def __init__(self, *args, source: Source, next_source: Source, configuration_name: str, **kwargs) -> None:
+    def __init__(self, *args: Any, source: Source, next_source: Source, configuration_name: str, **kwargs: Any) -> None:
         self.configuration_name = configuration_name
         self.source = source
         self.next_source = next_source
@@ -121,30 +121,30 @@ class Isolation(Provider, BaseMachine):
 
 class IsolationScriptsSettings(BaseSettings):
     @property
-    def oncreate(self):
+    def oncreate(self) -> ListDictSettings:
         return ListDictSettings(self.data.get('oncreate', []))
 
     @property
-    def onenter(self):
+    def onenter(self) -> ListDictSettings:
         return ListDictSettings(self.data.get('onenter', []))
 
 
 class IsolationProviderSettings(ProviderSettings):
 
     @property
-    def executor(self):
+    def executor(self) -> ProviderSettings:
         return ProviderSettings(self.data.get('executor', {}))
 
     @property
-    def connectivity(self):
+    def connectivity(self) -> ListDictSettings:
         return ListDictSettings(self.data.get('connectivity', {}))
 
     @property
-    def scripts(self):
+    def scripts(self) -> IsolationScriptsSettings:
         return IsolationScriptsSettings(self.data.get('scripts', {}))
 
     @property
-    def sources(self):
+    def sources(self) -> ListDictSettings:
         return ListDictSettings(
             self.data.get('sources', [])
         )
@@ -155,14 +155,14 @@ class IsolationProvider(HasSettings):
 
     def __init__(
             self,
-            *args,
+            *args: Any,
             project_name: str,
             configuration_name: str,
             source_name: str,
             source_option: str,
             next_source_name: str,
             next_source_option: str,
-            **kwargs
+            **kwargs: Any
     ) -> None:
 
         self.configuration_name = configuration_name

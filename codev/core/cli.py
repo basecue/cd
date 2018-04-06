@@ -1,18 +1,20 @@
+from typing import Callable, Any
+
+import functools
+import logging
+import os
 import sys
-from functools import wraps
-from logging import getLogger
-from os import chdir
 
 import click
 
 from .debug import DebugSettings
 
-logger = getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
-def nice_exception(func):
-    @wraps(func)
-    def nice_exception_wrapper(*args, **kwargs):
+def nice_exception(func: Callable) -> Callable:
+    @functools.wraps(func)
+    def nice_exception_wrapper(*args: Any, **kwargs: Any) -> bool:
         try:
             return func(*args, **kwargs)
         except Exception as e:
@@ -27,10 +29,10 @@ def nice_exception(func):
     return nice_exception_wrapper
 
 
-def path_option(func):
-    @wraps(func)
-    def path_wrapper(path, *args, **kwargs):
-        chdir(path)
+def path_option(func: Callable) -> Callable:
+    @functools.wraps(func)
+    def path_wrapper(path: str, *args: Any, **kwargs: Any) -> bool:
+        os.chdir(path)
         return func(*args, **kwargs)
 
     return click.option('-p', '--path',
@@ -39,9 +41,9 @@ def path_option(func):
                         help='path to repository')(path_wrapper)
 
 
-def bool_exit_enable(func):
-    @wraps(func)
-    def bool_exit(*args, **kwargs):
+def bool_exit_enable(func: Callable) -> Callable:
+    @functools.wraps(func)
+    def bool_exit(*args: Any, **kwargs: Any) -> None:
         value = func(*args, **kwargs)
         if value:
             sys.exit(0)

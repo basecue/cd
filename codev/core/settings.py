@@ -1,5 +1,6 @@
+import collections
 from collections import OrderedDict
-from typing import Type, Dict, Any, Optional, TypeVar
+from typing import Type, Dict, Any, Optional, TypeVar, Union, Mapping, Sequence, List
 
 
 class SettingsError(Exception):
@@ -7,7 +8,7 @@ class SettingsError(Exception):
 
 
 class BaseSettings(object):
-    def __init__(self, data=None) -> None:
+    def __init__(self, data: Optional[Dict] = None) -> None:
         if data is None:
             data = {}
         self.data = data
@@ -19,7 +20,7 @@ class BaseSettings(object):
 class HasSettings(object):
     settings_class: Type[BaseSettings] = None
 
-    def __init__(self, *args: Any, settings_data=None, **kwargs: Any) -> None:
+    def __init__(self, *args: Any, settings_data: Optional[Dict] = None, **kwargs: Any) -> None:
         if self.settings_class:
             self.settings = self.settings_class(settings_data)
         else:
@@ -42,7 +43,7 @@ class ProviderSettings(BaseSettings):
 
 
 class DictSettings(OrderedDict):
-    def __init__(self, cls: Type, data: Dict[str, Any], *args: Any, **kwargs: Any):
+    def __init__(self, cls: Type, data: Dict[str, Any], *args: Any, **kwargs: Any) -> None:
         super().__init__()
 
         for name, itemdata in data.items():
@@ -52,23 +53,23 @@ class DictSettings(OrderedDict):
 class ListDictSettings(OrderedDict):
 
     @staticmethod
-    def _intersect_default_value(intersect_default, key, value):
+    def _intersect_default_value(intersect_default: Dict, key: str, value: Any) -> Dict:
         ret_val = intersect_default.get(key, {})
         ret_val.update(value)
         return ret_val
 
-    def __init__(self, data, intersect_default=None):
+    def __init__(self, data: Union[Mapping, Sequence], intersect_default: Dict = None) -> None:
         if intersect_default is None:
             intersect_default = {}
         super().__init__()
 
-        if isinstance(data, dict) or isinstance(data, OrderedDict):
+        if isinstance(data, collections.Mapping):
             for key, value in data.items():
                 if not (isinstance(value, dict) or isinstance(value, OrderedDict)):
                     raise ValueError('Object {value} must be dictionary.'.format(value=value))
-                self[key] = self.__class__._intersect_default_value(intersect_default, key, value)
+                self[key] = self._intersect_default_value(intersect_default, key, value)
 
-        elif isinstance(data, list):
+        elif isinstance(data, collections.Sequence):
             for obj in data:
                 if isinstance(obj, OrderedDict):
                     if len(obj) == 1:
@@ -79,34 +80,34 @@ class ListDictSettings(OrderedDict):
                 else:
                     key = obj
                     value = {}
-                self[key] = self.__class__._intersect_default_value(intersect_default, key, value)
+                self[key] = self._intersect_default_value(intersect_default, key, value)
         else:
             raise ValueError('Object {data} must be list or dictionary.'.format(data=data))
 
 
 class TaskScriptsSettings(BaseSettings):
     @property
-    def onstart(self):
+    def onstart(self) -> ListDictSettings:
         return ListDictSettings(self.data.get('onstart', []))
 
     @property
-    def onsuccess(self):
+    def onsuccess(self) -> ListDictSettings:
         return ListDictSettings(self.data.get('onsuccess', []))
 
     @property
-    def onerror(self):
+    def onerror(self) -> ListDictSettings:
         return ListDictSettings(self.data.get('onerror', []))
 
 
 class ConfigurationScriptsSettings(BaseSettings):
     @property
-    def onstart(self):
+    def onstart(self) -> ListDictSettings:
         return ListDictSettings(self.data.get('onstart', []))
 
     @property
-    def onsuccess(self):
+    def onsuccess(self) -> ListDictSettings:
         return ListDictSettings(self.data.get('onsuccess', []))
 
     @property
-    def onerror(self):
+    def onerror(self) -> ListDictSettings:
         return ListDictSettings(self.data.get('onerror', []))

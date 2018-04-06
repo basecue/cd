@@ -1,5 +1,8 @@
-import click
+from typing import Any, Callable, List, Tuple
+
 import functools
+
+import click
 
 from codev import __version__
 from codev.core.cli import nice_exception, path_option, bool_exit_enable
@@ -7,12 +10,9 @@ from codev.core.debug import DebugSettings
 from . import CodevPerform
 
 
-def codev_perform_options(func):
+def codev_perform_options(func: Callable) -> Callable:
     @functools.wraps(func)
-    def codev_perform_wrapper(
-            configuration,
-            **kwargs):
-
+    def codev_perform_wrapper(configuration: str, **kwargs: Any) -> bool:
         codev_perform = CodevPerform.from_file(
             '.codev',
             configuration_name=configuration,
@@ -25,9 +25,9 @@ def codev_perform_options(func):
         required=True)(codev_perform_wrapper)
 
 
-def debug_option(func):
+def debug_option(func: Callable) -> Callable:
     @functools.wraps(func)
-    def debug_wrapper(debug, **kwargs):
+    def debug_wrapper(debug: List[Tuple[str, str]], **kwargs: Any) -> bool:
         if debug:
             DebugSettings.settings = DebugSettings(dict(debug))
 
@@ -42,9 +42,9 @@ def debug_option(func):
     )(debug_wrapper)
 
 
-def version_option(func):
+def version_option(func: Callable) -> Callable:
     @functools.wraps(func)
-    def version_wrapper(version, **kwargs):
+    def version_wrapper(version: bool, **kwargs: Any) -> bool:
         if version:
             click.echo(__version__)
 
@@ -57,8 +57,8 @@ def version_option(func):
     )(version_wrapper)
 
 
-def command(bool_exit=True, **kwargs):
-    def decorator(func):
+def command(bool_exit: bool = True, **kwargs: Any) -> Callable[[Callable], Callable]:
+    def decorator(func: Callable) -> Callable:
         func = codev_perform_options(func)
         func = nice_exception(func)
         func = path_option(func)
@@ -68,6 +68,5 @@ def command(bool_exit=True, **kwargs):
             func = bool_exit_enable(func)
         func = click.command()(func)
         return func
+
     return decorator
-
-

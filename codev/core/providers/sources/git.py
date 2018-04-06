@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Any
 
 from codev.core.executor import BareExecutor
 from codev.core.settings import BaseSettings
@@ -23,7 +23,7 @@ class GitSource(Source):
     provider_name = 'git'
     settings_class = GitSourceSettings
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
         if self.settings.version and self.option != self.settings.version:

@@ -1,7 +1,8 @@
-from typing import Iterable
+from typing import Iterable, Optional, Any
 
 from codev.core.settings import HasSettings
 from codev.core.utils import HasIdent, Status
+
 from .executor import ProxyExecutor
 from .provider import Provider
 
@@ -37,11 +38,11 @@ class Machine(Provider, BaseMachine):
     # def clone(self):
     #     raise NotImplementedError()
 
-    def __init__(self, *args, groups: Iterable = None, **kwargs) -> None:
+    def __init__(self, *args: Any, groups: Optional[Iterable[str]] = None, **kwargs: Any) -> None:
         self.groups = groups or []
         super().__init__(*args, **kwargs)
 
-    def ip(self):
+    def ip(self) -> Optional[str]:
         raise NotImplementedError
 
     def status(self) -> Status:

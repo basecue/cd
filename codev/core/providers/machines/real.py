@@ -1,4 +1,3 @@
-from codev.core.settings import BaseSettings
 from codev.core.machines import Machine
 
 
@@ -6,30 +5,30 @@ class RealMachine(Machine):
     provider_name = 'real'
     # settings_class = RealMachineSettings
 
-    def exists(self):
+    def exists(self) -> bool:
         return True
 
-    def is_started(self):
+    def is_started(self) -> bool:
         return True
 
-    def start(self):
+    def start(self) -> None:
         pass
 
-    def create(self, settings, ssh_key):
+    def create(self) -> None:
         pass
 
-    def destroy(self):
+    def destroy(self) -> None:
         pass
 
-    def stop(self):
+    def stop(self) -> None:
         pass
 
-    def install_packages(self, *packages):
+    def install_packages(self, *packages: str) -> None:
         # TODO use ssh executor
         pass
 
     @property
-    def ip(self):
+    def ip(self) -> str:
         # TODO rename to host
         # TODO this is workaround
         return self.ident

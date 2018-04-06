@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Any
 
 from .executor import HasExecutor, CommandError
 
@@ -15,7 +15,7 @@ class InstallerError(Exception):
 
 
 class Installer(HasExecutor):
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.__cache_packages = False
         self.__distribution: Optional[str] = None

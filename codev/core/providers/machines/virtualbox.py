@@ -158,7 +158,7 @@ class VirtualboxBaseMachine(BaseMachine):
     def vm_name(self) -> str:
         return self.ident.as_file()
 
-    def _download_ubuntu_iso(self, release: str, subtype='server', arch='amd64') -> str:
+    def _download_ubuntu_iso(self, release: str, subtype: str = 'server', arch: str = 'amd64') -> str:
         """
 
         :param release: It can be version number (17.10) or name (artful)
@@ -239,14 +239,14 @@ class VirtualboxBaseMachine(BaseMachine):
             username: str,
             password: str,
             hostname: str,
-            ip='',
-            gateway='',
-            nameserver='',
-            device_1='enp0s3',
-            device_2='enp0s8',
-            packages: Iterable[str] = None,
-            ssh_authorized_keys: Iterable[str] = None,
-            shares: Dict[str, str] = None
+            ip: str = '',
+            gateway: str = '',
+            nameserver: str = '',
+            device_1: str = 'enp0s3',
+            device_2: str = 'enp0s8',
+            packages: Optional[Iterable[str]] = None,
+            ssh_authorized_keys: Optional[Iterable[str]] = None,
+            shares: Optional[Dict[str, str]] = None
     ) -> None:
 
         packages = packages or []

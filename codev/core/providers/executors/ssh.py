@@ -1,4 +1,4 @@
-from typing import IO, Iterator, Optional, Dict
+from typing import IO, Optional, Dict, Iterator
 
 import contextlib
 import tempfile
@@ -35,7 +35,7 @@ class SSHExecutor(LocalExecutor):
     provider_name = 'ssh'
     settings_class = SSHExecutorSettings
 
-    def _format_options(self):
+    def _format_options(self) -> str:
         return ' '.join([
             f'-o {key}={value}' for key, value in self.settings.options.items()
         ])

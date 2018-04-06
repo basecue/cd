@@ -1,3 +1,5 @@
+from typing import Callable, Optional, Any, Tuple, List
+
 import functools
 
 import click
@@ -6,13 +8,13 @@ from colorama import Fore as color, Style as style
 from codev import __version__
 
 from codev.core.cli import nice_exception, path_option, bool_exit_enable
-from codev.core.utils import parse_options
+from codev.core.utils import parse_options, Status
 from codev.core.debug import DebugSettings
 
 from . import CodevControl
 
 
-def source_transition(codev_control_status):
+def source_transition(codev_control_status: Status) -> str:
     """
     """
     # TODO deploy vs destroy (different highlighted source in transition)
@@ -49,17 +51,17 @@ def source_transition(codev_control_status):
     )
 
 
-def confirmation_message(message):
-    def decorator(f):
+def confirmation_message(message: str) -> Callable[[Callable], Callable]:
+    def decorator(f: Callable) -> Callable:
         @functools.wraps(f)
-        def confirmation_wrapper(codev_control, force, **kwargs):
+        def confirmation_wrapper(codev_control: CodevControl, force: bool, **kwargs: Any) -> bool:
             if not force:
                 if not click.confirm(
-                    message.format(
-                        source_transition=source_transition(codev_control.status),
-                        configuration=codev_control.status.configuration.name
-                    ),
-                    **codev_control.status
+                        message.format(
+                            source_transition=source_transition(codev_control.status),
+                            configuration=codev_control.status.configuration.name
+                        ),
+                        **codev_control.status
                 ):
                     raise click.Abort()
             return f(codev_control, **kwargs)
@@ -74,14 +76,14 @@ def confirmation_message(message):
     return decorator
 
 
-def codev_control_options(func):
+def codev_control_options(func: Callable) -> Callable:
     @functools.wraps(func)
     def codev_control_wrapper(
-            configuration,
-            source,
-            next_source,
-            **kwargs):
-
+        configuration: str,
+        source: str,
+        next_source: str,
+        **kwargs: Any
+    ) -> bool:
         source_name, source_option = parse_options(source)
         next_source_name, next_source_option = parse_options(next_source)
 
@@ -113,9 +115,9 @@ def codev_control_options(func):
         help='Next source')(f)
 
 
-def debug_option(func):
+def debug_option(func: Callable) -> Callable:
     @functools.wraps(func)
-    def debug_wrapper(debug, debug_perform, **kwargs):
+    def debug_wrapper(debug: List[Tuple[str, str]], debug_perform: List[Tuple[str, str]], **kwargs: Any) -> bool:
         if debug:
             DebugSettings.settings = DebugSettings(dict(debug))
 
@@ -143,8 +145,12 @@ def debug_option(func):
     )
 
 
-def command(confirmation=None, bool_exit=True, **kwargs):
-    def decorator(func):
+def command(
+    confirmation: Optional[str] = None,
+    bool_exit: bool = True,
+    **kwargs: Any
+) -> Callable[[Callable], Callable]:
+    def decorator(func: Callable) -> Callable:
         if confirmation:
             func = confirmation_message(confirmation)(func)
         func = codev_control_options(func)
@@ -155,13 +161,14 @@ def command(confirmation=None, bool_exit=True, **kwargs):
             func = bool_exit_enable(func)
         func = main.command(**kwargs)(func)
         return func
+
     return decorator
 
 
 @click.group(invoke_without_command=True)
-@click.option('--version', is_flag=True,  help="Show version number and exit.")
+@click.option('--version', is_flag=True, help="Show version number and exit.")
 @click.pass_context
-def main(ctx, version):
+def main(ctx: click.Context, version: bool) -> None:
     if version:
         click.echo(__version__)
     elif not ctx.invoked_subcommand:

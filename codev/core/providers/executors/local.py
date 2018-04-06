@@ -1,4 +1,4 @@
-from typing import IO, Tuple
+from typing import IO, Tuple, Iterator, Optional, BinaryIO
 
 import contextlib
 import multiprocessing.pool
@@ -65,7 +65,7 @@ class LocalExecutor(Executor):
         subprocess.check_call(['cp', source, target])
 
     @contextlib.contextmanager
-    def open_file(self, remote_path: str) -> IO:
+    def open_file(self, remote_path: str) -> Iterator[IO]:
         remote_path = os.path.expanduser(remote_path)
         with open(remote_path) as fo:
             yield fo
@@ -74,7 +74,7 @@ class LocalExecutor(Executor):
 class OutputReader(object):
     thread_pool = multiprocessing.pool.ThreadPool(processes=2)
 
-    def __init__(self, stdout, stderr, output_logger=None):
+    def __init__(self, stdout: BinaryIO, stderr: BinaryIO, output_logger: Optional[logging.Logger] = None):
         self._stdout_output = []
         self._stderr_output = []
 
@@ -91,7 +91,7 @@ class OutputReader(object):
             args=(stderr,)
         )
 
-    def _reader(self, output, output_logger=None) -> str:
+    def _reader(self, output: BinaryIO, output_logger: Optional[logging.Logger] = None) -> str:
         output_lines = []
         while True:
             try:
